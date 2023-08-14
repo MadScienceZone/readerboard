@@ -8,7 +8,7 @@
  *  / /_ | || |__  _( _ ) 
  * | '_ \| || |\ \/ / _ \
  * | (_) |__   _>  < (_) |
-*  \___/   |_|/_/\_\___/ 
+ *  \___/   |_|/_/\_\___/ 
  *                        
  * Arduino Mega 2560 (or equiv.) firmware to drive
  * 64x7 (my older design) or (current) 64x8 matrix displays.
@@ -42,7 +42,7 @@
  *                                     10 FPS = 12.50 mS
  *                                      5 FPS = 25.00 mS
  */
-const int REFRESH_MS = 5;
+const int REFRESH_MS = 25;
 
 #if HW_MODEL == MODEL_LEGACY_64x7
 const int N_ROWS    = 7;    // number of rows on the display
@@ -75,6 +75,14 @@ const int PIN_REN   = A10;  // row output enable
 const int PIN_R0    = A8;   // row address bit 0
 const int PIN_R1    = A9;   // row address bit 1
 const int PIN_R2    = A11;  // row address bit 2
+const int PIN_L0    = 9;    // discrete LED L0 (white)
+const int PIN_L1    = 8;    // discrete LED L1 (blue)
+const int PIN_L2    = 7;    // discrete LED L2 (blue)
+const int PIN_L3    = 6;    // discrete LED L3 (red)
+const int PIN_L4    = 2;    // discrete LED L4 (red)
+const int PIN_L5    = 3;    // discrete LED L5 (yellow)
+const int PIN_L6    = 4;    // discrete LED L6 (yellow)
+const int PIN_L7    = 5;    // discrete LED L7 (green)
 # else
 #  error "HW_MODEL not set to supported hardware configuration"
 # endif
@@ -128,6 +136,22 @@ void setup_pins(void)
     digitalWrite(PIN_R0,     LOW);
     digitalWrite(PIN_R1,     LOW);
     digitalWrite(PIN_R2,     LOW);
+    pinMode(PIN_L0, OUTPUT);
+    pinMode(PIN_L1, OUTPUT);
+    pinMode(PIN_L2, OUTPUT);
+    pinMode(PIN_L3, OUTPUT);
+    pinMode(PIN_L4, OUTPUT);
+    pinMode(PIN_L5, OUTPUT);
+    pinMode(PIN_L6, OUTPUT);
+    pinMode(PIN_L7, OUTPUT);
+    digitalWrite(PIN_L0, LOW);
+    digitalWrite(PIN_L1, LOW);
+    digitalWrite(PIN_L2, LOW);
+    digitalWrite(PIN_L3, LOW);
+    digitalWrite(PIN_L4, LOW);
+    digitalWrite(PIN_L5, LOW);
+    digitalWrite(PIN_L6, LOW);
+    digitalWrite(PIN_L7, LOW);
 # else
 #  error "HW_MODEL not set to supported hardware configuration"
 # endif
@@ -143,11 +167,11 @@ byte hw_buffer[8 * N_ROWS];         // image to refresh onto hardware
 //
 void setup_buffers(void)
 {
-	for (int row=0; row<N_ROWS; row++) {
-		for (int col=0; col<8; col++) {
-			image_buffer[row*8 + col] = hw_buffer[row*8 + col] = 0;
-		}
-	}
+    for (int row=0; row<N_ROWS; row++) {
+        for (int col=0; col<8; col++) {
+            image_buffer[row*8 + col] = hw_buffer[row*8 + col] = 0;
+        }
+    }
 }
 
 //
@@ -158,7 +182,7 @@ void setup_buffers(void)
 void LED_row_off(void)
 {
 #if HW_MODEL == MODEL_LEGACY_64x7
-    MATRIX_DATA_PORT = 0;                       // PS0 PS1
+    MATRIX_DATA_PORT = 0;           // PS0 PS1
     digitalWrite(PIN_PS0, HIGH);    //  1   X
     digitalWrite(PIN_PS1, LOW);     //  1   0   idle
     digitalWrite(PIN_PS0, LOW);     //  0   0   gate 0 to turn off rows
@@ -192,7 +216,7 @@ void LED_row_on(int row, byte *buf)
         for (int i=0; i<8; i++) {
             MATRIX_DATA_PORT = buf[row*8+i];
             digitalWrite(PIN_PS0, HIGH);            // PS0 PS1
-     digitalWrite(PIN_PS1, HIGH);            //  1   1   shift data into columns
+            digitalWrite(PIN_PS1, HIGH);            //  1   1   shift data into columns
             digitalWrite(PIN_PS1, LOW);             //  1   0   idle
         }
         /* address row and turn on */
@@ -343,11 +367,49 @@ void copy_row_bits(unsigned int row, byte *src, byte *dst)
 //
 int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer)
 {
-//	FontMetrics glyph_info;
-  return 0;
+    byte l, s;
+    unsigned int o;
+
+    if (!get_font_metric_data(font, codepoint, &l, &s, &o)) {
+        return col;
+    }
+    for (byte i=0; i<l; i++) {
+        if (col+i < 64) {
+            byte bufcol = (col+i) / 8;
+            byte mask = 1 << (7 - ((col+i) % 8));
+            byte bits = get_font_bitmap_data(o+i);
+
+            for (byte row=0; row<N_ROWS; row++) {
+                if (bits & (1 << row)) {
+                    buffer[row*8+bufcol] |= mask;
+                }
+            }
+        }
+    }
+    return col+s;
 }
 
+//
+// flag_init()
+// flag_ready()
+//   Indicate status flags using the discrete LEDs
+//            01234567
+//     init   X------- initializing device (incl. waiting for UART)
+//     ready  -------- ready for operation
+//
+void flag_init(void)
+{
+#if HW_MODEL == MODEL_CURRENT_64x8
+    digitalWrite(PIN_L0, HIGH);
+#endif
+}
 
+void flag_ready(void)
+{
+#if HW_MODEL == MODEL_CURRENT_64x8
+    digitalWrite(PIN_L0, LOW);
+#endif
+}
 
 //
 // setup()
@@ -355,10 +417,12 @@ int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer)
 //
 void setup(void)
 {
-	Serial.begin(9600);
-	while (!Serial);
-	setup_pins();
-	setup_buffers();
+    setup_pins();
+    flag_init();
+    setup_buffers();
+    Serial.begin(9600);
+    while (!Serial);
+    flag_ready();
 }
 
 //
@@ -367,14 +431,14 @@ void setup(void)
 //
 void loop(void)
 {
-	unsigned long last_refresh = 0;
-	int cur_row = 0;
+    unsigned long last_refresh = 0;
+    int cur_row = 0;
 
-	/* update the display every REFRESH_MS milliseconds */
-	if (millis() - last_refresh >= REFRESH_MS) {
-		LED_row_off();
-		LED_row_on(cur_row, hw_buffer);
-		last_refresh = millis();
-		cur_row = (cur_row + 1) % N_ROWS;
-	}
+    /* update the display every REFRESH_MS milliseconds */
+    if (millis() - last_refresh >= REFRESH_MS) {
+        LED_row_off();
+        LED_row_on(cur_row, hw_buffer);
+        cur_row = (cur_row + 1) % N_ROWS;
+        last_refresh = millis();
+    }
 }
