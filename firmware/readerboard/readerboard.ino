@@ -8,13 +8,15 @@
  *  / /_ | || |__  _( _ ) 
  * | '_ \| || |\ \/ / _ \
  * | (_) |__   _>  < (_) |
- *  \___/   |_|/_/\_\___/ 
+*  \___/   |_|/_/\_\___/ 
  *                        
  * Arduino Mega 2560 (or equiv.) firmware to drive
  * 64x7 (my older design) or (current) 64x8 matrix displays.
  *
  * Steve Willoughby 2023
  */
+
+#include "fonts.h"
 
 /* Hardware model selected for this firmware.
  * The interface is similar enough to the older project I put together
@@ -24,13 +26,23 @@
  * selected hardware model. The two are not compatible.
  */
 
-#define MODEL_LEGACY_64x8 (0)
-#define MODEL_CURRENT_64x7 (1)
+#define MODEL_LEGACY_64x7 (0)
+#define MODEL_CURRENT_64x8 (1)
 #define HW_MODEL (MODEL_CURRENT_64x8)
 
 /* I/O port to use for full 8-bit write operations to the sign board */
 /* On the Mega 2560, PORTF<7:0> corresponds to <A7:A0> pins */
 #define MATRIX_DATA_PORT    PORTF   
+
+/* Refresh the display every REFRESH_MS milliseconds. For an 8-row
+ * display, an overall refresh rate of 30 FPS =  4.16 mS
+ *                                     25 FPS =  5.00 mS
+ *                                     20 FPS =  6.26 mS
+ *                                     15 FPS =  8.33 mS
+ *                                     10 FPS = 12.50 mS
+ *                                      5 FPS = 25.00 mS
+ */
+const int REFRESH_MS = 5;
 
 #if HW_MODEL == MODEL_LEGACY_64x7
 const int N_ROWS    = 7;    // number of rows on the display
@@ -126,6 +138,19 @@ byte image_buffer[8 * N_ROWS];      // image to render onto
 byte hw_buffer[8 * N_ROWS];         // image to refresh onto hardware
 
 //
+// setup_buffers()
+//   Initialize buffers to zero.
+//
+void setup_buffers(void)
+{
+	for (int row=0; row<N_ROWS; row++) {
+		for (int col=0; col<8; col++) {
+			image_buffer[row*8 + col] = hw_buffer[row*8 + col] = 0;
+		}
+	}
+}
+
+//
 // LED_row_off()
 //   During sign refresh cycle, this turns off the displayed row after the
 //   required length of time has elapsed.
@@ -139,7 +164,7 @@ void LED_row_off(void)
     digitalWrite(PIN_PS0, LOW);     //  0   0   gate 0 to turn off rows
     digitalWrite(PIN_PS0, HIGH);    //  1   0   idle
 #else                                   //            _____ _
-# if HW_MODEL == MODEL_CURRENT_64x8             // SRCLK RCLK SRCLR G REN
+# if HW_MODEL == MODEL_CURRENT_64x8     // SRCLK RCLK SRCLR G REN
     digitalWrite(PIN_RCLK, LOW);        //   X     0    X   X  X
     digitalWrite(PIN_SRCLK, LOW);       //   0     0    X   X  X    
     digitalWrite(PIN__SRCLR, HIGH);     //   0     0    1   X  X
@@ -167,7 +192,7 @@ void LED_row_on(int row, byte *buf)
         for (int i=0; i<8; i++) {
             MATRIX_DATA_PORT = buf[row*8+i];
             digitalWrite(PIN_PS0, HIGH);            // PS0 PS1
-            digitalWrite(PIN_PS1, HIGH);            //  1   1   shift data into columns
+     digitalWrite(PIN_PS1, HIGH);            //  1   1   shift data into columns
             digitalWrite(PIN_PS1, LOW);             //  1   0   idle
         }
         /* address row and turn on */
@@ -177,7 +202,6 @@ void LED_row_on(int row, byte *buf)
 #else
 # if HW_MODEL == MODEL_CURRENT_64x8
     /* shift out columns */
-    MATRIX_DATA_PORT = buf[row*8+i];    //            _____ _
     digitalWrite(PIN__G, HIGH);         // SRCLK RCLK SRCLR G REN
     digitalWrite(PIN__SRCLR, LOW);      //   X     X    0   1  X
     digitalWrite(PIN_REN, LOW);         //   X     X    0   1  0    reset, all off
@@ -307,4 +331,50 @@ void copy_row_bits(unsigned int row, byte *src, byte *dst)
          | ((s[COL_BLK_5] & 0x80) >> 5)
          | ((s[COL_BLK_6] & 0x80) >> 6)
          | ((s[COL_BLK_7] & 0x80) >> 7);
+}
+
+//
+// draw_character(col, font, codepoint, buffer) -> col'
+//   Given a codepoint in a font, set the bits in the buffer for the pixels
+//   of that character glyph, and return the starting column position for
+//   the next character. 
+//
+//   If there is no such font or codepoint, nothing is done.
+//
+int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer)
+{
+//	FontMetrics glyph_info;
+  return 0;
+}
+
+
+
+//
+// setup()
+//   Called after reboot to set up the device.
+//
+void setup(void)
+{
+	Serial.begin(9600);
+	while (!Serial);
+	setup_pins();
+	setup_buffers();
+}
+
+//
+// loop()
+//   Main loop of the firmware
+//
+void loop(void)
+{
+	unsigned long last_refresh = 0;
+	int cur_row = 0;
+
+	/* update the display every REFRESH_MS milliseconds */
+	if (millis() - last_refresh >= REFRESH_MS) {
+		LED_row_off();
+		LED_row_on(cur_row, hw_buffer);
+		last_refresh = millis();
+		cur_row = (cur_row + 1) % N_ROWS;
+	}
 }

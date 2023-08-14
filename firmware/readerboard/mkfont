@@ -54,6 +54,7 @@ bitmap_data = []
 char_breaks = []
 default_glyph = None
 
+print('#include "fonts.h"')
 print('/* Generated font data')
 for font_id, font_source in enumerate(sys.argv[1:]):
     print(f' *   Font #{font_id} generated from {font_source}')
@@ -153,26 +154,36 @@ print(' */')
 print(f'''
 /* font definitions */
 const int N_FONTS = {len(font_data)};
-typedef struct {{
-    byte length;
-    byte space;
-    word offset;
-}} FontMetrics;
 
-word FontMaxCodepoint[N_FONTS] = {{{', '.join([str(max(f.keys())) for f in font_data])}}};
+const word FontMaxCodepoint[N_FONTS] = {{{', '.join([str(max(f.keys())) for f in font_data])}}};
 
-FontMetrics[N_FONTS][] = {{''')
+''')
+
+glyph_lengths = []
+glyph_spaces = []
+glyph_offsets = []
+
 for font_id, font in enumerate(font_data):
-    print(' {')
+    font_lengths = []
+    font_spaces = []
+    font_offsets = []
+
+    #print(f'const PROGMEM FontMetrics GlyphMetricDataFont{font_id}[{max(font_data[font_id].keys())+1}] = {{')
     last_codepoint = -1
     for codepoint in sorted(font):
         metric = font[codepoint]
         while codepoint > last_codepoint+1:
             last_codepoint += 1
             if default_glyph is None:
-                print(f'  {{0,  0,     0}}, // {font_id} {last_codepoint:03d} ${last_codepoint:02X} <undefined>')
+                font_lengths.append(0)
+                font_spaces.append(0)
+                font_offsets.append(0)
+                #print(f'  {{0,  0,     0}}, // {font_id} {last_codepoint:03d} ${last_codepoint:02X} <undefined>')
             else:
-                print(f'  {{{default_glyph.width}, {default_glyph.space:2d}, {default_glyph.offset:5d}}}, // {font_id} {last_codepoint:03d} ${last_codepoint:02X} <undefined>')
+                font_lengths.append(default_glyph.width)
+                font_spaces.append(default_glyph.space)
+                font_offsets.append(default_glyph.offset)
+                #print(f'  {{{default_glyph.width}, {default_glyph.space:2d}, {default_glyph.offset:5d}}}, // {font_id} {last_codepoint:03d} ${last_codepoint:02X} <undefined>')
         last_codepoint = codepoint
 
         include_break = True
@@ -188,20 +199,61 @@ for font_id, font in enumerate(font_data):
             metric = af[metric.alias_for]
 
         if metric.width == 0:
-            print(f'  {{0, {metric.space:2d},     0}}, // {font_id} {codepoint:03d} ${codepoint:02X} {metric.name}')
+            font_lengths.append(0)
+            font_spaces.append(metric.space)
+            font_offsets.append(0)
+            #print(f'  {{0, {metric.space:2d},     0}}, // {font_id} {codepoint:03d} ${codepoint:02X} {metric.name}')
         else:
-            print(f'  {{{metric.width}, {metric.space:2d}, {metric.offset:5d}}}, // {font_id} {codepoint:03d} ${codepoint:02X} {metric.name}')
+            font_lengths.append(metric.width)
+            font_spaces.append(metric.space)
+            font_offsets.append(metric.offset)
+            #print(f'  {{{metric.width}, {metric.space:2d}, {metric.offset:5d}}}, // {font_id} {codepoint:03d} ${codepoint:02X} {metric.name}')
         if metric.offset > 0 and metric.width and metric.alias_for is None:
             if include_break:
                 char_breaks.append(metric.offset)
-    print(' },')
-print('};')
+    #print('};')
+    glyph_lengths.append(font_lengths)
+    glyph_spaces.append(font_spaces)
+    glyph_offsets.append(font_offsets)
+
+if len(glyph_lengths) != len(glyph_spaces) or len(glyph_spaces) != len(glyph_offsets):
+    raise ValueError('inconsistent glyph array lengths! BUG!!')
+
+for font_id, fgl in enumerate(glyph_lengths):
+    print(f'const PROGMEM byte GlyphMetricDataFont{font_id}Lengths[{len(fgl)}] = {{')
+    for li, l in enumerate(fgl):
+        if li > 0 and li % 20 == 0:
+            print()
+        print(f'{l:2d}, ', end='')
+    print('};')
+
+for font_id, fgs in enumerate(glyph_spaces):
+    print(f'const PROGMEM byte GlyphMetricDataFont{font_id}Spaces[{len(fgs)}] = {{')
+    for li, l in enumerate(fgs):
+        if li > 0 and li % 20 == 0:
+            print()
+        print(f'{l:2d}, ', end='')
+    print('};')
+
+for font_id, fgo in enumerate(glyph_offsets):
+    print(f'const PROGMEM word GlyphMetricDataFont{font_id}Offsets[{len(fgo)}] = {{')
+    for li, l in enumerate(fgo):
+        if li > 0 and li % 10 == 0:
+            print()
+        print(f'{l:5d}, ', end='')
+    print('};')
+
+#print(f'const PROGMEM FontMetrics * const GlyphMetricData[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}" for i in range(len(font_data))])}}};')
+print(f'const byte * const GlyphMetricDataLengths[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Lengths" for i in range(len(font_data))])}}};')
+print(f'const byte * const GlyphMetricDataSpaces[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Spaces" for i in range(len(font_data))])}}};')
+print(f'const word * const GlyphMetricDataOffsets[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Offsets" for i in range(len(font_data))])}}};')
+
 if default_glyph is not None and default_glyph.offset != 0:
     char_breaks.append(default_glyph.offset)
 char_breaks.append(len(bitmap_data))
 
 print('/* font bitmap data */')
-print(f'byte CharacterBitmap[{len(bitmap_data)}] = {{')
+print(f'const PROGMEM byte CharacterBitmap[{len(bitmap_data)}] = {{')
 start_pos = 0
 for break_pos in sorted(char_breaks):
     print(' ' + ' '.join([f'0x{b:02X},' for b in bitmap_data[start_pos:break_pos]]))
@@ -216,3 +268,25 @@ for break_pos in sorted(char_breaks):
         print()
     start_pos = break_pos
 print('};')
+print(f'''
+
+bool get_font_metric_data(byte font, byte codepoint, byte *leng, byte *space, unsigned int *offset)
+{{
+    if (font >= N_FONTS || codepoint > FontMaxCodepoint[font]
+    || leng == NULL || space == NULL || offset == NULL)
+        return false;
+
+    *leng = pgm_read_byte_far(GlyphMetricDataLengths[font] + codepoint);
+    *space = pgm_read_byte_far(GlyphMetricDataSpaces[font]  + codepoint);
+    *offset = (unsigned int) pgm_read_word_far(GlyphMetricDataOffsets[font] + codepoint);
+
+    return true;
+}} 
+
+byte get_font_bitmap_data(unsigned int offset) 
+{{
+    if (offset < 0 || offset >= {len(bitmap_data)})
+        return 0;
+    return pgm_read_byte_far(CharacterBitmap + offset);
+}}
+''')
