@@ -1,0 +1,218 @@
+#!/usr/bin/python3
+#
+# Usage: ./mkfont fontfile0 fontfile1 ... > fonts.ino
+#
+# The source data for each font has the form:
+# [<codepoint> <name>]
+# ..@@@@...@|
+# ..@@@@...@|   .=0 @=1 |=inter-character space
+# ..@@@@...@|
+#
+# Columns containing |s must consist of nothing but | and all columns
+# to the right must also be just | columns. These indicate how much
+# inter-character space to make after the character when it's printed
+# but those columns are NOT stored in the bitmap array.  A column of
+# just .s would display as a blank column but WILL be stored as 0s in
+# the bitmap array.
+#
+# or
+#
+# ->codepoint
+# to reuse another glyph in this position too. (The bitmap is not
+# stored again; this code position in this font will simply point
+# to the other character's bitmap.)
+#
+# ->codepoint,fontID
+# allows you to reuse a glyph from another font.
+#
+# If a character starts with
+# [default]
+# then the glyph will be used for all undefined character positions
+# within the font's defined range of codepoints [0,max]
+#
+# Steve Willoughby 2023
+
+import re
+import sys
+
+class FontMetric:
+    def __init__(self, codepoint, name, offset, width=None, space=None):
+        self.codepoint = codepoint
+        self.name = name
+        self.offset = offset
+        self.space = space
+        self.width = width
+        self.alias_for = None
+        self.alias_font = None
+
+    def set_alias(self, alias_for, alias_font=None):
+        self.alias_for = alias_for
+        self.alias_font = alias_font
+
+font_data = []
+bitmap_data = []
+char_breaks = []
+default_glyph = None
+
+print('/* Generated font data')
+for font_id, font_source in enumerate(sys.argv[1:]):
+    print(f' *   Font #{font_id} generated from {font_source}')
+    metric_data = {}
+    with open(font_source) as src:
+        for line in src:
+            if not line.strip():
+                continue
+
+            if re.match(r'^\s*;', line):
+                continue
+
+            if line.strip() == '[default]':
+                if default_glyph is not None:
+                    raise ValueError(f"default glyph defined multiple times in font {font_id} ({font_source})")
+                default_glyph = this_metric = FontMetric(None, "default glyph", len(bitmap_data))
+                char_width = None
+                codepoint = None
+                charname = "default glyph"
+                continue
+
+            if m := re.match(r'^\s*\[(?:\$([0-9a-fA-F]{1,2})|(\d+))(.*)\]\s*$', line):
+                if m.group(1):
+                    codepoint = int(m.group(1), 16)
+                elif m.group(2):
+                    codepoint = int(m.group(2))
+                else:
+                    raise ValueError(f"missing or invalid codepoint in font {font_id} ({font_source}); must be $<hex> or <decimal>")
+
+                charname = m.group(3).strip()
+                if codepoint in metric_data:
+                    raise ValueError(f"duplicate entry for codepoint {codepoint} ({charname}) in font {font_id} ({font_source})")
+
+                metric_data[codepoint] = this_metric = FontMetric(codepoint, charname, len(bitmap_data))
+                char_width = None
+                continue
+
+            if not metric_data and default_glyph is None:
+                raise ValueError("character definition before any character started")
+
+            if m := re.match(r'^\s*->\s*(?:\$([0-9a-fA-F]{1,2})|(\d+))(?:,\s*(\d+))?\s*$', line):
+                if m.group(1):
+                    codepoint = int(m.group(1), 16)
+                elif m.group(2):
+                    codepoint = int(m.group(2))
+                else:
+                    raise ValueError(f"missing or invalid alias codepoint in font {font_id} ({font_source}); must be $<hex> or <decimal>")
+                if this_metric.alias_for is not None:
+                    raise ValueError(f"multiple aliases given for codepoint {codepoint} ({charname}) in font {font_id} ({font_source})")
+                if this_metric.space is not None:
+                    raise ValueError(f"alias and character bitmap given for codepoint {codepoint} ({charname}) in font {font_id} ({font_source})")
+
+                if m.group(3):
+                    this_metric.set_alias(codepoint, int(m.group(3)))
+                else:
+                    this_metric.set_alias(codepoint)
+                continue
+
+            if this_metric.alias_for is not None:
+                raise ValueError(f"alias and character bitmap given for codepoint {codepoint} ({charname}) in font {font_id} ({font_source})")
+
+            line = re.sub(r'[^.@|]', '', line)
+            if this_metric.space is None:
+                char_width = this_metric.space = len(line)
+                this_bit = 0x01
+                for pos, symbol in enumerate(line):
+                    if symbol == '|':
+                        char_width = pos
+                        break
+                bitmap_data.extend([0]*char_width)
+                this_metric.width = char_width
+
+            elif len(line) != this_metric.space:
+                raise ValueError(f"inconsistent character width in font {font_id} ({font_source}), character {codepoint} ({charname})")
+
+            else:
+                this_bit <<= 1
+                if this_bit > 0x80:
+                    raise ValueError(f"too many rows in font {font_id} ({font_source}), character {codepoint} ({charname})")
+
+            for pos, symbol in enumerate(line):
+                if symbol == '|':
+                    if pos < char_width:
+                        raise ValueError(f"unexpected '|' at position {pos} in font {font_id} ({font_source}), character {codepoint} ({charname})")
+                else:
+                    if pos >= char_width:
+                        if pos >= this_metric.space:
+                            raise ValueError(f"too many bits in font {font_id} ({font_source}), character {codepoint} ({charname})")
+                        raise ValueError(f"unexpected bit (expected '|') at position {pos} in font {font_id} ({font_source}), character {codepoint} ({charname})")
+                    if symbol == '@':
+                        bitmap_data[this_metric.offset+pos] |= this_bit
+                    elif symbol != '.':
+                        raise ValueError(f"unexpected bit symbol '{symbol}' at position {pos} in font {font_id} ({font_source}), character {codepoint} ({charname})")
+    font_data.append(metric_data)
+print(' */')
+
+print(f'''
+/* font definitions */
+const int N_FONTS = {len(font_data)};
+typedef struct {{
+    byte length;
+    byte space;
+    word offset;
+}} FontMetrics;
+
+word FontMaxCodepoint[N_FONTS] = {{{', '.join([str(max(f.keys())) for f in font_data])}}};
+
+FontMetrics[N_FONTS][] = {{''')
+for font_id, font in enumerate(font_data):
+    print(' {')
+    last_codepoint = -1
+    for codepoint in sorted(font):
+        metric = font[codepoint]
+        while codepoint > last_codepoint+1:
+            last_codepoint += 1
+            if default_glyph is None:
+                print(f'  {{0,  0,     0}}, // {font_id} {last_codepoint:03d} ${last_codepoint:02X} <undefined>')
+            else:
+                print(f'  {{{default_glyph.width}, {default_glyph.space:2d}, {default_glyph.offset:5d}}}, // {font_id} {last_codepoint:03d} ${last_codepoint:02X} <undefined>')
+        last_codepoint = codepoint
+
+        include_break = True
+        while metric.alias_for is not None:
+            include_break = False
+            if metric.alias_font is None:
+                af = font
+            else:
+                af = font_data[metric.alias_font]
+
+            if metric.alias_for not in af:
+                raise ValueError(f"codepoint {codepoint} ({metric.name}) in font {font_id} aliased to codepoint {metric.alias_for} which does not exist")
+            metric = af[metric.alias_for]
+
+        if metric.width == 0:
+            print(f'  {{0, {metric.space:2d},     0}}, // {font_id} {codepoint:03d} ${codepoint:02X} {metric.name}')
+        else:
+            print(f'  {{{metric.width}, {metric.space:2d}, {metric.offset:5d}}}, // {font_id} {codepoint:03d} ${codepoint:02X} {metric.name}')
+        if metric.offset > 0 and metric.width and metric.alias_for is None:
+            if include_break:
+                char_breaks.append(metric.offset)
+    print(' },')
+print('};')
+if default_glyph is not None and default_glyph.offset != 0:
+    char_breaks.append(default_glyph.offset)
+char_breaks.append(len(bitmap_data))
+
+print('/* font bitmap data */')
+print(f'byte CharacterBitmap[{len(bitmap_data)}] = {{')
+start_pos = 0
+for break_pos in sorted(char_breaks):
+    print(' ' + ' '.join([f'0x{b:02X},' for b in bitmap_data[start_pos:break_pos]]))
+    print(' '*40, f'// {start_pos} - {break_pos-1}')
+    for bit in range(8):
+        print(' '*40, '//     ', end='')
+        for col in bitmap_data[start_pos:break_pos]:
+            if col & (1 << bit) :
+                print('@', end='')
+            else:
+                print('.', end='')
+        print()
+    start_pos = break_pos
+print('};')
