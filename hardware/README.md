@@ -1,6 +1,7 @@
 # Readerboard Hardware Files
 ## Schematic Capture Files
  * Prepared in kicad `matrix64x8/matrix64x8.kicad_sch` 
+ * `matrix64x8_schematic.pdf` PDF file of schematic (display and shield boards).
 
 ## Ready-for-fab PCB Gerber Files
  * Prepared using gEDA PCB (because I only just started using kicad after I already made these):
