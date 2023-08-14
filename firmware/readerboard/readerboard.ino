@@ -16,7 +16,10 @@
  * Steve Willoughby 2023
  */
 
+#include <TimerEvent.h>
 #include "fonts.h"
+#include "commands.h"
+#include "readerboard.h"
 
 /* Hardware model selected for this firmware.
  * The interface is similar enough to the older project I put together
@@ -111,7 +114,7 @@ void setup_pins(void)
     pinMode(PIN_D6, OUTPUT);
     pinMode(PIN_D7, OUTPUT);
 #if HW_MODEL == MODEL_LEGACY_64x7
-    pinMode(PIN_PS0, OUTPUT);
+pinMode(PIN_PS0, OUTPUT);
     pinMode(PIN_PS1, OUTPUT);
     digitalWrite(PIN_PS0, LOW);     // PS0 PS1
     digitalWrite(PIN_PS1, HIGH);    //  0   1   RESET
@@ -137,7 +140,7 @@ void setup_pins(void)
     digitalWrite(PIN_R1,     LOW);
     digitalWrite(PIN_R2,     LOW);
     pinMode(PIN_L0, OUTPUT);
-    pinMode(PIN_L1, OUTPUT);
+pinMode(PIN_L1, OUTPUT);
     pinMode(PIN_L2, OUTPUT);
     pinMode(PIN_L3, OUTPUT);
     pinMode(PIN_L4, OUTPUT);
@@ -389,6 +392,138 @@ int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer)
     return col+s;
 }
 
+class LightBlinker {
+	unsigned int on_period;
+	unsigned int off_period;
+	bool         cur_state;
+	byte         cur_index;
+	byte         sequence_length;
+	byte         sequence[LED_SEQUENCE_LEN];
+	TimerEvent   timer;
+
+public:
+	LightBlinker(unsigned int on, unsigned int off, void (*callback)(void));
+	void update(void);
+	void stop(void);
+	void append(byte);
+	int  length(void);
+	void advance(void);
+	void start(void);
+	void report_state(void);
+};
+
+LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
+{
+	timer.set(0, callback);
+	timer.disable();
+	cur_state = false;
+	cur_index = 0;
+	sequence_length = 0;
+	on_period = on;
+	off_period = off;
+}
+
+int LightBlinker::length(void)
+{
+	return sequence_length;
+}
+
+void LightBlinker::append(byte v)
+{
+	if (sequence_length < LED_SEQUENCE_LEN) {
+		sequence[sequence_length++] = v;
+	}
+}
+
+void LightBlinker::report_state(void)
+{
+	int i = 0;
+	Serial.write(cur_state ? '1' : '0');
+	if (sequence_length > 0) {
+		Serial.write(cur_index + '0');
+		Serial.write('@');
+		for (i = 0; i < sequence_length; i++) {
+			Serial.write(sequence[i] + '0');
+		}
+	}
+	else {
+		Serial.write('X');
+	}
+}
+
+void LightBlinker::advance(void)
+{
+	if (sequence_length < 2) {
+		if (cur_state) {
+			// XXX turn off L[sequence[0]]
+			cur_state = false;
+			if (off_period > 0)
+				timer.setPeriod(off_period);
+		}
+		else {
+			// XXX turn on L[sequence[0]]
+			cur_state = true;
+			if (off_period > 0)
+				timer.setPeriod(on_period);
+		}
+		return;
+	}
+
+	if (sequence_length > LED_SEQUENCE_LEN)
+		sequence_length = LED_SEQUENCE_LEN;
+	
+	if (off_period == 0) {
+		cur_state = true;
+		// XXX turn off L[sequence[cur_index]]
+		cur_index = (cur_index + 1) % sequence_length;
+		// XXX turn on L[sequence[cur_index]]
+	}
+	else {
+		if (cur_state) {
+			// XXX turn off L[sequence[cur_index]]
+			timer.setPeriod(off_period);
+			cur_state = false;
+		}
+		else {
+			cur_index = (cur_index + 1) % sequence_length;
+			// XXX turn on L[sequence[cur_index]]
+			timer.setPeriod(on_period);
+			cur_state = true;
+		}
+	}
+}
+
+void LightBlinker::update(void)
+{
+	timer.update();
+}
+
+void LightBlinker::stop(void)
+{
+	timer.disable();
+	sequence_length = 0;
+}
+
+void LightBlinker::start(void)
+{
+	if (sequence_length > 0) {
+		cur_index = 0;
+		cur_state = true;
+		// XXX turn on L[sequence[0]]
+		timer.reset();
+		timer.setPeriod(on_period);
+		timer.enable();
+	}
+	else {
+		stop();
+	}
+}
+
+void flash_lights(void); // XXX
+void strobe_lights(void); // XXX
+LightBlinker flasher(200, 0, flash_lights);
+LightBlinker strober(50,2000, strobe_lights);
+
 //
 // flag_init()
 // flag_ready()
@@ -419,9 +554,15 @@ void setup(void)
 {
     setup_pins();
     flag_init();
+
+	flasher.stop();
+	strober.stop();
+	setup_commands();
     setup_buffers();
+
     Serial.begin(9600);
     while (!Serial);
+
     flag_ready();
 }
 
@@ -441,4 +582,13 @@ void loop(void)
         cur_row = (cur_row + 1) % N_ROWS;
         last_refresh = millis();
     }
+
+	/* flash/strobe discrete LEDs as needed */
+	flasher.update();
+	strober.update();
+
+	/* receive commands via serial port */
+	if (Serial.available() > 0) {
+		receive_serial_data();
+	}
 }
