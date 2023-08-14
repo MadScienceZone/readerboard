@@ -16,19 +16,23 @@
  * Steve Willoughby 2023
  */
 
-/*
-** INITIAL SKETCH-OUT OF IDEAS - NOT YET COMPLETE OR TESTED
-*/
+/* Hardware model selected for this firmware.
+ * The interface is similar enough to the older project I put together
+ * out of salvaged and spare parts which made a 7-row display that we
+ * can support that as well as the newer 8-row display. Set HW_MODEL
+ * to the desired hardware. Be sure to use the correct shield for the
+ * selected hardware model. The two are not compatible.
+ */
 
-#define MODEL_64x8 (0)
-#define MODEL_64x7 (1)
-#define HW_MODEL (MODEL_64x7)
+#define MODEL_LEGACY_64x8 (0)
+#define MODEL_CURRENT_64x7 (1)
+#define HW_MODEL (MODEL_CURRENT_64x8)
 
 /* I/O port to use for full 8-bit write operations to the sign board */
 /* On the Mega 2560, PORTF<7:0> corresponds to <A7:A0> pins */
 #define MATRIX_DATA_PORT    PORTF   
 
-#if HW_MODEL == MODEL_64x7
+#if HW_MODEL == MODEL_LEGACY_64x7
 const int N_ROWS    = 7;    // number of rows on the display
 const int COL_BLK_0 = 0;    // leftmost column block is MSB
 const int COL_BLK_1 = 1;    //                |
@@ -41,7 +45,7 @@ const int COL_BLK_7 = 7;    // rightmost column block is LSB
 const int PIN_PS0   = A8;   // control line PS0
 const int PIN_PS1   = A9;   // control line PS1
 #else
-# if HW_MODEL == MODEL_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8
 const int N_ROWS    = 8;    // number of rows on the display
 const int COL_BLK_7 = 0;    // rightmost column block is MSB byte
 const int COL_BLK_6 = 1;    //                |
@@ -72,6 +76,10 @@ const int PIN_D5    = A5;   // column data bit 5
 const int PIN_D6    = A6;   // column data bit 6
 const int PIN_D7    = A7;   // column data bit 7
 
+//
+// setup_pins()
+//   Setup the I/O pin modes and initialize the sign hardware.
+//
 void setup_pins(void)
 {
     pinMode(PIN_D0, OUTPUT);
@@ -82,7 +90,7 @@ void setup_pins(void)
     pinMode(PIN_D5, OUTPUT);
     pinMode(PIN_D6, OUTPUT);
     pinMode(PIN_D7, OUTPUT);
-#if HW_MODEL == MODEL_64x7
+#if HW_MODEL == MODEL_LEGACY_64x7
     pinMode(PIN_PS0, OUTPUT);
     pinMode(PIN_PS1, OUTPUT);
     digitalWrite(PIN_PS0, LOW);     // PS0 PS1
@@ -90,7 +98,7 @@ void setup_pins(void)
     digitalWrite(PIN_PS0, HIGH);    //  1   1   (shift)
     digitalWrite(PIN_PS1, LOW);     //  1   0   IDLE
 #else
-# if HW_MODEL == MODEL_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8
     pinMode(PIN_SRCLK,  OUTPUT);
     pinMode(PIN_RCLK,   OUTPUT);
     pinMode(PIN__G,     OUTPUT);
@@ -112,20 +120,26 @@ void setup_pins(void)
 #  error "HW_MODEL not set to supported hardware configuration"
 # endif
 #endif
+}
 
 byte image_buffer[8 * N_ROWS];      // image to render onto
 byte hw_buffer[8 * N_ROWS];         // image to refresh onto hardware
 
+//
+// LED_row_off()
+//   During sign refresh cycle, this turns off the displayed row after the
+//   required length of time has elapsed.
+//
 void LED_row_off(void)
 {
-#if HW_MODEL == MODEL_64x7
+#if HW_MODEL == MODEL_LEGACY_64x7
     MATRIX_DATA_PORT = 0;                       // PS0 PS1
     digitalWrite(PIN_PS0, HIGH);    //  1   X
     digitalWrite(PIN_PS1, LOW);     //  1   0   idle
     digitalWrite(PIN_PS0, LOW);     //  0   0   gate 0 to turn off rows
     digitalWrite(PIN_PS0, HIGH);    //  1   0   idle
 #else                                   //            _____ _
-# if HW_MODEL == MODEL_64x8             // SRCLK RCLK SRCLR G REN
+# if HW_MODEL == MODEL_CURRENT_64x8             // SRCLK RCLK SRCLR G REN
     digitalWrite(PIN_RCLK, LOW);        //   X     0    X   X  X
     digitalWrite(PIN_SRCLK, LOW);       //   0     0    X   X  X    
     digitalWrite(PIN__SRCLR, HIGH);     //   0     0    1   X  X
@@ -137,25 +151,33 @@ void LED_row_off(void)
 #endif
 }
 
+//
+// LED_row_on(row, buf)
+//   During sign refresh cycle, this turns on the displayed row by
+//   sending it the column data stored in the hardware refresh buffer
+//   pointed to by buf, with the specified row number (0=top row
+//   and 7=bottom row for the current board. On the legacy board,
+//   there is no row 0 so the rows are numbered 1-7 top to bottom).
+//
 void LED_row_on(int row, byte *buf)
 {
-#if HW_MODEL == MODEL_64x7
+#if HW_MODEL == MODEL_LEGACY_64x7
     /* shift out columns */
     if (row > 0) {
         for (int i=0; i<8; i++) {
             MATRIX_DATA_PORT = buf[row*8+i];
-            digitalWrite(PIN_PS0, HIGH);    // PS0 PS1
-            digitalWrite(PIN_PS1, HIGH);    //  1   1   shift data into columns
-            digitalWrite(PIN_PS1, LOW);     //  1   0   idle
+            digitalWrite(PIN_PS0, HIGH);            // PS0 PS1
+            digitalWrite(PIN_PS1, HIGH);            //  1   1   shift data into columns
+            digitalWrite(PIN_PS1, LOW);             //  1   0   idle
         }
         /* address row and turn on */
         MATRIX_DATA_PORT = ((row+1) << 5) & 0xe0;   // PS0 PS1
-        digitalWrite(PIN_PS0, LOW);     //  0   0   show row
+        digitalWrite(PIN_PS0, LOW);                 //  0   0   show row
     }
 #else
-# if HW_MODEL == MODEL_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8
     /* shift out columns */
-    MATRIX_DATA_PORT = buf[row*8+i];                //            _____ _
+    MATRIX_DATA_PORT = buf[row*8+i];    //            _____ _
     digitalWrite(PIN__G, HIGH);         // SRCLK RCLK SRCLR G REN
     digitalWrite(PIN__SRCLR, LOW);      //   X     X    0   1  X
     digitalWrite(PIN_REN, LOW);         //   X     X    0   1  0    reset, all off
@@ -181,6 +203,11 @@ void LED_row_on(int row, byte *buf)
 #endif
 }
 
+//
+// copy_all_rows(src, dst)
+//   Copies all rows of data from the image buffer to the hardware buffer
+//   as described for copy_row_bits()
+//
 void copy_all_rows(byte *src, byte *dst)
 {
     for (int i = 0; i < N_ROWS; i++) {
@@ -188,16 +215,22 @@ void copy_all_rows(byte *src, byte *dst)
     }
 }
 
-/* copy a single row of matrix data from src to dst.
- * src is arranged as the matrix is physically viewed:
- * | byte 0 | byte 1 | ... | byte 7 |
- * |76543210|76543210| ... |76543210|
- *  ^_leftmost pixel     rightmost_^
- *
- * dst is arranged as expected by the hardware so that the
- * bytes can be directly output during refresh.
- */
-
+//
+// copy_row_bits(row, src, dst)
+//   Copy a single row of matrix data from src to dst.
+//   src is the image buffer we use for rendering what will
+//   be displayed. It is arranged as the matrix is physically viewed:
+//   | byte 0 | byte 1 | ... | byte 7 |
+//   |76543210|76543210| ... |76543210|
+//    ^_leftmost pixel     rightmost_^
+//
+//   dst is the hardware refresh buffer. It is arranged as expected 
+//   by the hardware so that the bytes can be directly output during refresh.
+//
+//   The different hardware models arrange the column bits in a
+//   different order, hence the COL_BLK_x defined symbols which
+//   are hardware-dependent.
+//
 void copy_row_bits(unsigned int row, byte *src, byte *dst)
 {
     byte *d = dst + row * 8;
