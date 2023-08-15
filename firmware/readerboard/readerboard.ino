@@ -86,6 +86,7 @@ const int PIN_L4    = 2;    // discrete LED L4 (red)
 const int PIN_L5    = 3;    // discrete LED L5 (yellow)
 const int PIN_L6    = 4;    // discrete LED L6 (yellow)
 const int PIN_L7    = 5;    // discrete LED L7 (green)
+const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
 # else
 #  error "HW_MODEL not set to supported hardware configuration"
 # endif
@@ -361,14 +362,14 @@ void copy_row_bits(unsigned int row, byte *src, byte *dst)
 }
 
 //
-// draw_character(col, font, codepoint, buffer) -> col'
+// draw_character(col, font, codepoint, buffer, mergep=false) -> col'
 //   Given a codepoint in a font, set the bits in the buffer for the pixels
 //   of that character glyph, and return the starting column position for
 //   the next character. 
 //
 //   If there is no such font or codepoint, nothing is done.
 //
-int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer)
+int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer, bool mergep=false)
 {
     byte l, s;
     unsigned int o;
@@ -378,20 +379,58 @@ int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer)
     }
     for (byte i=0; i<l; i++) {
         if (col+i < 64) {
-            byte bufcol = (col+i) / 8;
-            byte mask = 1 << (7 - ((col+i) % 8));
-            byte bits = get_font_bitmap_data(o+i);
-
-            for (byte row=0; row<N_ROWS; row++) {
-                if (bits & (1 << row)) {
-                    buffer[row*8+bufcol] |= mask;
-                }
-            }
+			draw_column(col+i, get_font_bitmap_data(o+i), mergep, buffer);
         }
     }
     return col+s;
 }
 
+//
+// draw_column(col, bits, mergep, buffer)
+//   Draw bits (LSB=top) onto the specified buffer column. If mergep is true,
+//   merge with existing pixels instead of overwriting them.
+//
+void draw_column(byte col, byte bits, bool mergep, byte *buffer)
+{
+	if (col < 64) {
+		byte bufcol = col / 8;
+		byte mask = 1 << (7 - (col % 8));
+
+		for (byte row=0; row<N_ROWS; row++) {
+			if (bits & (1 << row)) {
+				buffer[row*8+bufcol] |= mask;
+			}
+			else if (!mergep) {
+				buffer[row*8+bufcol] &= ~mask;
+			}
+		}
+	}
+}
+
+void shift_left(byte *buffer)
+{
+	for (byte row=0; row<N_ROWS; row++) {
+		for (byte col=0; col<8; col++) {
+			buffer[row*8+col] <<= 1;
+			if (col<7) {
+				if (buffer[row*8+col+1] & 0x80) {
+					buffer[row*8+col] |= 0x01;
+				}
+				else {
+					buffer[row*8+col] &= ~0x01;
+				}
+			}
+		}
+	}
+}
+
+//
+// The following LightBlinker support was adapted from the
+// author's busylight project, which this project is intended
+// to be compatible with.
+//
+#if HW_MODEL == MODEL_CURRENT_64x8
+const int LED_SEQUENCE_LEN = 64;
 class LightBlinker {
 	unsigned int on_period;
 	unsigned int off_period;
@@ -451,17 +490,33 @@ void LightBlinker::report_state(void)
 	}
 }
 
+void discrete_set(byte l, bool value)
+{
+	if (l < 8) {
+		digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+	}
+}
+
+bool discrete_query(byte l)
+{
+	if (l < 8) {
+		return digitalRead(discrete_led_set[l]) == HIGH;
+	}
+	return false;
+}
+		
+
 void LightBlinker::advance(void)
 {
 	if (sequence_length < 2) {
 		if (cur_state) {
-			// XXX turn off L[sequence[0]]
+			discrete_set(sequence[0], false);
 			cur_state = false;
 			if (off_period > 0)
 				timer.setPeriod(off_period);
 		}
 		else {
-			// XXX turn on L[sequence[0]]
+			discrete_set(sequence[0], true);
 			cur_state = true;
 			if (off_period > 0)
 				timer.setPeriod(on_period);
@@ -474,19 +529,19 @@ void LightBlinker::advance(void)
 	
 	if (off_period == 0) {
 		cur_state = true;
-		// XXX turn off L[sequence[cur_index]]
+		discrete_set(sequence[cur_index], false);
 		cur_index = (cur_index + 1) % sequence_length;
-		// XXX turn on L[sequence[cur_index]]
+		discrete_set(sequence[cur_index], true);
 	}
 	else {
 		if (cur_state) {
-			// XXX turn off L[sequence[cur_index]]
+			discrete_set(sequence[cur_index], false);
 			timer.setPeriod(off_period);
 			cur_state = false;
 		}
 		else {
 			cur_index = (cur_index + 1) % sequence_length;
-			// XXX turn on L[sequence[cur_index]]
+			discrete_set(sequence[cur_index], true);
 			timer.setPeriod(on_period);
 			cur_state = true;
 		}
@@ -509,7 +564,7 @@ void LightBlinker::start(void)
 	if (sequence_length > 0) {
 		cur_index = 0;
 		cur_state = true;
-		// XXX turn on L[sequence[0]]
+		discrete_set(sequence[0], true);
 		timer.reset();
 		timer.setPeriod(on_period);
 		timer.enable();
@@ -519,10 +574,32 @@ void LightBlinker::start(void)
 	}
 }
 
-void flash_lights(void); // XXX
-void strobe_lights(void); // XXX
+void flash_lights(void);
+void strobe_lights(void);
 LightBlinker flasher(200, 0, flash_lights);
 LightBlinker strober(50,2000, strobe_lights);
+
+void discrete_all_off(bool stop_blinkers)
+{
+  if (stop_blinkers) {
+    flasher.stop();
+    strober.stop();
+  }
+  for (int i=0; i < 8; i++) {
+    digitalWrite(discrete_led_set[i], LOW);
+  }
+}
+
+void flash_lights(void)
+{
+	flasher.advance();
+}
+
+void strobe_lights(void)
+{
+	strober.advance();
+}
+#endif /* MODEL_CURRENT_64x8 */
 
 //
 // flag_init()
@@ -555,8 +632,10 @@ void setup(void)
     setup_pins();
     flag_init();
 
+#if HW_MODEL == MODEL_CURRENT_64x8
 	flasher.stop();
 	strober.stop();
+#endif
 	setup_commands();
     setup_buffers();
 
@@ -583,9 +662,11 @@ void loop(void)
         last_refresh = millis();
     }
 
+#if HW_MODEL == MODEL_CURRENT_64x8
 	/* flash/strobe discrete LEDs as needed */
 	flasher.update();
 	strober.update();
+#endif
 
 	/* receive commands via serial port */
 	if (Serial.available() > 0) {
