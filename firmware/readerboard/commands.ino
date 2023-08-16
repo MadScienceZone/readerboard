@@ -49,6 +49,13 @@
 //									Draw bitmap image starting at <col>
 //     'Q'							Query status (returns 'Q' <model> 'V' <version> 'R' <romversion> 'S' <serial> '\n')
 //
+// NOTES
+//	 Care must be taken when parsing the discrete LED status query response. In the flasher
+//   and strober status data, a leading 'X' means there is no defined sequence
+//   ONLY if the next character is not '@'. However, if the start of the status field
+//   is 'X@', then the 'X' is the <pos> value indicating how far into the sequence 
+//   the display is.
+//
 const int CSM_BUFSIZE = 64;
 class CommandStateMachine {
 private:
