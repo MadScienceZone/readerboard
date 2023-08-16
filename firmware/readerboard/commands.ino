@@ -1,42 +1,53 @@
 #include "readerboard.h"
 #include "commands.h"
-#define SERIAL_VERSION_STAMP "V1.0.0R0.0.0S100"
 
 //
+// Set this for each individual unit with the hardware version and firmware version.
+// Also set the unit's serial number in place of the XXXXX.  Serial numbers 100-299 are
+// reserved for the author's use.
+//
+#define SERIAL_VERSION_STAMP "V1.0.0R0.0.0SXXXXX"
+//                             \___/ \___/ \___/
+//                               |     |     |
+//                  Hardware version   |     |
+//                        Firmware version   |
+//                                 Serial number
+//
+//
 // Recognized commands:
-//     l ::= '0' | '1' | ... | '7'	discrete light ID
+//	   <col> ::= <hexbyte>              (LSB=top)
+//	   <digit> ::= '0' | '1' | ... | '9'
+//	   <light> ::= '0' | '1' | '2' | ... '7'
+//	   <merge> ::= '.' | 'M'            (.=clear, M=merge)
+//	   <model> ::= 'L' | 'M'			(L=legacy, M=matrix64x8)
+//	   <onoff> ::= '0' | '1'			(0=off, 1=on)
+//	   <pos> ::= 0-63 encoded as '0'=0, '1'=1, ... 'o'=63
+//	   <romversion> ::= <semver>
+//	   <running> ::= '0' | '1'
+//	   <sequence> ::= 'X' | <pos> '@' <light>*
+//	   <serial> ::= <alphanumeric>*
+//	   <status> ::= <running> <sequence>
+//	   <trans> ::= '.'					(.=none)
+//	   <version> ::= <semver>
+//     <l> ::= '0' | '1' | ... | '7'	(discrete light ID)
 //     $ ::= '$' | ESCAPE
 //
 //   Busylight Compatibility
-//     Fl...$						Flash one or more lights in sequence
-//     Sl							Turn on one LED steady; stop flasher
-//     *l...$						Strobe one or more lights in sequence
-//     X							Turn off all LEDs
-//     ?							Report state of discrete LEDs
-//									(Sends 'L' <onoff>* 'F' <status> 'S' <status> '\n')
-//									<onoff> ::= '0' | '1' 
-//									<status> ::= <running> <sequence>
-//									<running> ::= '0' | '1'
-//									<sequence> ::= 'X' | <pos> '@' <light>*
-//									<light> ::= '0' | '1' | '2' | ... '7'
-//									<pos> ::= 0-63 encoded as '0'=0, '1'=1, ... 'o'=63
+//     'F' <l>* $					Flash one or more lights in sequence
+//     'S' <l>						Turn on one LED steady; stop flasher
+//     '*' <l>* $					Strobe one or more lights in sequence
+//     'X'							Turn off all LEDs
+//     '?'							Report state of discrete LEDs (returns 'L' <onoff>* 'F' <status (flasher)> 'S' <status (strober)> '\n')
 //
 //   New Discrete LED Commands
-//     Ll...$						Turn on multiple LEDs steady
+//     'L' <l>* $					Turn on multiple LEDs steady
 //
 //   Matrix Display Commands
-//     Q							Query status (returns 'Q' <model> 'V' <version> 'R' <romversion> 'S' <serial> '\n')
-//									<model> ::= 'L'=legacy | 'M'=matrix64x8
-//									<version> ::= <semver>
-//									<romversion> ::= <semver>
-//									<serial> ::= <digit>*
-//     I<merge><col><trans><col0>...$
+//     'C'                          Clear matrix display
+//     'H' <digit>                  Draw bar graph data point
+//     'I' <merge> <col> <trans> <col>* $
 //									Draw bitmap image starting at <col>
-//								    <merge> ::= '.'=no | 'M'=yes
-//									<col> ::= <hexbyte>
-//									<trans> ::= '.' 
-//									<colN> ::= <hexbyte> LSB=top
-//     H<digit>                     Draw bar graph data point
+//     'Q'							Query status (returns 'Q' <model> 'V' <version> 'R' <romversion> 'S' <serial> '\n')
 //
 const int CSM_BUFSIZE = 64;
 class CommandStateMachine {
@@ -131,6 +142,11 @@ void CommandStateMachine::accept(int inputchar)
 	// start of command
 	case IdleState:
 		switch (inputchar) {
+		case 'C':
+			clear_buffer(image_buffer);
+			display_buffer(image_buffer);
+			break;
+
 		case 'H':
 			state = BarGraphState;
 			break;
@@ -374,6 +390,7 @@ void CommandStateMachine::commit_image_data(void)
 	for (byte c=0; c < buffer_idx; c++) {
 		draw_column(c+column, buffer[c], merge, image_buffer);
 	}
+	display_buffer(image_buffer);
 }
 
 void CommandStateMachine::commit_graph_datapoint(int value)
@@ -396,9 +413,12 @@ void CommandStateMachine::commit_graph_datapoint(int value)
 	default:
 		bits = 0xaa;
 	}
+#if HW_MODEL == MODEL_LEGACY_64x7
+	bits >>= 1;
+#endif
 	draw_column(63, bits, false, image_buffer);
+	display_buffer(image_buffer);
 }
-
 
 CommandStateMachine cmd;
 

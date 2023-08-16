@@ -3109,8 +3109,7 @@ const PROGMEM byte CharacterBitmap[1407] = {
 
 bool get_font_metric_data(byte font, byte codepoint, byte *leng, byte *space, unsigned int *offset)
 {
-    if (font >= N_FONTS || codepoint > FontMaxCodepoint[font]
-    || leng == NULL || space == NULL || offset == NULL)
+    if (font >= N_FONTS || codepoint > FontMaxCodepoint[font] || leng == NULL || space == NULL || offset == NULL)
         return false;
 
     *leng = pgm_read_byte_far(GlyphMetricDataLengths[font] + codepoint);

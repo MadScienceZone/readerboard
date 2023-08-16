@@ -5,7 +5,23 @@
 [$20 space]
 ->$20,0
 
-[$21 full-size copyright]
+[$21 exclamation point]
+@@@||
+@@@||
+@@@||
+@@@||
+.@.||
+...||
+@@@||
+@@@||
+
+[$2C comma]
+->$2C,0
+
+[$2E period]
+->$2E,0
+
+[$40 full-size copyright]
 .@@@@@.||
 @.....@||
 @.@@@.@||

@@ -115,7 +115,7 @@ void setup_pins(void)
     pinMode(PIN_D6, OUTPUT);
     pinMode(PIN_D7, OUTPUT);
 #if HW_MODEL == MODEL_LEGACY_64x7
-pinMode(PIN_PS0, OUTPUT);
+    pinMode(PIN_PS0, OUTPUT);
     pinMode(PIN_PS1, OUTPUT);
     digitalWrite(PIN_PS0, LOW);     // PS0 PS1
     digitalWrite(PIN_PS1, HIGH);    //  0   1   RESET
@@ -141,7 +141,7 @@ pinMode(PIN_PS0, OUTPUT);
     digitalWrite(PIN_R1,     LOW);
     digitalWrite(PIN_R2,     LOW);
     pinMode(PIN_L0, OUTPUT);
-pinMode(PIN_L1, OUTPUT);
+    pinMode(PIN_L1, OUTPUT);
     pinMode(PIN_L2, OUTPUT);
     pinMode(PIN_L3, OUTPUT);
     pinMode(PIN_L4, OUTPUT);
@@ -176,6 +176,16 @@ void setup_buffers(void)
             image_buffer[row*8 + col] = hw_buffer[row*8 + col] = 0;
         }
     }
+}
+
+//
+// clear_buffer(buf)
+//   Resets all bits in buf to zero.
+//
+void clear_buffer(byte *buf)
+{
+    for (int i=0; i<N_ROWS*8; i++)
+        buf[i] = 0;
 }
 
 //
@@ -253,6 +263,16 @@ void LED_row_on(int row, byte *buf)
 #  error "HW_MODEL not set to supported hardware configuration"
 # endif
 #endif
+}
+
+//
+// display_buffer(src)
+//   Copies the contents of the image buffer src to the hardware buffer, so that
+//   is now what will be displayed on the LEDs.
+//
+void display_buffer(byte *src)
+{
+    copy_all_rows(src, hw_buffer);
 }
 
 //
@@ -379,7 +399,7 @@ int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer, bo
     }
     for (byte i=0; i<l; i++) {
         if (col+i < 64) {
-			draw_column(col+i, get_font_bitmap_data(o+i), mergep, buffer);
+            draw_column(col+i, get_font_bitmap_data(o+i), mergep, buffer);
         }
     }
     return col+s;
@@ -392,36 +412,36 @@ int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer, bo
 //
 void draw_column(byte col, byte bits, bool mergep, byte *buffer)
 {
-	if (col < 64) {
-		byte bufcol = col / 8;
-		byte mask = 1 << (7 - (col % 8));
+    if (col < 64) {
+        byte bufcol = col / 8;
+        byte mask = 1 << (7 - (col % 8));
 
-		for (byte row=0; row<N_ROWS; row++) {
-			if (bits & (1 << row)) {
-				buffer[row*8+bufcol] |= mask;
-			}
-			else if (!mergep) {
-				buffer[row*8+bufcol] &= ~mask;
-			}
-		}
-	}
+        for (byte row=0; row<N_ROWS; row++) {
+            if (bits & (1 << row)) {
+                buffer[row*8+bufcol] |= mask;
+            }
+            else if (!mergep) {
+                buffer[row*8+bufcol] &= ~mask;
+            }
+        }
+    }
 }
 
 void shift_left(byte *buffer)
 {
-	for (byte row=0; row<N_ROWS; row++) {
-		for (byte col=0; col<8; col++) {
-			buffer[row*8+col] <<= 1;
-			if (col<7) {
-				if (buffer[row*8+col+1] & 0x80) {
-					buffer[row*8+col] |= 0x01;
-				}
-				else {
-					buffer[row*8+col] &= ~0x01;
-				}
-			}
-		}
-	}
+    for (byte row=0; row<N_ROWS; row++) {
+        for (byte col=0; col<8; col++) {
+            buffer[row*8+col] <<= 1;
+            if (col<7) {
+                if (buffer[row*8+col+1] & 0x80) {
+                    buffer[row*8+col] |= 0x01;
+                }
+                else {
+                    buffer[row*8+col] &= ~0x01;
+                }
+            }
+        }
+    }
 }
 
 //
@@ -432,146 +452,146 @@ void shift_left(byte *buffer)
 #if HW_MODEL == MODEL_CURRENT_64x8
 const int LED_SEQUENCE_LEN = 64;
 class LightBlinker {
-	unsigned int on_period;
-	unsigned int off_period;
-	bool         cur_state;
-	byte         cur_index;
-	byte         sequence_length;
-	byte         sequence[LED_SEQUENCE_LEN];
-	TimerEvent   timer;
+    unsigned int on_period;
+    unsigned int off_period;
+    bool         cur_state;
+    byte         cur_index;
+    byte         sequence_length;
+    byte         sequence[LED_SEQUENCE_LEN];
+    TimerEvent   timer;
 
 public:
-	LightBlinker(unsigned int on, unsigned int off, void (*callback)(void));
-	void update(void);
-	void stop(void);
-	void append(byte);
-	int  length(void);
-	void advance(void);
-	void start(void);
-	void report_state(void);
+    LightBlinker(unsigned int on, unsigned int off, void (*callback)(void));
+    void update(void);
+    void stop(void);
+    void append(byte);
+    int  length(void);
+    void advance(void);
+    void start(void);
+    void report_state(void);
 };
 
 LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
 {
-	timer.set(0, callback);
-	timer.disable();
-	cur_state = false;
-	cur_index = 0;
-	sequence_length = 0;
-	on_period = on;
-	off_period = off;
+    timer.set(0, callback);
+    timer.disable();
+    cur_state = false;
+    cur_index = 0;
+    sequence_length = 0;
+    on_period = on;
+    off_period = off;
 }
 
 int LightBlinker::length(void)
 {
-	return sequence_length;
+    return sequence_length;
 }
 
 void LightBlinker::append(byte v)
 {
-	if (sequence_length < LED_SEQUENCE_LEN) {
-		sequence[sequence_length++] = v;
-	}
+    if (sequence_length < LED_SEQUENCE_LEN) {
+        sequence[sequence_length++] = v;
+    }
 }
 
 void LightBlinker::report_state(void)
 {
-	int i = 0;
-	Serial.write(cur_state ? '1' : '0');
-	if (sequence_length > 0) {
-		Serial.write(cur_index + '0');
-		Serial.write('@');
-		for (i = 0; i < sequence_length; i++) {
-			Serial.write(sequence[i] + '0');
-		}
-	}
-	else {
-		Serial.write('X');
-	}
+    int i = 0;
+    Serial.write(cur_state ? '1' : '0');
+    if (sequence_length > 0) {
+        Serial.write(cur_index + '0');
+        Serial.write('@');
+        for (i = 0; i < sequence_length; i++) {
+            Serial.write(sequence[i] + '0');
+        }
+    }
+    else {
+        Serial.write('X');
+    }
 }
 
 void discrete_set(byte l, bool value)
 {
-	if (l < 8) {
-		digitalWrite(discrete_led_set[l], value? HIGH : LOW);
-	}
+    if (l < 8) {
+        digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+    }
 }
 
 bool discrete_query(byte l)
 {
-	if (l < 8) {
-		return digitalRead(discrete_led_set[l]) == HIGH;
-	}
-	return false;
+    if (l < 8) {
+        return digitalRead(discrete_led_set[l]) == HIGH;
+    }
+    return false;
 }
-		
+        
 
 void LightBlinker::advance(void)
 {
-	if (sequence_length < 2) {
-		if (cur_state) {
-			discrete_set(sequence[0], false);
-			cur_state = false;
-			if (off_period > 0)
-				timer.setPeriod(off_period);
-		}
-		else {
-			discrete_set(sequence[0], true);
-			cur_state = true;
-			if (off_period > 0)
-				timer.setPeriod(on_period);
-		}
-		return;
-	}
+    if (sequence_length < 2) {
+        if (cur_state) {
+            discrete_set(sequence[0], false);
+            cur_state = false;
+            if (off_period > 0)
+                timer.setPeriod(off_period);
+        }
+        else {
+            discrete_set(sequence[0], true);
+            cur_state = true;
+            if (off_period > 0)
+                timer.setPeriod(on_period);
+        }
+        return;
+    }
 
-	if (sequence_length > LED_SEQUENCE_LEN)
-		sequence_length = LED_SEQUENCE_LEN;
-	
-	if (off_period == 0) {
-		cur_state = true;
-		discrete_set(sequence[cur_index], false);
-		cur_index = (cur_index + 1) % sequence_length;
-		discrete_set(sequence[cur_index], true);
-	}
-	else {
-		if (cur_state) {
-			discrete_set(sequence[cur_index], false);
-			timer.setPeriod(off_period);
-			cur_state = false;
-		}
-		else {
-			cur_index = (cur_index + 1) % sequence_length;
-			discrete_set(sequence[cur_index], true);
-			timer.setPeriod(on_period);
-			cur_state = true;
-		}
-	}
+    if (sequence_length > LED_SEQUENCE_LEN)
+        sequence_length = LED_SEQUENCE_LEN;
+    
+    if (off_period == 0) {
+        cur_state = true;
+        discrete_set(sequence[cur_index], false);
+        cur_index = (cur_index + 1) % sequence_length;
+        discrete_set(sequence[cur_index], true);
+    }
+    else {
+        if (cur_state) {
+            discrete_set(sequence[cur_index], false);
+            timer.setPeriod(off_period);
+            cur_state = false;
+        }
+        else {
+            cur_index = (cur_index + 1) % sequence_length;
+            discrete_set(sequence[cur_index], true);
+            timer.setPeriod(on_period);
+            cur_state = true;
+        }
+    }
 }
 
 void LightBlinker::update(void)
 {
-	timer.update();
+    timer.update();
 }
 
 void LightBlinker::stop(void)
 {
-	timer.disable();
-	sequence_length = 0;
+    timer.disable();
+    sequence_length = 0;
 }
 
 void LightBlinker::start(void)
 {
-	if (sequence_length > 0) {
-		cur_index = 0;
-		cur_state = true;
-		discrete_set(sequence[0], true);
-		timer.reset();
-		timer.setPeriod(on_period);
-		timer.enable();
-	}
-	else {
-		stop();
-	}
+    if (sequence_length > 0) {
+        cur_index = 0;
+        cur_state = true;
+        discrete_set(sequence[0], true);
+        timer.reset();
+        timer.setPeriod(on_period);
+        timer.enable();
+    }
+    else {
+        stop();
+    }
 }
 
 void flash_lights(void);
@@ -592,12 +612,12 @@ void discrete_all_off(bool stop_blinkers)
 
 void flash_lights(void)
 {
-	flasher.advance();
+    flasher.advance();
 }
 
 void strobe_lights(void)
 {
-	strober.advance();
+    strober.advance();
 }
 #endif /* MODEL_CURRENT_64x8 */
 
@@ -633,10 +653,10 @@ void setup(void)
     flag_init();
 
 #if HW_MODEL == MODEL_CURRENT_64x8
-	flasher.stop();
-	strober.stop();
+    flasher.stop();
+    strober.stop();
 #endif
-	setup_commands();
+    setup_commands();
     setup_buffers();
 
     Serial.begin(9600);
@@ -663,13 +683,13 @@ void loop(void)
     }
 
 #if HW_MODEL == MODEL_CURRENT_64x8
-	/* flash/strobe discrete LEDs as needed */
-	flasher.update();
-	strober.update();
+    /* flash/strobe discrete LEDs as needed */
+    flasher.update();
+    strober.update();
 #endif
 
-	/* receive commands via serial port */
-	if (Serial.available() > 0) {
-		receive_serial_data();
-	}
+    /* receive commands via serial port */
+    if (Serial.available() > 0) {
+        receive_serial_data();
+    }
 }
