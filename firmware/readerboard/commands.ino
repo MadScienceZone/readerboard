@@ -3,8 +3,12 @@
 
 //
 // Set this for each individual unit with the hardware version and firmware version.
-// Also set the unit's serial number in place of the XXXXX.  Serial numbers 100-299 are
+// Also set the unit's serial number in place of the XXXXX.  Serial numbers 000-299 are
 // reserved for the author's use.
+//
+// Each of these fields are variable width, do not necessarily have leading zeroes,
+// and the version numbers may be any string conforming to semantic versioning 2.0.0
+// (see semver.org).
 //
 #define SERIAL_VERSION_STAMP "V1.0.0R0.0.0SXXXXX"
 //                             \___/ \___/ \___/
