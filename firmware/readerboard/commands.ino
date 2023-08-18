@@ -61,7 +61,7 @@
 //     'C'                          Clear matrix display
 //     'H' <digit>                  Draw bar graph data point
 //     'I' <merge> <pos> <trans> <col>* $
-//                                  Draw bitmap image starting at <col>
+//                                  Draw bitmap image starting at <pos>
 //     'Q'                          Query status (returns 'Q' <model> 'V' <hwversion> 'R' <romversion> 'S' <serial> '\n')
 //::   '<' <loop> <string>* ESCAPE  Scroll <string> across display, optionally looping repeatedly.
 //::   'T' <merge> <align> <trans> <string>* ESCAPE 
