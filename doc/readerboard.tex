@@ -1,0 +1,757 @@
+\input common
+\frontmatter
+\definecolor{reservedslot}{gray}{0.8}
+\newcommand\api{\acronym{API}}
+\newcommand\pc{\acronym{PC}}
+\newcommand\cli{\acronym{CLI}}
+\newcommand\ascii{\acronym{ASCII}}
+\newcommand\led{\acronym{LED}}
+\newcommand\codetype[1]{\z{#1}}
+\newcommand\ixz[1]{\index{#1@\z{#1}}\z{#1}}
+\newcommand\tUnused{\cellcolor{gray!50}}
+\newcommand\tControl{\cellcolor{yellow!50}}
+\newcommand\tForbidden{\cellcolor{red!50}}
+\newcommand\tSpecial{\cellcolor{blue!25}}
+%\colorlet{tableheader}{blue!40}
+%\colorlet{tablesubhead}{blue!20}
+%\colorlet{recordbox}{blue!15}
+%\colorlet{recordtext}{black}
+%\usetikzlibrary{positioning,shapes,shadows,arrows}
+%\tikzstyle{program}=[rectangle, draw=black, rounded corners, fill=recordbox, drop shadow,
+%	anchor=north, text=recordtext, text width=2cm]
+%\tikzstyle{instance}=[rectangle, draw=black, rounded corners, fill=green!15, drop shadow,
+%	anchor=north, text=black, text width=3cm]
+%\tikzstyle{line}=[-, thick]
+%\tikzstyle{myarrow}=[->, >=triangle 45, thick]
+\hypersetup{
+	pdftitle={Readerboard User's Guide},
+	pdfkeywords={Open Source Readerboard Hardware and Software},
+	pdfauthor={Steve Willoughby / Mad Science Zone},
+	pdfsubject={Readerboard Project Documentation * (c) 2023 * Creative Commons Licensing (See Document for details)},
+	colorlinks=true,
+	linkcolor=blue!30!black,
+}
+\thispagestyle{empty}
+	\begin{center}
+		\Huge Readerboard \\ User's Guide \\
+		WORKING\\DRAFT
+	\end{center}
+
+\vfill
+%\end{flushright}
+\newpage
+The information in this document, and the hardware and software it describes, are hobbyist
+works created as an educational exercise and as a matter of personal interest for recreational
+purposes.
+
+It is not to be considered an industrial-grade or retail-worthy product.
+It is assumed that the user has the necessary understanding and skill to use it appropriately.  The author makes NO
+representation as to suitability or fitness for any purpose whatsoever, and disclaims any and all liability or 
+warranty to the full extent permitted by applicable law.  It is explicitly not designed for use where the safety
+of persons, animals, property, or anything of real value depends on the correct operation of the software.
+
+\strut\vfill
+
+\begin{center}\bfseries
+	For readerboard hardware version 1.0.0 and firmware version 0.0.0.
+\end{center}
+
+\strut\vfill
+
+\noindent Copyright \copyright\ 2023 by Steven L. Willoughby
+(aka MadScienceZone), Aloha, Oregon, USA. All Rights Reserved.
+This document is released under the terms and conditions of the
+Creative Commons ``Attribution-NoDerivs 3.0 Unported'' license.
+In summary, you are free to use, reproduce, and redistribute this 
+document provided you give full attribution to its author and do not
+alter it or create derivative works from it.  See
+\begin{center}
+\href{http://creativecommons.org/licenses/by-nd-3.0}{http://creativecommons.org/licenses/by\-nd\-/\-3.0/} 
+\end{center}
+for the full set of licensing terms.
+
+\begin{center}
+\LJimg[width=.25in]{cc}\LJimg[width=.25in]{by}\LJimg[width=.25in]{nd}
+\end{center}
+
+\newpage
+\tableofcontents
+\newpage
+\listoffigures
+\listoftables
+\mainmatter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____  ____   ___ _____ ___   ____ ___  _     
+% |  _ \|  _ \ / _ \_   _/ _ \ / ___/ _ \| |    
+% | |_) | |_) | | | || || | | | |  | | | | |    
+% |  __/|  _ <| |_| || || |_| | |__| |_| | |___ 
+% |_|   |_| \_\\___/ |_| \___/ \____\___/|_____|
+%
+\chapter{Protocol Description}\label{chap:protocol}
+{\setlength{\epigraphwidth}{.5\textwidth}
+\epigraph{I don't stand on protocol. Just call me your Excellency.}{---Henry Kissinger}}
+\LJversal{T}{he control protocol} used to display information on the readerboard sign is very simple.
+Commands are expressed largely in plain \ascii\ characters and are executed immediately
+as they are received.\footnote{Technically, they may even be executed \emph{while} they
+are being received.}
+It is not necessarily required for a command to be fully received first,
+so it is possible that the sign will have started operating on part of the command (e.g.,
+moving the current cursor column position) even if the rest of the command could not be
+performed.
+
+In addition to plain, printable 7-bit \ascii\ characters, a few control codes are
+recognized as described below. String data may include any 8-bit value except as otherwise
+indicated.
+
+\section{Command Termination and Error Handling}
+The command terminator is ``\z{\textasciicircum D}'' (hex byte value \z{04}). We
+\emph{recommend} that every command---or group of commands which together represent
+a logical update to the sign---be followed by a \z{\textasciicircum D} character.
+
+The individual commands are executed immediately upon receipt, without requiring the
+\z{\textasciicircum D} byte. For example, in the sequence ``\z{H1H2H3\textasciicircum D}''
+the first bar graph data point will be displayed as soon as ``\z{H1}'' is received.
+
+In case of an error, such as the inability to parse the incoming command or an invalid
+field value, the readerboard will signal the error condition by lighting the white and
+both red discrete \led s, and will then ignore all input until the next
+\z{\textasciicircum D} byte is received.
+
+Whenever a \z{\textasciicircum D} byte is received, any command being parsed is aborted
+and the sign's input parser is reset. Thus, this byte may be sent in case a partial command
+has been sent but the host becomes aware that it cannot be completed. Note that the command
+may have been partially acted upon by that point, so no assumption should be made as to the
+sign's state.
+
+In the descriptions that follow, a trailing \z{\textasciicircum D} is shown at the end
+of each command to remind you of the recommendation to send this terminator, even though
+the commands themselves do not require them, strictly speaking.
+
+\section{Command Summary}
+The eight discrete \led s are intended for a simple display of status information
+in a manner analogous to the Busylight project by the same author.\footnote{See
+\href{https://github.com/MadScienceZone/busylight}{github.com/MadScienceZone/busylight}.}
+To support this usage, the \z{F}, \z{S}, \z{X}, \z*, and \z? commands are recognized
+in a manner compatible with how Busylight uses those same commands. These are categorized
+as ``Busylight compatibility commands.'' Unlike all other commands listed here, these are
+recognized regardless of case.  Since the readerboard has a power supply capable of illuminating
+all of the status \led s at once,\footnote{The Busylight cannot, since it is powered
+from the host computer's \acronym{USB} port.} a new command \z{L} is added which allows any
+arbitrary pattern of steady \led s to be turned on.
+
+The remaining commands are used for management of the matrix display. All commands are summarized in Table~\ref{tbl:commands}.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cll}\toprule
+			\multicolumn{1}{c}{\bfseries Command}&
+			\multicolumn{1}{c}{\bfseries Description}&
+			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
+			\z{*} & Strobe \led s in Sequence & Busylight compatible \\
+			\z{?} & Query discrete \led\ status & Busylight compatible, response \\
+			\z{F} & Flash \led s in Sequence & Busylight compatible \\
+			\z{L} & Light one or more \led s steady & Busylight extension \\
+			\z{S} & Light one \led\ steady & Busylight compatible \\
+			\z{X} & All \led s off & Busylight compatible \\
+			\midrule
+			\z{\textasciicircum D} & Abort/terminate command & Matrix control \\
+			\z{<} & Scroll text across display & Matrix control \\
+			\z{@} & Move current column cursor & Matrix control \\
+			\z{A} & Select character font & Matrix control \\
+			\z{C} & Clear matrix display & Matrix control \\
+			\z{H} & Add histogram/bargraph data point & Matrix control \\
+			\z{I} & Draw bitmap graphic image & Matrix control \\
+			\z{Q} & Query matrix display statue & Matrix control, response \\
+			\z{T} & Display text on display & Matrix control \\
+			\bottomrule
+		\end{tabular}
+		\caption{Summary of All Commands\label{tbl:commands}}
+	\end{center}
+\end{table}
+
+Those commands listed with ``response'' in their Notes column send data back to the host
+as described below. None of the other commands do this.
+
+\section{\z{*}---Strobe Lights in Sequence}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-3} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize$n$}&
+	\bitbox[]{1}{\scriptsize$n+1$}&
+	\bitbox[]{1}{\scriptsize$n+2$}\\
+	\bitbox{1}{\z{*}} &
+	\bitbox[tlb]{1}{\Var*{light$_0$}} &
+	\bitbox[tb]{1}{\Var*{light$_1$}} &
+	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{light$_n$}} &
+	\bitbox{1}{\z\$}&
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Each \Var*{light} value is an \ascii\ digit character corresponding to a discrete
+\led\ as shown in Table~\ref{tbl:lightcodes}. 
+
+This command functions identically to the \z{F} command (see below), except that the lights
+are ``strobed'' (flashed very briefly with a pause between each light in the sequence).
+
+\section{\z<---Scroll Text Across Display}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize\dots}\\
+	\bitbox{1}{\z{<}} &
+	\bitbox{1}{\Var*{loop}}&
+	\bitbox{5}{\Var*{string}}&
+	\bitbox{1}{\z{ESC}}&
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Displays the text \Var*{string} by scrolling it across the display from right to left.
+If \Var*{loop} is ``\z.'', the text is only scrolled once; if it is ``\z{L}'' then it
+repeatedly scrolls across the screen in an endless loop.
+
+The text is rendered in the current font and may contain any 8-bit bytes except as otherwise
+noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
+future control codes which may be added to the protocol). The string is terminated by an
+escape character (hex byte \z{1B}), indicated in the protocol description as \z{ESC}.
+
+The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{lll}\toprule
+			\multicolumn{1}{c}{\bfseries Code} &
+			\multicolumn{1}{c}{\bfseries Hex} &
+			\multicolumn{1}{c}{\bfseries Description} \\\midrule
+			\z{\textasciicircum C}\Var*{pos} & \z{03}\Var*{pos} & Move current column cursor to \Var*{pos}\\
+			\z{\textasciicircum D} & \z{04} & Never allowed in strings (command terminator)\\
+			\z{\textasciicircum F}\Var*{digit} & \z{06}\Var*{digit} & Switch current font\\
+			\z{\textasciicircum H}\Var*{pos} & \z{08}\Var*{pos} & Move cursor left \Var*{pos} columns\\
+			\z{\textasciicircum L}\Var*{pos} & \z{0C}\Var*{pos} & Move cursor right \Var*{pos} columns\\
+			\z{\textasciicircum [} & \z{1B} & Never allowed in strings (string terminator)\\
+			\bottomrule
+		\end{tabular}
+		\caption{Control Codes Allowed in String Values\label{tbl:controlcodes}}
+	\end{center}
+\end{table}
+
+
+\section{\z?---Query Discrete \led\ Status}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
+	\bitbox{1}{\z{?}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+This command causes the sign to send a status report back to the host to indicate
+what the discrete \led s are currently showing. This response has the form:
+
+\medskip
+
+\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+	\bitheader{0-8} \\
+	\bitbox{1}{\z{L}} &
+	\bitbox[tbl]{1}{\Var*{light$_0$}} &
+	\bitbox[tb]{1}{\Var*{light$_1$}} &
+	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tb]{1}{\Var*{light$_3$}} &
+	\bitbox[tb]{1}{\Var*{light$_4$}} &
+	\bitbox[tb]{1}{\Var*{light$_5$}} &
+	\bitbox[tb]{1}{\Var*{light$_6$}} &
+	\bitbox[tbr]{1}{\Var*{light$_7$}} \\
+	\bitbox{1}{\z{F}} &
+	\bitbox[tlr]{8}{flasher status (see below)} \\
+	\bitbox[lr]{9}{}\\
+	\skippedwords\\
+	\bitbox[rbl]{9}{}\\
+	\bitbox{1}{\z{S}} &
+	\bitbox[tlr]{8}{strober status (see below)} \\
+	\bitbox[lr]{9}{}\\
+	\skippedwords\\
+	\bitbox[rbl]{9}{}\\
+	\bitbox{1}{\z{\textbackslash n}}
+\end{bytefield}
+
+The flasher and strober status values are variable-width fields which indicate the
+state of the flasher (see \z{F} command) and strober (see \z{*} command) functions.
+In each case, if there is no defined sequence, the status field will be:
+
+\medskip
+
+\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
+	\bitbox{1}{\Var*{run}} &
+	\bitbox{1}{\z{X}}
+\end{bytefield}
+
+\smallskip
+
+\noindent Otherwise, the state of the flasher or strober unit is indicated by:
+
+\medskip
+
+\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+%	\bitheader{0-6} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{2}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize$n+3$}\\
+	\bitbox{1}{\Var*{run}} &
+	\bitbox{1}{\Var*{pos}} &
+	\bitbox{1}{\z{@}} &
+	\bitbox[tbl]{1}{\Var*{light$_0$}} &
+	\bitbox[tb]{1}{\Var*{light$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{light$_n$}} 
+\end{bytefield}
+
+In either case, \Var*{run} is the \ascii\ character ``\z{0}'' if the unit is
+stopped or ``\z{1}'' if it is currently running.  If there is a defined sequence,
+\Var*{pos} indicates the 0-origin position within the sequence of the light currently
+being flashed or strobed, encoded as described in Table~\ref{tbl:int063}. 
+The \Var*{light} values are as given to the \z{F} or \z{*}
+command that set the sequence.
+
+Note that the \Var*{pos} value may be the character ``\z{X}'' to indicate the position
+value of 40, so it is important to distinguish between the field value
+``\Var*{run}\z{X}'' vs.\@ ``\Var*{run}\z{X@}\Var*{sequence}''.
+
+The status message sent to the host is terminated by a newline character (hex byte \z{0A}),
+indicated in the protocol description above as ``\z{\textbackslash n}''.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cccc}\toprule
+			\multicolumn{1}{c}{\bfseries Value} &
+			\multicolumn{1}{c}{\bfseries Code} &
+			\multicolumn{1}{c}{\bfseries Value} &
+			\multicolumn{1}{c}{\bfseries Code} \\\midrule
+			0--9 & \z0--\z9 & 17--42 & \z{A}--\z{Z} \\
+			10 & \z: & 43 & \z[ \\
+			11 & \z; & 44 & \z\textbackslash \\
+			12 & \z< & 45 & \z] \\
+			13 & \z= & 46 & \z\textasciicircum \\
+			14 & \z> & 47 & \z{\_} \\
+			15 & \z? & 48 & \z` \\
+			16 & \z@ & 49--63 & \z{a}--\z{o} \\
+			\bottomrule
+		\end{tabular}
+		\caption{\ascii\ Encoded Integer Values (0--63)\label{tbl:int063}}
+	\end{center}
+\end{table}
+
+\section{\z{@}---Set Column Cursor Position}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{@}} &
+	\bitbox{1}{\Var*{pos}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Sets the column cursor position to the value indicated by \Var*{pos}. See Table~\ref{tbl:int063}.
+
+\section{\z{A}---Select Font}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{A}} &
+	\bitbox{1}{\Var*{digit}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Sets the font to use for rendering text with the \z< and \z{T} commands.
+The font codes for \Var*{digit} are listed in Table~\ref{tbl:fontcodes}.
+The full text fonts support the printable \ascii\ characters plus a majority
+of the Unicode glyphs with codepoints less than 256.  See Tables~\ref{tbl:font0}--\ref{tbl:font2}
+for a complete font glyph listing with codepoint assignments.
+
+\begin{table}
+	\begin{center}
+		\begin{tabular}{ll}\toprule
+			\multicolumn{1}{c}{\bfseries Code} &
+			\multicolumn{1}{c}{\bfseries Font Description} \\\midrule
+			\z0 & Fixed-width 5$\times$7 matrix plus descenders in 8th row \\
+			\z1 & Variable-width version of font 0 \\
+			\z2 & Bold alphanumerics and special symbols \\
+			\bottomrule
+		\end{tabular}
+		\caption{Font Codes\label{tbl:fontcodes}}
+	\end{center}
+\end{table}
+\begin{table}
+	\begin{center}
+		\begin{tabular}{r|c|c|c|c|c|c|c|c|l}
+			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
+			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
+			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
+			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tUnused&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
+			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{04x}&&!&\z"&\#&\$&\%&\&&\z'&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{05x}&(&)&*&+&,&-&.&/&\\\hline
+			\emph{06x}&0&1&2&3&4&5&6&7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
+			\emph{07x}&8&9&:&;&\z<&=&\z>&?&\\\hline
+			\emph{10x}&@&A&B&C&D&E&F&G&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
+			\emph{11x}&H&I&J&K&L&M&N&O&\\\hline
+			\emph{12x}&P&Q&R&S&T&U&V&W&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
+			\emph{13x}&X&Y&Z&[&\textbackslash&]&\textasciicircum&\_&\\\hline
+			\emph{14x}&`&a&b&c&d&e&f&g&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
+			\emph{15x}&h&i&j&k&l&m&n&o&\\\hline
+			\emph{16x}&p&q&r&s&t&u&v&w&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
+			\emph{17x}&x&y&z&\{&|&\}&\textasciitilde&///&\\\hline
+			\emph{20x}&``&''&`&'&$\dagger$&$\ddagger$&\dots&$'$&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{21x}&$''$&!!&$\overline{\hbox{\phantom{x}}}$&$\leftarrow$&$\rightarrow$&$\uparrow$&$\downarrow$&$\ne$&\\\hline
+			\emph{22x}&$\le$&$\ge$&$\approx$&$\Gamma$&$\Delta$&$\Xi$&$\Pi$&$\Sigma$&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
+			\emph{23x}&$\Omega$&$\pi$&$\rho$&$\sigma$&---&\textperthousand&\tUnused&\tUnused&\\\hline
+			\emph{24x}&&!`&\textcent&\textsterling&\textcurrency&\textyen&\textbrokenbar&\S&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
+			\emph{25x}&\tUnused&\textcopyright&\textordfeminine&\guillemotleft&$\neg$&-&\textregistered&\tUnused&\\\hline
+			\emph{26x}&$^\circ$&$\pm$&$^2$&$^3$&\tUnused&$\mu$&\P&$\bullet$&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
+			\emph{27x}&\tUnused&$^1$&\textordmasculine&\guillemotright&1/4&1/2&3/4&?`&\\\hline
+			\emph{30x}&\`A&\'A&\^A&\~A&\"A&\AA&\AE&\c C&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
+			\emph{31x}&\`E&\'E&\^E&\"E&\`I&\'I&\^I&\"I&\\\hline
+			\emph{32x}&\DH&\~N&\`O&\'O&\^O&\~O&\"O&$\times$&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
+			\emph{33x}&\O&\`U&\'U&\^U&\"U&\'Y&\TH&\ss&\\\hline
+			\emph{34x}&\`a&\'a&\^a&\~a&\"a&\aa&\ae&\c c&\multirow{2}{*}{\z{E}\emph{x}}\\\cline{1-9}
+			\emph{35x}&\`e&\'e&\^e&\"e&\`\i&\'\i&\^\i&\"\i&\\\hline
+			\emph{36x}&\dh&\~n&\`o&\'o&\^o&\~o&\"o&$\div$&\multirow{2}{*}{\z{F}\emph{x}}\\\cline{1-9}
+			\emph{37x}&\o&\`u&\'u&\^u&\"u&\'y&\th&\"y&\\\hline
+%			&\emph{x}\z{0} &\emph{x}\z{1} &\emph{x}\z{2} &\emph{x}\z{3}
+%			&\emph{x}\z{4} &\emph{x}\z{5} &\emph{x}\z{6} &\emph{x}\z{7}\\
+			&\z{8} &\z{9} &\z{A} &\z{B}
+			&\z{C} &\z{D} &\z{E} &\z{F}
+		\end{tabular}
+	\end{center}
+	\caption{Font Table for Fonts \#0 and \#1\label{tbl:font0}}
+\end{table}
+\begin{table}
+	\begin{center}
+		\begin{tabular}{r|c|c|c|c|c|c|c|c|l}
+			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
+			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
+			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
+			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tUnused&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
+			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{04x}&&\bfseries!&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&\tUnused&\\\hline
+			\emph{06x}&\bfseries 0&\bfseries 1&\bfseries 2&\bfseries 3&\bfseries 4&\bfseries 5&\bfseries 6&\bfseries 7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
+			\emph{07x}&\bfseries 8&\bfseries 9&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{10x}&\textcopyright&\bfseries A&\bfseries B&\bfseries C&\bfseries D&\bfseries E&\bfseries F&\bfseries G&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
+			\emph{11x}&\bfseries H&\bfseries I&\bfseries J&\bfseries K&\bfseries L&\bfseries M&\bfseries N&\bfseries O&\\\hline
+			\emph{12x}&\bfseries P&\bfseries Q&\bfseries R&\bfseries S&\bfseries T&\bfseries U&\bfseries V&\bfseries W&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
+			\emph{13x}&\bfseries X&\bfseries Y&\bfseries Z&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{14x}&\tUnused&\faArrowLeft&\faArrowRight&\faArrowUp&\faArrowDown&$\nwarrow$&$\nearrow$&$\searrow$&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
+			\emph{15x}&$\swarrow$&$\leftarrow$&$\rightarrow$&$\uparrow$&$\downarrow$&\raise1ex\hbox{\rule{1ex}{1ex}}\rule{1ex}{1ex}&\rule{1em}{1em}&\tUnused&\\\hline
+			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
+			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
+			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{21x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{22x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
+			\emph{23x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
+			\emph{25x}&\tSpecial\tiny{TS8}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{26x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
+%			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{30x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
+%			\emph{31x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{32x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
+%			\emph{33x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{34x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{E}\emph{x}}\\\cline{1-9}
+%			\emph{35x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{36x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{F}\emph{x}}\\\cline{1-9}
+%			\emph{37x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			&\emph{x}\z{0} &\emph{x}\z{1} &\emph{x}\z{2} &\emph{x}\z{3}
+%			&\emph{x}\z{4} &\emph{x}\z{5} &\emph{x}\z{6} &\emph{x}\z{7}\\
+			&\z{8} &\z{9} &\z{A} &\z{B}
+			&\z{C} &\z{D} &\z{E} &\z{F}
+		\end{tabular}
+
+		\smallskip
+
+		TS\Var*{n} = Thin space of \Var*{n} pixels
+	\end{center}
+	\caption{Font Table for Font \#2\label{tbl:font2}}
+\end{table}
+			
+
+\section{\z{C}---Clear Matrix Display}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
+	\bitbox{1}{\z{C}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Clears the matrix display so that no \led s are illuminated. Does not affect
+the discrete \led s.
+
+\section{\z{F}---Flash Lights in Sequence}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-7} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{3}{\dots}&
+	\bitbox[]{1}{\scriptsize$n$}&
+	\bitbox[]{1}{\scriptsize$n+1$}&
+	\bitbox[]{1}{\scriptsize$n+2$}\\
+	\bitbox{1}{\z{F}} &
+	\bitbox[tbl]{1}{\Var*{light$_0$}} &
+	\bitbox[tb]{1}{\Var*{light$_1$}} &
+	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{light$_n$}} &
+	\bitbox{1}{\z\$}&
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Each \Var*{light} value is an \ascii\ digit character corresponding to a discrete
+\led\ as shown in Table~\ref{tbl:lightcodes}. Note that the assignment of colors
+to these \led s is dependent on your particular hardware being assembled that way.
+As an open source project, of course, you (or whomever assembled the unit) may choose any
+color scheme you like when building the board.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cll}\toprule
+			\multicolumn{1}{c}{\bfseries Code}&
+			\multicolumn{1}{c}{\bfseries Light}&
+			\multicolumn{1}{c}{\bfseries Color}\\\midrule
+			\z0 & L$_0$ & white \\
+			\z1 & L$_1$ & blue \\
+			\z2 & L$_2$ & blue \\
+			\z3 & L$_3$ & red \\
+			\z4 & L$_4$ & red \\
+			\z5 & L$_5$ & yellow \\
+			\z6 & L$_6$ & yellow \\
+			\z7 & L$_7$ & green \\
+			\bottomrule
+		\end{tabular}
+		\caption{Discrete \led\ Codes and Colors\label{tbl:lightcodes}}
+	\end{center}
+\end{table}
+
+Up to 64 \Var*{light} codes may be listed. The sign will cycle through the sequence, lighting each
+specified \led\ briefly before moving on to the next one. The sequence is repeated
+forever in a loop until an \z{L}, \z{S} or \z{X} command is received. 
+
+If only one \Var*{light} is specified, that light will be flashed on and off.
+Setting an empty
+sequence (no codes at all) stops the flasher's operation.
+
+The sequence is terminated by either a dollar-sign (``\z{\$}'') character or the
+escape control character (hex byte \z{1B}), indicated in the protocol diagram above
+simply as ``\z{\$}''.
+			
+This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
+
+\section{\z{H}---Draw Bar Graph Data Point}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{H}} &
+	\bitbox{1}{\Var*{n}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+This command is used to draw a bar-graph element. Repeating this command causes a
+scrolling data display which shows a set of data samples over some period of time.
+The value \Var*{n} is an \ascii\ digit character in the range ``\z0''--``\z8'', and
+is drawn in the far-right column of the matrix display, as a column of \Var*{n} lights
+stacked up from the bottom row (a value of 0 results in no lights, up to 8 which is a full
+column of eight lights; a value of 9 is treated as if it were 8). All existing matrix data
+are scrolled left one column.
+
+\section{\z{I}---Draw Bitmap Image}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+	\bitheader{0-8} \\
+	\bitbox{1}{\z{I}} &
+	\bitbox{1}{\Var*{merge}} &
+	\bitbox{1}{\Var*{pos}} &
+	\bitbox{1}{\Var*{trans}} &
+	\bitbox[tbl]{2}{\Var*{coldata$_0$}} &
+	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} \\
+	\bitbox[tbr]{2}{\Var*{coldata$_n$}} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Draws an arbitrary bitmap image onto the matrix display starting at column
+\Var*{pos}, encoded as per Table~\ref{tbl:int063}. A \Var*{pos} value of
+``\z{\textasciitilde}'' represents the current column cursor position.
+
+Each column data, from left to right, are given by \Var*{coldata} values,
+each of which is a two-digit \ascii\ hexadecimal value with the 
+least-significant bit representing the top row of the matrix.
+
+The column data values are terminated by either a dollar-sign (``\z{\$}'') character or the
+escape control character (hex byte \z{1B}), indicated in the protocol diagram above
+simply as ``\z{\$}''.
+
+The column cursor is moved to be after the end of the image.
+
+If \Var*{merge} is the character ``\z.'' then each column's contents is cleared before
+setting the pixels as per the \Var*{coldata} value. If \Var*{merge} is ``\z{M}'' the bits
+set in \Var*{coldata} are added to the lit pixels already in the column.
+
+The \Var*{trans} value indicates the transition effect to use when adding the image
+to the display. See Table~\ref{tbl:transitions}.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cl}\toprule
+			\multicolumn{1}{c}{\bfseries Code} &
+			\multicolumn{1}{c}{\bfseries Transition} \\\midrule
+			\z. & No transition \\
+			\z> & Scroll in from left \\
+			\z< & Scroll in from right \\
+			\z\textasciicircum & Scroll up from bottom \\
+			\z{v} & Scroll down from top \\
+			\z{L} & wipe left \\
+			\z{R} & wipe right \\
+			\z{U} & wipe up \\
+			\z{D} & wipe down \\
+			\z{|} & wipe left and right from middle column\\
+			\z{-} & wipe up and down from middle row\\
+			\z{?} & choose a random transition \\
+			\bottomrule
+		\end{tabular}
+		\caption{Transition Effect Codes\label{tbl:transitions}}
+	\end{center}
+\end{table}
+
+\section{\z{L}---Light Multiple \led s}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-7} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{3}{\dots}&
+	\bitbox[]{1}{\scriptsize$n$}&
+	\bitbox[]{1}{\scriptsize$n+1$}&
+	\bitbox[]{1}{\scriptsize$n+2$}\\
+	\bitbox{1}{\z{L}} &
+	\bitbox[tbl]{1}{\Var*{light$_0$}} &
+	\bitbox[tb]{1}{\Var*{light$_1$}} &
+	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tb]{1}{$\cdots$}&
+	\bitbox[tb]{1}{\Var*{light$_n$}} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+This command is identical to the \z{S} command (see below), except that multiple
+discrete \led s can be specified, all of which are illuminated simultaneously.
+See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command), it remains running.
+
+\section{\z{Q}---Query Readerboard Status}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
+	\bitbox{1}{\z{Q}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+This command causes the sign to send a status report back to the host to indicate
+the general status of the device except for the discrete \led\ display which
+may be queried using the \z? command. The response has the form:
+
+\medskip
+
+\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\dots}\\
+	\bitbox{1}{\z{Q}} &
+	\bitbox{1}{\Var*{model}} &
+	\bitbox{1}{\z{V}} &
+	\bitbox{2}{\Var*{hwversion}}
+	\bitbox{1}{\z{R}} &
+	\bitbox{2}{\Var*{romversion}}
+	\bitbox{1}{\z{S}} \\
+	\bitbox{2}{\Var*{serial}} &
+	\bitbox{1}{\z{\textbackslash n}}
+\end{bytefield}
+
+The \Var*{model} field may be ``\z{L}'' for the legacy hardware the author still has
+lying around (but this shouldn't be something anyone else would need to see), or
+``\z{M}'' for the current 64$\times$8 matrix display hardware.
+
+\Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
+hardware the firmware was compiled to drive, and of the firmware itself. Each of
+these fields are variable-width and conform to the semantic version standard 2.0.0.\footnote{See
+\href{https://semver.org}{semver.org}.}
+
+The \Var*{serial} field is a variable-width string which was set when the firm\-ware was
+compiled. It should be a unique serial number for the device (although that depends on
+some effort on the part of the person compiling the firmware to insert that serial number
+each time). Serial numbers 0--299 are reserved for the original author's use.
+
+The status message sent to the host is terminated by a newline character (hex byte \z{0A}),
+indicated in the protocol description above as ``\z{\textbackslash n}''.
+
+\section{\z{S}---Light Single \led}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{S}} &
+	\bitbox{1}{\Var*{light}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Stops the flasher (cancelling any previous \z{F} command) and turns off all discrete
+\led s. The single \led\ indicated by \Var*{light} is turned on. See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command),
+it remains running.
+
+This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
+
+\section{\z{T}---Display Text}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{2}{\dots}\\
+	\bitbox{1}{\z{T}} &
+	\bitbox{1}{\Var*{merge}}&
+	\bitbox{1}{\Var*{align}}&
+	\bitbox{1}{\Var*{trans}}&
+	\bitbox{3}{\Var*{string}}&
+	\bitbox{1}{\z{ESC}}&
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Displays the text \Var*{string} at the current cursor position. The cursor position is
+then moved past the text to be ready for the next string to be printed.
+
+The \Var*{align} code indicates how the text is aligned on the display (TBD).
+
+The \Var*{trans} code specifies the transition effect to be used to add this string to the
+display as shown in Table~\ref{tbl:transitions}.
+
+The text is rendered in the current font and may contain any 8-bit bytes except as otherwise
+noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
+future control codes which may be added to the protocol). The string is terminated by an
+escape character (hex byte \z{1B}), indicated in the protocol description as \z{ESC}.
+
+The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
+
+\section{\z{X}---Turn off Discrete \led s}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
+	\bitbox{1}{\z{X}} &
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+
+Turns off the flasher, strober, and all discrete \led s.
+
+This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
+
+\indexintoc
+
+\printindex
+\end{document}
