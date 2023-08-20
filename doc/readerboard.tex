@@ -95,23 +95,42 @@ for the full set of licensing terms.
 Commands are expressed largely in plain \ascii\ characters and are executed immediately
 as they are received.\footnote{Technically, they may even be executed \emph{while} they
 are being received.}
-It is not necessarily required for a command to be fully received first,
-so it is possible that the sign will have started operating on part of the command (e.g.,
-moving the current cursor column position) even if the rest of the command could not be
-performed.
+%It is not necessarily required for a command to be fully received first,
+%so it is possible that the sign will have started operating on part of the command (e.g.,
+%moving the current cursor column position) even if the rest of the command could not be
+%performed.
 
 In addition to plain, printable 7-bit \ascii\ characters, a few control codes are
 recognized as described below. String data may include any 8-bit value except as otherwise
 indicated.
 
 \section{Command Termination and Error Handling}
-The command terminator is ``\z{\textasciicircum D}'' (hex byte value \z{04}). We
-\emph{recommend} that every command---or group of commands which together represent
-a logical update to the sign---be followed by a \z{\textasciicircum D} character.
+The command terminator is ``\z{\textasciicircum D}'' (hex byte value \z{04}). %We
+%\emph{recommend} that every command---or group of commands which together represent
+%a logical update to the sign---be followed by a \z{\textasciicircum D} character.
+This character \emph{must} follow each readerboard command, since the interpretation
+of the next command won't start until receipt of the 
+\z{\textasciicircum D},
+effectively
+ignoring any data sent after the end of the command and before the terminating
+\z{\textasciicircum D}.
 
-The individual commands are executed immediately upon receipt, without requiring the
-\z{\textasciicircum D} byte. For example, in the sequence ``\z{H1H2H3\textasciicircum D}''
-the first bar graph data point will be displayed as soon as ``\z{H1}'' is received.
+The exception to this rule is the set of Busylight-compatible commands
+\z*,
+\z?,
+\z{F},
+\z{S},
+and
+\z{X}.
+Since the Busylight unit did not use any command terminator in its protocol, the readerboard
+unit won't demand one either, although we \emph{recommend} that you do anyway. At the very least,
+you should have a
+\z{\textasciicircum D}
+character sent after a sequence of one or more Busylight-compatible commands.
+
+%The individual commands are executed immediately upon receipt, without requiring the
+%\z{\textasciicircum D} byte. For example, in the sequence ``\z{H1H2H3\textasciicircum D}''
+%the first bar graph data point will be displayed as soon as ``\z{H1}'' is received.
 
 In case of an error, such as the inability to parse the incoming command or an invalid
 field value, the readerboard will signal the error condition by lighting the white and
@@ -124,9 +143,9 @@ has been sent but the host becomes aware that it cannot be completed. Note that 
 may have been partially acted upon by that point, so no assumption should be made as to the
 sign's state.
 
-In the descriptions that follow, a trailing \z{\textasciicircum D} is shown at the end
-of each command to remind you of the recommendation to send this terminator, even though
-the commands themselves do not require them, strictly speaking.
+%In the descriptions that follow, a trailing \z{\textasciicircum D} is shown at the end
+%of each command to remind you of the recommendation to send this terminator, even though
+%the commands themselves do not require them, strictly speaking.
 
 \section{Command Summary}
 The eight discrete \led s are intended for a simple display of status information
@@ -184,16 +203,16 @@ as described below. None of the other commands do this.
 	\bitbox[]{1}{\scriptsize$n+1$}&
 	\bitbox[]{1}{\scriptsize$n+2$}\\
 	\bitbox{1}{\z{*}} &
-	\bitbox[tlb]{1}{\Var*{light$_0$}} &
-	\bitbox[tb]{1}{\Var*{light$_1$}} &
-	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tlb]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{1}{\Var*{light$_n$}} &
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
 
-Each \Var*{light} value is an \ascii\ digit character corresponding to a discrete
+Each \Var*{led} value is an \ascii\ digit character corresponding to a discrete
 \led\ as shown in Table~\ref{tbl:lightcodes}. 
 
 This command functions identically to the \z{F} command (see below), except that the lights
@@ -257,14 +276,14 @@ what the discrete \led s are currently showing. This response has the form:
 \noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 	\bitheader{0-8} \\
 	\bitbox{1}{\z{L}} &
-	\bitbox[tbl]{1}{\Var*{light$_0$}} &
-	\bitbox[tb]{1}{\Var*{light$_1$}} &
-	\bitbox[tb]{1}{\Var*{light$_2$}} &
-	\bitbox[tb]{1}{\Var*{light$_3$}} &
-	\bitbox[tb]{1}{\Var*{light$_4$}} &
-	\bitbox[tb]{1}{\Var*{light$_5$}} &
-	\bitbox[tb]{1}{\Var*{light$_6$}} &
-	\bitbox[tbr]{1}{\Var*{light$_7$}} \\
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
+	\bitbox[tb]{1}{\Var*{led$_3$}} &
+	\bitbox[tb]{1}{\Var*{led$_4$}} &
+	\bitbox[tb]{1}{\Var*{led$_5$}} &
+	\bitbox[tb]{1}{\Var*{led$_6$}} &
+	\bitbox[tbr]{1}{\Var*{led$_7$}} \\
 	\bitbox{1}{\z{F}} &
 	\bitbox[tlr]{8}{flasher status (see below)} \\
 	\bitbox[lr]{9}{}\\
@@ -307,17 +326,17 @@ In each case, if there is no defined sequence, the status field will be:
 	\bitbox{1}{\Var*{run}} &
 	\bitbox{1}{\Var*{pos}} &
 	\bitbox{1}{\z{@}} &
-	\bitbox[tbl]{1}{\Var*{light$_0$}} &
-	\bitbox[tb]{1}{\Var*{light$_1$}} &
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{1}{\Var*{light$_n$}} 
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} 
 \end{bytefield}
 
 In either case, \Var*{run} is the \ascii\ character ``\z{0}'' if the unit is
 stopped or ``\z{1}'' if it is currently running.  If there is a defined sequence,
 \Var*{pos} indicates the 0-origin position within the sequence of the light currently
 being flashed or strobed, encoded as described in Table~\ref{tbl:int063}. 
-The \Var*{light} values are as given to the \z{F} or \z{*}
+The \Var*{led} values are as given to the \z{F} or \z{*}
 command that set the sequence.
 
 Note that the \Var*{pos} value may be the character ``\z{X}'' to indicate the position
@@ -343,6 +362,8 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 			16 & \z@ & 49--63 & \z{a}--\z{o} \\
 			\bottomrule
 		\end{tabular}
+
+		(Each code is the numeric value plus 48.)
 		\caption{\ascii\ Encoded Integer Values (0--63)\label{tbl:int063}}
 	\end{center}
 \end{table}
@@ -500,16 +521,16 @@ the discrete \led s.
 	\bitbox[]{1}{\scriptsize$n+1$}&
 	\bitbox[]{1}{\scriptsize$n+2$}\\
 	\bitbox{1}{\z{F}} &
-	\bitbox[tbl]{1}{\Var*{light$_0$}} &
-	\bitbox[tb]{1}{\Var*{light$_1$}} &
-	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{1}{\Var*{light$_n$}} &
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
 
-Each \Var*{light} value is an \ascii\ digit character corresponding to a discrete
+Each \Var*{led} value is an \ascii\ digit character corresponding to a discrete
 \led\ as shown in Table~\ref{tbl:lightcodes}. Note that the assignment of colors
 to these \led s is dependent on your particular hardware being assembled that way.
 As an open source project, of course, you (or whomever assembled the unit) may choose any
@@ -534,11 +555,11 @@ color scheme you like when building the board.
 	\end{center}
 \end{table}
 
-Up to 64 \Var*{light} codes may be listed. The sign will cycle through the sequence, lighting each
+Up to 64 \Var*{led} codes may be listed. The sign will cycle through the sequence, lighting each
 specified \led\ briefly before moving on to the next one. The sequence is repeated
 forever in a loop until an \z{L}, \z{S} or \z{X} command is received. 
 
-If only one \Var*{light} is specified, that light will be flashed on and off.
+If only one \Var*{led} is specified, that light will be flashed on and off.
 Setting an empty
 sequence (no codes at all) stops the flasher's operation.
 
@@ -574,7 +595,7 @@ are scrolled left one column.
 	\bitbox[tbl]{2}{\Var*{coldata$_0$}} &
 	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} \\
-	\bitbox[tbr]{2}{\Var*{coldata$_n$}} &
+	\bitbox[tbr]{2}{\Var*{coldata$_{n-1}$}} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
@@ -632,11 +653,11 @@ to the display. See Table~\ref{tbl:transitions}.
 	\bitbox[]{1}{\scriptsize$n+1$}&
 	\bitbox[]{1}{\scriptsize$n+2$}\\
 	\bitbox{1}{\z{L}} &
-	\bitbox[tbl]{1}{\Var*{light$_0$}} &
-	\bitbox[tb]{1}{\Var*{light$_1$}} &
-	\bitbox[tb]{1}{\Var*{light$_2$}} &
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$}&
-	\bitbox[tb]{1}{\Var*{light$_n$}} &
+	\bitbox[tb]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
@@ -697,12 +718,12 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
 	\bitheader{0-2} \\
 	\bitbox{1}{\z{S}} &
-	\bitbox{1}{\Var*{light}} &
+	\bitbox{1}{\Var*{led}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
 
 Stops the flasher (cancelling any previous \z{F} command) and turns off all discrete
-\led s. The single \led\ indicated by \Var*{light} is turned on. See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command),
+\led s. The single \led\ indicated by \Var*{led} is turned on. See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command),
 it remains running.
 
 This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
