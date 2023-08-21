@@ -106,6 +106,7 @@ private:
         LightOnState, 
         LightSetState,
         StrobeState, 
+		EndState,
     } state;
     byte LEDset;
     byte command_in_progress;
@@ -126,6 +127,7 @@ public:
     void commit_image_data(void);
     void report_state(void);
     void reset(void);
+	void end_cmd(void);
     void set_lights(byte lights);
     void set_light_sequence(byte which);
     void error(void);
@@ -195,6 +197,15 @@ bool CommandStateMachine::accept_hex_nybble(int inputchar)
 }
 
 //
+// (CSM) end_cmd()
+//   Wait for the ^D command terminator before beginning the next command.
+//
+bvoid CommandStateMachine::end_cmd(void)
+{
+	state = EndState;
+}
+
+//
 // (CSM) reset()
 //   Reset the state machine. This may be called
 //   upon the completion of an operation to reset the machine
@@ -228,6 +239,7 @@ void CommandStateMachine::accept(int inputchar)
 
     switch (state) {
     // stuck in error state until end of command
+	case EndState:
     case ErrorState:
         if (inputchar == '\x04') {
             reset();
@@ -267,7 +279,7 @@ void CommandStateMachine::accept(int inputchar)
 #endif
             Serial.write(SERIAL_VERSION_STAMP);
             Serial.write('\n');
-            reset();
+            end_cmd();
             break;
 
 #if HW_MODEL == MODEL_CURRENT_64x8
@@ -395,7 +407,7 @@ void CommandStateMachine::accept(int inputchar)
     case BarGraphState:
         if (inputchar >= '0' && inputchar <= '9') {
             commit_graph_datapoint(inputchar - '0');
-            reset();
+            end_cmd();
         }
         else {
             error();
@@ -436,7 +448,7 @@ void CommandStateMachine::accept(int inputchar)
                 break;
             }
             commit_image_data();
-            reset();
+            end_cmd();
             break;
         }
         if (accept_hex_nybble(inputchar)) {
