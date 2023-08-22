@@ -17,5 +17,19 @@ extern bool discrete_query(byte lightno);
 extern void discrete_set(byte lightno, bool value);
 #endif
 
+typedef enum { 
+		NoTransition,
+		TransScrollLeft,
+		TransScrollRight,
+		TransScrollUp,
+		TransScrollDown,
+		TransWipeLeft,
+		TransWipeRight,
+		TransWipeUp,
+		TransWipeDown,
+		TransWipeLeftRight,
+		TransWipeUpDown,
+		TransRandom,
+} TransitionEffect;
 
 #endif

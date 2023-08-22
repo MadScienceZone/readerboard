@@ -266,13 +266,97 @@ void LED_row_on(int row, byte *buf)
 }
 
 //
-// display_buffer(src)
+// Transition effect manager. This manages incrementally
+// copying data from the image buffer to the hardware refresh
+// buffer in visually interesting patterns.
+//
+class TransitionManager {
+	TransitionEffect transition;
+	TimerEvent       timer;
+	byte            *src;
+	byte             current_column;
+public:
+	TransitionManager(void);
+	void update(void);
+	void start_transition(byte *, TransitionEffect, int);
+	void stop(void);
+	static void next(void);
+};
+
+TransitionManager::TransitionManager(void)
+{
+	src = image_buffer;
+	current_column = 0;
+	transition = NoTransition;
+	timer.set(0, next);
+	timer.disable();
+}
+
+void TransitionManager::update(void)
+{
+	timer.update();
+}
+
+void TransitionManager::stop(void)
+{
+	timer.disable();
+}
+
+void TransitionManager::start_transition(byte *buffer, TransitionEffect trans, int delay_ms)
+{
+	transition = trans;
+	src = buffer;
+	current_column = 0;
+	if (trans == NoTransition) {
+		stop();
+		copy_all_rows(src, hw_buffer);
+	}
+	else {
+		timer.reset(); 
+		timer.setPeriod(delay_ms); 
+		timer.enable();
+	}
+}
+
+static void TransitionManager::next(void)
+{
+	if (current_column > 63) {
+		stop();
+		return;
+	}
+
+	switch (transition) {
+	case TransWipeLeft:
+		copy_row_bits(63-(current_column++), src, hw_buffer);
+		break;
+
+	case TransWipeRight:
+		copy_row_bits(current_column++, src, hw_buffer);
+		break;
+
+	default:
+		stop();
+		return;
+	}
+}
+
+//
+// display_buffer(src, transition)
 //   Copies the contents of the image buffer src to the hardware buffer, so that
 //   is now what will be displayed on the LEDs.
 //
-void display_buffer(byte *src)
+//   If a transition effect is specified, the update to the hardware buffer will
+//   be performed gradually to produce the desired visual effect.
+//
+void display_buffer(byte *src, TransitionEffect transition)
 {
-    copy_all_rows(src, hw_buffer);
+	if (transition == NoTransition) {
+		transitions.stop();
+		copy_all_rows(src, hw_buffer);
+	}
+	else {
+		transitions.start_transition(src, transition, 100)
+	}
 }
 
 //
@@ -444,6 +528,7 @@ void shift_left(byte *buffer)
     }
 }
 
+
 //
 // The following LightBlinker support was adapted from the
 // author's busylight project, which this project is intended
@@ -598,6 +683,7 @@ void flash_lights(void);
 void strobe_lights(void);
 LightBlinker flasher(200, 0, flash_lights);
 LightBlinker strober(50,2000, strobe_lights);
+TransitionManager transitions();
 
 void discrete_all_off(bool stop_blinkers)
 {
@@ -687,6 +773,7 @@ void loop(void)
     flasher.update();
     strober.update();
 #endif
+	transitions.update();
 
     /* receive commands via serial port */
     if (Serial.available() > 0) {

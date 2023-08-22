@@ -10,11 +10,11 @@
 // and the version numbers may be any string conforming to semantic versioning 2.0.0
 // (see semver.org).
 //
-#define SERIAL_VERSION_STAMP "V1.0.0R0.0.0SXXXXX"
-//                             \___/ \___/ \___/
-//                               |     |     |
-//                  Hardware version   |     |
-//                        Firmware version   |
+#define SERIAL_VERSION_STAMP "V1.0.0$R0.0.0$SXXXXX$"
+//                             \___/  \___/  \___/
+//                               |      |      |
+//                  Hardware version    |      |
+//                         Firmware version    |
 //                                 Serial number
 //
 //
@@ -47,7 +47,7 @@
 //     <l> ::= '0' | '1' | ... | '7'    (discrete light ID)
 //     $ ::= '$' | ESCAPE
 //
-//   Busylight Compatibility
+//   Busylight Compatibility (terminating ^D recommended but not required)
 //     'F' <l>* $                   Flash one or more lights in sequence
 //     'S' <l>                      Turn on one LED steady; stop flasher
 //     '*' <l>* $                   Strobe one or more lights in sequence
@@ -62,7 +62,7 @@
 //     'H' <digit>                  Draw bar graph data point
 //     'I' <merge> <pos> <trans> <col>* $
 //                                  Draw bitmap image starting at <pos>
-//     'Q'                          Query status (returns 'Q' <model> 'V' <hwversion> 'R' <romversion> 'S' <serial> '\n')
+//     'Q'                          Query status (returns 'Q' <model> 'V' <hwversion> 'R' <romversion> 'S' <serial> 'M' <matrixcols> '\n')
 //::   '<' <loop> <string>* ESCAPE  Scroll <string> across display, optionally looping repeatedly.
 //::   'T' <merge> <align> <trans> <string>* ESCAPE 
 //::                                Print string in current font from current cursor position
@@ -111,7 +111,7 @@ private:
     byte LEDset;
     byte command_in_progress;
     bool merge;
-    enum TransitionEffect { NoTransition } transition;
+    TransitionEffect transition;
     byte buffer[CSM_BUFSIZE];
     byte buffer_idx;
     bool nybble;
@@ -200,7 +200,7 @@ bool CommandStateMachine::accept_hex_nybble(int inputchar)
 // (CSM) end_cmd()
 //   Wait for the ^D command terminator before beginning the next command.
 //
-bvoid CommandStateMachine::end_cmd(void)
+void CommandStateMachine::end_cmd(void)
 {
 	state = EndState;
 }
@@ -255,7 +255,7 @@ void CommandStateMachine::accept(int inputchar)
 
         case 'C':
             clear_buffer(image_buffer);
-            display_buffer(image_buffer);
+            display_buffer(image_buffer, NoTransition);
             break;
 
         case 'H':
@@ -278,6 +278,10 @@ void CommandStateMachine::accept(int inputchar)
 # endif
 #endif
             Serial.write(SERIAL_VERSION_STAMP);
+			Serial.write('M');
+			for (int i=0; i<64; i++) {
+				Serial.print(image_buffer[i], HEX);
+			}
             Serial.write('\n');
             end_cmd();
             break;
@@ -432,13 +436,24 @@ void CommandStateMachine::accept(int inputchar)
         break;
 
     case ImageStateTransition:
-        if (inputchar == '.') {
-            transition = NoTransition;
-            state = ImageStateData;
+		switch (inputchar) {
+		case '.': transition = NoTransition; break;
+		case '<': transition = TransScrollLeft; break;
+		case '>': transition = TransScrollRight; break;
+		case '^': transition = TransScrollUp; break;
+		case 'v': transition = TransScrollDown; break;
+		case 'L': transition = TransWipeLeft; break;
+		case 'R': transition = TransWipeRight; break;
+		case 'U': transition = TransWipeUp; break;
+		case 'D': transition = TransWipeDown; break;
+		case '|': transition = TransWipeLeftRight; break;
+		case '-': transition = TransWipeUpDown; break;
+		case '?': transition = TransRandom; break;
+		default:
+			error();
         }
-        else {
-            error();
-        }
+
+		state = ImageStateData;
         break;
 
     case ImageStateData:
@@ -524,7 +539,7 @@ void CommandStateMachine::commit_image_data(void)
     for (byte c=0; c < buffer_idx; c++) {
         draw_column(c+column, buffer[c], merge, image_buffer);
     }
-    display_buffer(image_buffer);
+    display_buffer(image_buffer, transition);
     column = min(column + buffer_idx, 63);
 }
 
@@ -558,7 +573,7 @@ void CommandStateMachine::commit_graph_datapoint(int value)
     bits >>= 1;
 #endif
     draw_column(63, bits, false, image_buffer);
-    display_buffer(image_buffer);
+    display_buffer(image_buffer, NoTransition);
 }
 
 CommandStateMachine cmd;
