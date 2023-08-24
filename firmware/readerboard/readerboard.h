@@ -29,7 +29,6 @@ typedef enum {
 		TransWipeDown,
 		TransWipeLeftRight,
 		TransWipeUpDown,
-		TransRandom,
 } TransitionEffect;
 
 #endif

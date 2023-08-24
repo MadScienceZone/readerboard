@@ -343,6 +343,14 @@ void TransitionManager::next(bool reset_column)
 		copy_row_bits(current_column++, src, hw_buffer);
 		break;
 
+	case TransScrollLeft:
+	case TransScrollRight:
+	case TransScrollUp:
+	case TransScrollDown:
+	case TransWipeUp:
+	case TransWipeDown:
+	case TransWipeUpDown:
+	case TransWipeLeftRight:
 	default:
 		stop();
 		return;

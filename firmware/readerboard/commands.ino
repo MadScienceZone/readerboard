@@ -448,7 +448,22 @@ void CommandStateMachine::accept(int inputchar)
 		case 'D': transition = TransWipeDown; break;
 		case '|': transition = TransWipeLeftRight; break;
 		case '-': transition = TransWipeUpDown; break;
-		case '?': transition = TransRandom; break;
+		case '?': 
+			// random transition pattern
+			switch (millis() % 10) {
+			case 0: transition = TransScrollLeft; break;
+			case 1: transition = TransScrollRight; break;
+			case 2: transition = TransScrollUp; break;
+			case 3: transition = TransScrollDown; break;
+			case 4: transition = TransWipeLeft; break;
+			case 5: transition = TransWipeRight; break;
+			case 6: transition = TransWipeUp; break;
+			case 7: transition = TransWipeDown; break;
+			case 8: transition = TransWipeLeftRight; break;
+			case 9: transition = TransWipeUpDown; break;
+			default: transition = NoTransition; break;
+			}
+			break;
 		default:
 			error();
         }
