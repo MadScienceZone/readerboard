@@ -47,6 +47,8 @@
  */
 const int REFRESH_MS = 25;
 
+const int PIN_STATUS_LED = 13;
+
 #if HW_MODEL == MODEL_LEGACY_64x7
 const int N_ROWS    = 7;    // number of rows on the display
 const int COL_BLK_0 = 0;    // leftmost column block is MSB
@@ -106,6 +108,7 @@ const int PIN_D7    = A7;   // column data bit 7
 //
 void setup_pins(void)
 {
+	pinMode(PIN_STATUS_LED, OUTPUT);
     pinMode(PIN_D0, OUTPUT);
     pinMode(PIN_D1, OUTPUT);
     pinMode(PIN_D2, OUTPUT);
@@ -274,21 +277,21 @@ class TransitionManager {
 	TransitionEffect transition;
 	TimerEvent       timer;
 	byte            *src;
-	byte             current_column;
 public:
 	TransitionManager(void);
 	void update(void);
 	void start_transition(byte *, TransitionEffect, int);
 	void stop(void);
-	static void next(void);
+	void next(bool reset_column = false);
 };
+
+void next_transition(void);
 
 TransitionManager::TransitionManager(void)
 {
 	src = image_buffer;
-	current_column = 0;
 	transition = NoTransition;
-	timer.set(0, next);
+	timer.set(0, next_transition);
 	timer.disable();
 }
 
@@ -306,20 +309,26 @@ void TransitionManager::start_transition(byte *buffer, TransitionEffect trans, i
 {
 	transition = trans;
 	src = buffer;
-	current_column = 0;
 	if (trans == NoTransition) {
 		stop();
 		copy_all_rows(src, hw_buffer);
 	}
 	else {
+		next(true);
 		timer.reset(); 
 		timer.setPeriod(delay_ms); 
 		timer.enable();
 	}
 }
 
-static void TransitionManager::next(void)
+void TransitionManager::next(bool reset_column)
 {
+	static int current_column = 0;
+
+	if (reset_column) {
+		current_column = 0;
+	}
+
 	if (current_column > 63) {
 		stop();
 		return;
@@ -340,24 +349,6 @@ static void TransitionManager::next(void)
 	}
 }
 
-//
-// display_buffer(src, transition)
-//   Copies the contents of the image buffer src to the hardware buffer, so that
-//   is now what will be displayed on the LEDs.
-//
-//   If a transition effect is specified, the update to the hardware buffer will
-//   be performed gradually to produce the desired visual effect.
-//
-void display_buffer(byte *src, TransitionEffect transition)
-{
-	if (transition == NoTransition) {
-		transitions.stop();
-		copy_all_rows(src, hw_buffer);
-	}
-	else {
-		transitions.start_transition(src, transition, 100)
-	}
-}
 
 //
 // copy_all_rows(src, dst)
@@ -683,7 +674,31 @@ void flash_lights(void);
 void strobe_lights(void);
 LightBlinker flasher(200, 0, flash_lights);
 LightBlinker strober(50,2000, strobe_lights);
-TransitionManager transitions();
+TransitionManager transitions;
+
+void next_transition(void)
+{
+	transitions.next();
+}
+
+//
+// display_buffer(src, transition)
+//   Copies the contents of the image buffer src to the hardware buffer, so that
+//   is now what will be displayed on the LEDs.
+//
+//   If a transition effect is specified, the update to the hardware buffer will
+//   be performed gradually to produce the desired visual effect.
+//
+void display_buffer(byte *src, TransitionEffect transition)
+{
+	if (transition == NoTransition) {
+		transitions.stop();
+		copy_all_rows(src, hw_buffer);
+	}
+	else {
+		transitions.start_transition(src, transition, 100);
+	}
+}
 
 void discrete_all_off(bool stop_blinkers)
 {
@@ -705,6 +720,7 @@ void strobe_lights(void)
 {
     strober.advance();
 }
+
 #endif /* MODEL_CURRENT_64x8 */
 
 //
@@ -729,6 +745,24 @@ void flag_ready(void)
 #endif
 }
 
+TimerEvent status_timer;
+void strobe_status(void)
+{
+	static int status_value = 0;
+	static int increment = 1;
+
+	status_value += increment;
+	if (status_value < 0) {
+		status_value = 1;
+		increment = 1;
+	} 
+	else if (status_value > 255) {
+		status_value = 254;
+		increment = -1;
+	}
+	analogWrite(PIN_STATUS_LED, status_value);
+}
+
 //
 // setup()
 //   Called after reboot to set up the device.
@@ -744,6 +778,10 @@ void setup(void)
 #endif
     setup_commands();
     setup_buffers();
+	status_timer.set(0, strobe_status);
+	status_timer.reset();
+	status_timer.setPeriod(10);
+	status_timer.enable();
 
     Serial.begin(9600);
     while (!Serial);
@@ -773,6 +811,7 @@ void loop(void)
     flasher.update();
     strober.update();
 #endif
+	status_timer.update();
 	transitions.update();
 
     /* receive commands via serial port */
