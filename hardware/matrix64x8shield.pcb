@@ -5,7 +5,7 @@ FileVersion[20091103]
 
 PCB["" 3460.00mil 2210.00mil]
 
-Grid[10.00mil 0.0000 0.0000 1]
+Grid[25.00mil 0.0000 0.0000 1]
 PolyArea[3100.006203]
 Thermal[0.500000]
 DRC[12.00mil 9.00mil 10.00mil 7.00mil 15.00mil 10.00mil]
@@ -785,7 +785,7 @@ Symbol['~' 12.00mil]
 	SymbolLine[20.00mil 35.00mil 25.00mil 30.00mil 8.00mil]
 )
 Attribute("PCB::grid::unit" "mil")
-Attribute("PCB::grid::size" "10.00mil")
+Attribute("PCB::grid::size" "25.00mil")
 Attribute("PCB::loader" "geda/pcb - readable units")
 Attribute("PCB::conf::editor/buffer_number" "0")
 Attribute("PCB::conf::editor/grid" "25.00 mil")
@@ -798,6 +798,9 @@ Via[21.0000mm 9.0000mm 130.00mil 20.00mil 134.00mil 50.00mil "" ""]
 Via[21.0000mm 14.0000mm 130.00mil 20.00mil 134.00mil 50.00mil "" ""]
 Via[21.0000mm 19.0000mm 130.00mil 20.00mil 136.00mil 50.00mil "" ""]
 Via[21.0000mm 24.0000mm 130.00mil 20.00mil 136.00mil 50.00mil "" ""]
+Via[2940.00mil 14.8120mm 130.00mil 20.00mil 134.00mil 50.00mil "" ""]
+Via[2940.00mil 780.00mil 130.00mil 20.00mil 136.00mil 50.00mil "" ""]
+Via[2940.00mil 24.8120mm 130.00mil 20.00mil 136.00mil 50.00mil "" ""]
 
 Element["hidename" "Jumper, i.e. single row headers" "" "JUMPER8" 2060.00mil 150.00mil 0.0000 0.0000 0 100 ""]
 (
@@ -1027,6 +1030,51 @@ Element["" "Header connector, ribbon cable numbering" "" "HEADER10_2" 1460.00mil
 	ElementLine [-50.00mil -50.00mil 50.00mil -50.00mil 10.00mil]
 
 	)
+
+Element["" "Small outline package, narrow (150mil)" "" "SO8" 2370.00mil 680.00mil -20.00mil -60.00mil 0 100 ""]
+(
+	Pad[-135.00mil -75.00mil -70.00mil -75.00mil 20.00mil 10.00mil 30.00mil "1" "1" "square"]
+	Pad[-135.00mil -25.00mil -70.00mil -25.00mil 20.00mil 10.00mil 30.00mil "2" "2" "square"]
+	Pad[-135.00mil 25.00mil -70.00mil 25.00mil 20.00mil 10.00mil 30.00mil "3" "3" "square"]
+	Pad[-135.00mil 75.00mil -70.00mil 75.00mil 20.00mil 10.00mil 30.00mil "4" "4" "square"]
+	Pad[70.00mil 75.00mil 135.00mil 75.00mil 20.00mil 10.00mil 30.00mil "5" "5" "square,edge2"]
+	Pad[70.00mil 25.00mil 135.00mil 25.00mil 20.00mil 10.00mil 30.00mil "6" "6" "square,edge2"]
+	Pad[70.00mil -25.00mil 135.00mil -25.00mil 20.00mil 10.00mil 30.00mil "7" "7" "square,edge2"]
+	Pad[70.00mil -75.00mil 135.00mil -75.00mil 20.00mil 10.00mil 30.00mil "8" "8" "square,edge2"]
+	ElementLine [-155.00mil -95.00mil -155.00mil 95.00mil 10.00mil]
+	ElementLine [-155.00mil 95.00mil 155.00mil 95.00mil 10.00mil]
+	ElementLine [155.00mil 95.00mil 155.00mil -95.00mil 10.00mil]
+	ElementLine [-155.00mil -95.00mil -25.00mil -95.00mil 10.00mil]
+	ElementLine [155.00mil -95.00mil 25.00mil -95.00mil 10.00mil]
+	ElementArc [0.0000 -95.00mil 25.00mil 25.00mil 0.000000 180.000000 10.00mil]
+
+	)
+
+Element["" "Axial non-polar component (typically resistor or capacitor)," "" "ACY100" 2480.00mil 490.00mil 95.00mil 28.00mil 0 100 ""]
+(
+	Pin[0.0000 0.0000 55.00mil 30.00mil 61.00mil 30.00mil "1" "1" "square,edge2"]
+	Pin[100.00mil 0.0000 55.00mil 30.00mil 61.00mil 30.00mil "2" "2" "edge2"]
+	ElementLine [0.0000 0.0000 25.00mil 0.0000 10.00mil]
+	ElementLine [75.00mil 0.0000 100.00mil 0.0000 10.00mil]
+	ElementLine [25.00mil -8.00mil 75.00mil -8.00mil 10.00mil]
+	ElementLine [75.00mil -8.00mil 75.00mil 8.00mil 10.00mil]
+	ElementLine [75.00mil 8.00mil 25.00mil 8.00mil 10.00mil]
+	ElementLine [25.00mil 8.00mil 25.00mil -8.00mil 10.00mil]
+
+	)
+
+Element["" "Axial non-polar component (typically resistor or capacitor)," "" "ACY300" 2225.00mil 975.00mil 245.00mil 45.00mil 0 100 ""]
+(
+	Pin[0.0000 0.0000 65.00mil 30.00mil 71.00mil 30.00mil "1" "1" "square,edge2"]
+	Pin[300.00mil 0.0000 65.00mil 30.00mil 71.00mil 30.00mil "2" "2" "edge2"]
+	ElementLine [0.0000 0.0000 75.00mil 0.0000 10.00mil]
+	ElementLine [225.00mil 0.0000 300.00mil 0.0000 10.00mil]
+	ElementLine [75.00mil -25.00mil 225.00mil -25.00mil 10.00mil]
+	ElementLine [225.00mil -25.00mil 225.00mil 25.00mil 10.00mil]
+	ElementLine [225.00mil 25.00mil 75.00mil 25.00mil 10.00mil]
+	ElementLine [75.00mil 25.00mil 75.00mil -25.00mil 10.00mil]
+
+	)
 Layer(1 "top" "copper")
 (
 	Line[2560.00mil 2050.00mil 2560.00mil 1760.00mil 10.00mil 20.00mil "clearline"]
@@ -1096,13 +1144,47 @@ Layer(1 "top" "copper")
 	Line[1760.00mil 490.00mil 1760.00mil 150.00mil 10.00mil 20.00mil "clearline"]
 	Line[1660.00mil 150.00mil 1660.00mil 490.00mil 10.00mil 20.00mil "clearline"]
 	Line[1560.00mil 150.00mil 1560.00mil 490.00mil 10.00mil 20.00mil "clearline"]
-	Text[290.00mil 20.00mil 0 100 "MATRIX64x8SHIELD 1.0.0 SLW CS 07-AUG-2023" "clearline"]
+	Line[2940.00mil 14.8120mm 69.7700mm 14.8120mm 10.00mil 20.00mil "clearline"]
+	Line[69.7700mm 14.8120mm 2720.00mil 610.00mil 10.00mil 20.00mil "clearline"]
+	Line[2472.50mil 655.00mil 2675.00mil 655.00mil 10.00mil 20.00mil "clearline"]
+	Line[2675.00mil 655.00mil 2725.00mil 605.00mil 10.00mil 20.00mil "clearline"]
+	Line[2940.00mil 780.00mil 2750.00mil 780.00mil 10.00mil 20.00mil "clearline"]
+	Line[2750.00mil 780.00mil 2720.00mil 750.00mil 10.00mil 20.00mil "clearline"]
+	Line[2472.50mil 705.00mil 2675.00mil 705.00mil 10.00mil 20.00mil "clearline"]
+	Line[2675.00mil 705.00mil 2735.00mil 765.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 150.00mil 2360.00mil 470.00mil 10.00mil 20.00mil "clearline"]
+	Line[2267.50mil 605.00mil 2335.00mil 605.00mil 10.00mil 20.00mil "clearline"]
+	Line[2335.00mil 605.00mil 2360.00mil 580.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 580.00mil 2360.00mil 410.00mil 10.00mil 20.00mil "clearline"]
+	Line[2260.00mil 150.00mil 2260.00mil 400.00mil 10.00mil 20.00mil "clearline"]
+	Line[2260.00mil 400.00mil 2160.00mil 500.00mil 10.00mil 20.00mil "clearline"]
+	Line[2160.00mil 500.00mil 2160.00mil 700.00mil 10.00mil 20.00mil "clearline"]
+	Line[2267.50mil 755.00mil 2185.00mil 755.00mil 10.00mil 20.00mil "clearline"]
+	Line[2185.00mil 755.00mil 2160.00mil 730.00mil 10.00mil 20.00mil "clearline"]
+	Line[2160.00mil 730.00mil 2160.00mil 690.00mil 10.00mil 20.00mil "clearline"]
+	Line[2267.50mil 655.00mil 2335.00mil 655.00mil 10.00mil 20.00mil "clearline"]
+	Line[2335.00mil 655.00mil 2360.00mil 680.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 680.00mil 2360.00mil 730.00mil 10.00mil 20.00mil "clearline"]
+	Line[2267.50mil 705.00mil 2355.00mil 705.00mil 10.00mil 20.00mil "clearline"]
+	Line[2355.00mil 705.00mil 2360.00mil 700.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 700.00mil 2360.00mil 720.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 720.00mil 2345.00mil 705.00mil 10.00mil 20.00mil "clearline"]
+	Line[2345.00mil 705.00mil 2360.00mil 690.00mil 10.00mil 20.00mil "clearline"]
+	Line[2225.00mil 975.00mil 2325.00mil 975.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 725.00mil 2360.00mil 940.00mil 10.00mil 20.00mil "clearline"]
+	Line[2360.00mil 940.00mil 2325.00mil 975.00mil 10.00mil 20.00mil "clearline"]
+	Line[1010.00mil 150.00mil 1010.00mil 235.00mil 10.00mil 20.00mil "clearline"]
+	Line[1010.00mil 235.00mil 1225.00mil 450.00mil 10.00mil 20.00mil "clearline"]
+	Line[1225.00mil 450.00mil 1225.00mil 600.00mil 10.00mil 20.00mil "clearline"]
+	Line[1225.00mil 600.00mil 1450.00mil 825.00mil 10.00mil 20.00mil "clearline"]
+	Line[1450.00mil 825.00mil 2075.00mil 825.00mil 10.00mil 20.00mil "clearline"]
+	Line[2075.00mil 825.00mil 2225.00mil 975.00mil 10.00mil 20.00mil "clearline"]
+	Text[220.00mil 1760.00mil 1 100 "MATRIX64x8SHIELD 2.0.0 SLW CS 01-SEP-2023" "clearline"]
 )
 Layer(2 "ground" "copper")
 (
 	Line[1000.00mil 1525.00mil 650.00mil 1525.00mil 40.00mil 20.00mil "clearline"]
 	Line[1260.00mil 1785.00mil 1000.00mil 1525.00mil 40.00mil 20.00mil "clearline"]
-	Line[1260.00mil 2050.00mil 1260.00mil 1785.00mil 40.00mil 20.00mil "clearline"]
 	Line[1160.00mil 1840.00mil 1160.00mil 2050.00mil 10.00mil 20.00mil "clearline"]
 	Line[1130.00mil 1810.00mil 1160.00mil 1840.00mil 10.00mil 20.00mil "clearline"]
 	Line[510.00mil 1810.00mil 1130.00mil 1810.00mil 10.00mil 20.00mil "clearline"]
@@ -1135,9 +1217,52 @@ Layer(2 "ground" "copper")
 	Line[1160.00mil 1040.00mil 1160.00mil 960.00mil 40.00mil 20.00mil "clearline"]
 	Line[1100.00mil 24.0000mm 29.3400mm 24.0000mm 40.00mil 20.00mil "clearline"]
 	Line[29.3400mm 24.0000mm 1180.00mil 920.00mil 40.00mil 20.00mil "clearline"]
+	Line[74.5960mm 980.00mil 2940.00mil 24.8120mm 25.00mil 20.00mil "clearline"]
+	Line[74.6290mm 975.00mil 2940.00mil 24.8120mm 25.00mil 20.00mil "clearline"]
+	Line[2580.00mil 920.00mil 2525.00mil 975.00mil 35.00mil 20.00mil "clearline"]
+	Line[610.00mil 150.00mil 610.00mil 115.00mil 35.00mil 20.00mil "clearline"]
+	Line[610.00mil 115.00mil 650.00mil 75.00mil 35.00mil 20.00mil "clearline"]
+	Line[650.00mil 75.00mil 2000.00mil 75.00mil 35.00mil 20.00mil "clearline"]
+	Line[1260.00mil 1785.00mil 1260.00mil 2110.00mil 40.00mil 20.00mil "clearline"]
+	Line[1260.00mil 2110.00mil 1300.00mil 2150.00mil 40.00mil 20.00mil "clearline"]
+	Line[1300.00mil 2150.00mil 2325.00mil 2150.00mil 40.00mil 20.00mil "clearline"]
+	Line[2325.00mil 2150.00mil 2375.00mil 2100.00mil 40.00mil 20.00mil "clearline"]
+	Line[2375.00mil 2100.00mil 2375.00mil 1125.00mil 40.00mil 20.00mil "clearline"]
+	Line[2375.00mil 1125.00mil 2525.00mil 975.00mil 40.00mil 20.00mil "clearline"]
+	Line[1875.00mil 75.00mil 2125.00mil 75.00mil 35.00mil 20.00mil "clearline"]
+	Line[2125.00mil 75.00mil 2175.00mil 125.00mil 35.00mil 20.00mil "clearline"]
+	Line[2175.00mil 125.00mil 2175.00mil 375.00mil 35.00mil 20.00mil "clearline"]
+	Line[2175.00mil 375.00mil 2200.00mil 400.00mil 35.00mil 20.00mil "clearline"]
+	Line[2200.00mil 400.00mil 2500.00mil 400.00mil 35.00mil 20.00mil "clearline"]
+	Line[2580.00mil 920.00mil 2580.00mil 455.00mil 35.00mil 20.00mil "clearline"]
+	Line[2580.00mil 455.00mil 2525.00mil 400.00mil 35.00mil 20.00mil "clearline"]
+	Line[2525.00mil 400.00mil 2475.00mil 400.00mil 35.00mil 20.00mil "clearline"]
+	Line[74.7230mm 975.00mil 2525.00mil 975.00mil 35.00mil 20.00mil "clearline"]
+	Line[2650.00mil 975.00mil 2650.00mil 970.00mil 25.00mil 20.00mil "clearline"]
+	Line[2650.00mil 970.00mil 2580.00mil 900.00mil 25.00mil 20.00mil "clearline"]
+	Line[2575.00mil 975.00mil 2575.00mil 930.00mil 25.00mil 20.00mil "clearline"]
+	Line[2575.00mil 930.00mil 2580.00mil 925.00mil 25.00mil 20.00mil "clearline"]
+	Line[2580.00mil 925.00mil 2580.00mil 930.00mil 25.00mil 20.00mil "clearline"]
+	Line[2580.00mil 930.00mil 2625.00mil 975.00mil 25.00mil 20.00mil "clearline"]
+	Line[2625.00mil 975.00mil 2610.00mil 975.00mil 25.00mil 20.00mil "clearline"]
+	Line[2610.00mil 975.00mil 2580.00mil 945.00mil 25.00mil 20.00mil "clearline"]
 )
 Layer(3 "top-ground" "copper")
 (
+	Line[2472.50mil 755.00mil 2575.00mil 755.00mil 25.00mil 20.00mil "clearline"]
+	Line[2575.00mil 755.00mil 2690.00mil 870.00mil 25.00mil 20.00mil "clearline"]
+	Line[2940.00mil 24.8120mm 64.1820mm 24.8120mm 25.00mil 20.00mil "clearline"]
+	Line[64.1820mm 24.8120mm 2525.00mil 975.00mil 25.00mil 20.00mil "clearline"]
+	Line[2690.00mil 870.00mil 2690.00mil 960.00mil 25.00mil 20.00mil "clearline"]
+	Line[2690.00mil 960.00mil 67.8980mm 24.8120mm 25.00mil 20.00mil "clearline"]
+	Line[67.8980mm 24.8120mm 68.6270mm 24.8120mm 25.00mil 20.00mil "clearline"]
+	Line[69.1680mm 24.8120mm 68.7540mm 24.8120mm 25.00mil 20.00mil "clearline"]
+	Line[68.7540mm 24.8120mm 2690.00mil 960.00mil 25.00mil 20.00mil "clearline"]
+	Line[1160.00mil 1300.00mil 1160.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
+	Line[1160.00mil 1400.00mil 1260.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
+	Line[1260.00mil 1400.00mil 1260.00mil 1300.00mil 40.00mil 20.00mil "clearline"]
+	Line[1260.00mil 1300.00mil 1160.00mil 1300.00mil 40.00mil 20.00mil "clearline"]
+	Line[1260.00mil 1300.00mil 1160.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
 )
 Layer(4 "top-power" "copper")
 (
@@ -1159,6 +1284,12 @@ Layer(4 "top-power" "copper")
 	Line[1460.00mil 1300.00mil 1460.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
 	Line[1360.00mil 1300.00mil 1460.00mil 1300.00mil 40.00mil 20.00mil "clearline"]
 	Line[1460.00mil 1400.00mil 1360.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
+	Line[2480.00mil 490.00mil 2410.00mil 490.00mil 25.00mil 20.00mil "clearline"]
+	Line[2410.00mil 490.00mil 2400.00mil 500.00mil 25.00mil 20.00mil "clearline"]
+	Line[2400.00mil 500.00mil 2400.00mil 575.00mil 25.00mil 20.00mil "clearline"]
+	Line[2400.00mil 575.00mil 2425.00mil 600.00mil 25.00mil 20.00mil "clearline"]
+	Line[2472.50mil 605.00mil 2430.00mil 605.00mil 25.00mil 20.00mil "clearline"]
+	Line[2430.00mil 605.00mil 2400.00mil 575.00mil 25.00mil 20.00mil "clearline"]
 )
 Layer(5 "power" "copper")
 (
@@ -1167,6 +1298,19 @@ Layer(5 "power" "copper")
 	Line[1060.00mil 420.00mil 1060.00mil 690.00mil 40.00mil 20.00mil "clearline"]
 	Line[1000.00mil 750.00mil 820.00mil 750.00mil 40.00mil 20.00mil "clearline"]
 	Line[1060.00mil 690.00mil 1000.00mil 750.00mil 40.00mil 20.00mil "clearline"]
+	Line[1360.00mil 1300.00mil 1360.00mil 990.00mil 35.00mil 20.00mil "clearline"]
+	Line[1360.00mil 990.00mil 1475.00mil 875.00mil 35.00mil 20.00mil "clearline"]
+	Line[1475.00mil 875.00mil 1950.00mil 875.00mil 35.00mil 20.00mil "clearline"]
+	Line[1950.00mil 875.00mil 2075.00mil 750.00mil 35.00mil 20.00mil "clearline"]
+	Line[2480.00mil 490.00mil 2160.00mil 490.00mil 35.00mil 20.00mil "clearline"]
+	Line[2160.00mil 490.00mil 2075.00mil 575.00mil 35.00mil 20.00mil "clearline"]
+	Line[2075.00mil 575.00mil 2075.00mil 750.00mil 35.00mil 20.00mil "clearline"]
+	Line[2075.00mil 750.00mil 2025.00mil 800.00mil 25.00mil 20.00mil "clearline"]
+	Line[1360.00mil 1300.00mil 1360.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
+	Line[1360.00mil 1400.00mil 1460.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
+	Line[1460.00mil 1400.00mil 1460.00mil 1300.00mil 40.00mil 20.00mil "clearline"]
+	Line[1460.00mil 1300.00mil 1360.00mil 1300.00mil 40.00mil 20.00mil "clearline"]
+	Line[1360.00mil 1300.00mil 1460.00mil 1400.00mil 40.00mil 20.00mil "clearline"]
 )
 Layer(6 "bottom" "copper")
 (
@@ -1212,7 +1356,8 @@ Layer(6 "bottom" "copper")
 	Line[1460.00mil 380.00mil 1510.00mil 430.00mil 10.00mil 20.00mil "clearline"]
 	Line[1510.00mil 430.00mil 1510.00mil 540.00mil 10.00mil 20.00mil "clearline"]
 	Line[1510.00mil 540.00mil 1560.00mil 590.00mil 10.00mil 20.00mil "clearline"]
-	Text[1520.00mil 20.00mil 2 100 "MATRIX64x8SHIELD 1.0.0 SLW SS 07-AUG-2023" "clearline,onsolder"]
+	Line[74.7260mm 19.8620mm 2940.00mil 780.00mil 40.00mil 20.00mil "clearline"]
+	Text[220.00mil 530.00mil 1 100 "MATRIX64x8SHIELD 2.0.0 SLW SS 01-SEP-2023" "clearline,onsolder"]
 )
 Layer(7 "outline" "outline")
 (
@@ -1269,6 +1414,12 @@ Layer(14 "top silk" "silk")
 	Line[1370.00mil 590.00mil 1320.00mil 540.00mil 10.00mil 20.00mil "clearline"]
 	Line[1320.00mil 540.00mil 1320.00mil 640.00mil 10.00mil 20.00mil "clearline"]
 	Line[1320.00mil 640.00mil 1370.00mil 590.00mil 10.00mil 20.00mil "clearline"]
+	Line[70.8210mm 11.4800mm 70.8210mm 27.4820mm 10.00mil 20.00mil "clearline"]
+	Line[70.8210mm 27.4820mm 78.4410mm 27.4820mm 10.00mil 20.00mil "clearline"]
+	Line[78.4410mm 27.4820mm 78.4410mm 11.4800mm 10.00mil 20.00mil "clearline"]
+	Line[78.4410mm 11.4800mm 70.8210mm 11.4800mm 10.00mil 20.00mil "clearline"]
+	Line[1520.00mil 1070.00mil 1520.00mil 1240.00mil 10.00mil 20.00mil "clearline"]
+	Line[1620.00mil 1200.00mil 1620.00mil 1240.00mil 10.00mil 20.00mil "clearline"]
 	Arc[410.00mil 2025.00mil 100.00mil 100.00mil 10.00mil 20.00mil -90.000000 -90.000000 "clearline"]
 	Arc[410.00mil 2025.00mil 100.00mil 100.00mil 10.00mil 20.00mil 180.000000 -90.000000 "clearline"]
 	Arc[410.00mil 2025.00mil 100.00mil 100.00mil 10.00mil 20.00mil 90.000000 -90.000000 "clearline"]
@@ -1288,7 +1439,7 @@ Layer(14 "top silk" "silk")
 	Text[2130.00mil 1980.00mil 1 100 "A6" "clearline"]
 	Text[2230.00mil 1980.00mil 1 100 "A7" "clearline"]
 	Text[1320.00mil 1980.00mil 1 100 "Vin" "clearline"]
-	Text[2135.00mil 1395.00mil 0 100 "J0 LED MATRIX" "clearline"]
+	Text[2135.00mil 1395.00mil 0 100 "J0 LED MATRIX CONTROL" "clearline"]
 	Text[1030.00mil 1560.00mil 1 100 "REN" "clearline"]
 	Text[2425.00mil 1975.00mil 1 100 "A8" "clearline"]
 	Text[2525.00mil 1975.00mil 1 100 "A9" "clearline"]
@@ -1305,19 +1456,16 @@ Layer(14 "top silk" "silk")
 	Text[2025.00mil 1525.00mil 1 100 "D5" "clearline"]
 	Text[2025.00mil 1235.00mil 1 100 "D6" "clearline"]
 	Text[1925.00mil 1235.00mil 1 100 "D7" "clearline"]
-	Text[1625.00mil 1245.00mil 1 100 "/G" "clearline"]
+	Text[1625.00mil 1235.00mil 1 100 "G" "clearline"]
 	Text[935.00mil 1235.00mil 1 100 "R1" "clearline"]
 	Text[1375.00mil 1175.00mil 0 100 "+5V" "clearline"]
 	Text[1025.00mil 1235.00mil 1 100 "R2" "clearline"]
-	Text[1530.00mil 1245.00mil 1 100 "/SRCLR" "clearline"]
+	Text[1530.00mil 1235.00mil 1 100 "SRCLR" "clearline"]
 	Text[925.00mil 1525.00mil 1 100 "R0" "clearline"]
 	Text[1735.00mil 1240.00mil 1 100 "RCLK" "clearline"]
 	Text[1825.00mil 1240.00mil 1 100 "SRCLK" "clearline"]
 	Text[1165.00mil 1455.00mil 0 100 "GND" "clearline"]
 	Text[1375.00mil 1455.00mil 0 100 "+5V" "clearline"]
-	Text[1815.00mil 860.00mil 0 100 "www.madscience.zone/matrix64x8" "clearline"]
-	Text[1800.00mil 775.00mil 0 144 "LED 64x8 MATRIX SHIELD" "clearline"]
-	Text[1820.00mil 930.00mil 0 100 "STEVE WILLOUGHBY v1.0.0 8/2023" "clearline"]
 	Text[2625.00mil 1975.00mil 1 100 "A10" "clearline"]
 	Text[2725.00mil 1975.00mil 1 100 "A11" "clearline"]
 	Text[2825.00mil 1975.00mil 1 100 "A12" "clearline"]
@@ -1342,7 +1490,7 @@ Layer(14 "top silk" "silk")
 	Text[1340.00mil 240.00mil 1 100 "7" "clearline"]
 	Text[1180.00mil 240.00mil 1 100 "8" "clearline"]
 	Text[1090.00mil 240.00mil 1 100 "9" "clearline"]
-	Text[1950.00mil 560.00mil 0 100 "J1 DISCRETE LEDS" "clearline"]
+	Text[1280.00mil 720.00mil 0 100 "J1 DISCRETE LEDS" "clearline"]
 	Text[1530.00mil 710.00mil 1 100 "L0" "clearline"]
 	Text[1630.00mil 700.00mil 1 100 "L1" "clearline"]
 	Text[1730.00mil 710.00mil 1 100 "L2" "clearline"]
@@ -1353,8 +1501,22 @@ Layer(14 "top silk" "silk")
 	Text[1530.00mil 420.00mil 1 100 "L7" "clearline"]
 	Text[1350.00mil 580.00mil 1 100 "GND" "clearline"]
 	Text[460.00mil 330.00mil 0 100 "+9V OUT" "clearline"]
+	Text[1455.00mil 1700.00mil 0 100 "www.madscience.zone/matrix64x8" "clearline"]
+	Text[1465.00mil 1615.00mil 0 144 "LED 64x8 MATRIX SHIELD" "clearline"]
+	Text[1460.00mil 1770.00mil 0 100 "STEVE WILLOUGHBY v2.0.0 9/2023" "clearline"]
+	Text[3110.00mil 920.00mil 1 100 "J3 RS-485" "clearline"]
+	Text[3180.00mil 790.00mil 1 100 "A" "clearline"]
+	Text[3180.00mil 610.00mil 1 100 "B" "clearline"]
+	Text[3180.00mil 1030.00mil 1 100 "GND" "clearline"]
+	Text[2230.00mil 290.00mil 0 100 "UART3" "clearline"]
+	Text[2340.00mil 350.00mil 0 100 "Rx" "clearline"]
+	Text[2230.00mil 350.00mil 0 100 "Tx" "clearline"]
+	Text[2200.00mil 790.00mil 0 100 "U0 THVD1439" "clearline"]
+	Text[990.00mil 265.00mil 1 100 "10" "clearline"]
+	Text[2300.00mil 1000.00mil 0 100 "R0 10K" "clearline"]
+	Text[2450.00mil 400.00mil 0 100 "C1 0.1uF" "clearline"]
 	Polygon("clearpoly")
 	(
-		[2890.00mil 780.00mil] [3430.00mil 780.00mil] [3430.00mil 1000.00mil] [2890.00mil 1000.00mil] 
+		[2680.00mil 1620.00mil] [3220.00mil 1620.00mil] [3220.00mil 1840.00mil] [2680.00mil 1840.00mil] 
 	)
 )
