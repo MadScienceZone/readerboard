@@ -1,0 +1,47 @@
+Bill of Materials for 64x8 matrix project v2.0.0
+Be sure to verify the mechanical size of all components ordered
+to ensure they will fit on the PCB.
+
+SHIELD
+	Shield PCB
+	Arduino stacking pin set
+	24-pos ribbon cable and IDC female sockets
+	10-pos ribbon cable and IDC female sockets
+C0 	10 μF electrolytic capacitor
+C1 	0.1 μF capacitor
+J0 	24-pos male ribbon cable box header
+J1 	10-pos male ribbon cable box header
+J2 	5-pos Euro-style terminal block
+J3,J5 	2-pin jumper pins and shorting shunt
+J4 	6-pos Euro-style terminal block
+R0 	10K resistor
+R1 	120Ω resistor
+U0 	THVD1439 half-duplex RS-485 transceiver
+
+MATRIX BOARD
+	PCB
+	8 TO-220 heat sinks for Q0-Q7
+C0-C8	0.1 μF capacitor
+D0-511	LEDs for matrix (in desired color)
+D512	LED, discrete #7 (typ. green)
+D513-4	LED, discrete #5-6 (typ. yellow)
+D515-6	LED, discrete #3-4 (typ. red)
+D517-8	LED, discrete #1-2 (typ. blue)
+D519	LED, discrete #0 (typ. white)
+J0	3-pos Euro-style terminal block
+J1	24-pos male ribbon cable box header
+J2	10-pos male ribbon cable box header
+U0,U1	74HCT238 3-to-8 line decoder
+U2	ULN2803A octal NPN Darlington array
+U3-U10	STPIC6C595 8-bit shift register w/high-power OD outputs
+Q0-Q7	IRF9530 p-channel MOSFET
+R0-R7	1K resistor
+R8-R23	8-pin resistor array, isolated, see below
+R24-R31	current limiting resistors for D512-D519, see below
+
+
+
+R8-R31 limit current to the LEDs and are sized based on supply voltage
+and desired current. The following assumes +9V supply and <20 mA current:
+2.0-2.2 Vf (typ. red, yellow): 360Ω
+3.0-3.2 Vf (typ. white, blue, green): 300Ω
