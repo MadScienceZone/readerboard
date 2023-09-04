@@ -104,6 +104,39 @@ In addition to plain, printable 7-bit \ascii\ characters, a few control codes ar
 recognized as described below. String data may include any 8-bit value except as otherwise
 indicated.
 
+\section{Command Addressing}
+Commands may be received over the \acronym{USB} port (a point-to-point connection with a host computer)
+or the RS-485 port (as part of a network of devices all connected to a single host computer's port).
+Commands received over the \acronym{USB} port \mc{MAY} be prefixed by an address specifier as described
+below. Those received over the RS-485 network \mc{MUST} have such a prefix.
+
+The address specifier prefix has the form:
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize$n$}&
+	\bitbox[]{1}{\scriptsize$n+1$}\\
+	\bitbox{1}{\z{/}} &
+	\bitbox[tbl]{1}{\Var*{ad$_0$}}&
+	\bitbox[tb]{1}{$\cdots$}&
+	\bitbox[tbr]{1}{\Var*{ad$_{n-1}$}}&
+	\bitbox{1}{\z{\$}}
+\end{bytefield}
+\end{center}
+
+The \Var*{ad} parameters give the address(es) of the sign(s) which should obey the following
+command. Each is a value from 0--63 encoded as shown in Table~\ref{tbl:int063}. If the list of
+addresses is empty,
+all signs should respond to the command. The address list
+terminator may be a dollar-sign or escape
+character (hex byte \z{1B}), indicated in the protocol description as \z{\$}.
+
+If sent over the \acronym{USB} port, the address prefix is allowed but ignored, and the readerboard
+acts as if all commands are addressed to it, since the commands are received over a private connection
+between the host and that readerboard.
+
 \section{Command Termination and Error Handling}
 The command terminator is ``\z{\textasciicircum D}'' (hex byte value \z{04}). %We
 %\emph{recommend} that every command---or group of commands which together represent
@@ -166,32 +199,39 @@ The remaining commands are used for management of the matrix display. All comman
 			\multicolumn{1}{c}{\bfseries Command}&
 			\multicolumn{1}{c}{\bfseries Description}&
 			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
-			\z{*} & Strobe \led s in Sequence & Busylight compatible \\
-			\z{?} & Query discrete \led\ status & Busylight compatible, response \\
-			\z{F} & Flash \led s in Sequence & Busylight compatible \\
-			\z{L} & Light one or more \led s steady & Busylight extension \\
-			\z{S} & Light one \led\ steady & Busylight compatible \\
-			\z{X} & All \led s off & Busylight compatible \\
+			\z{*} & Strobe \led s in Sequence & [1]\\
+			\z{?} & Query discrete \led\ status & [1] [2] [4]\\
+			\z{F} & Flash \led s in Sequence & [1]\\
+			\z{L} & Light one or more \led s steady & [3]\\
+			\z{S} & Light one \led\ steady & [1]\\
+			\z{X} & All \led s off & [1]\\
 			\midrule
-			\z{\textasciicircum D} & Abort/terminate command & Matrix control \\
-			\z{<} & Scroll text across display & Matrix control \\
-			\z{@} & Move current column cursor & Matrix control \\
-			\z{A} & Select character font & Matrix control \\
-			\z{C} & Clear matrix display & Matrix control \\
-			\z{H} & Add histogram/bargraph data point & Matrix control \\
-			\z{I} & Draw bitmap graphic image & Matrix control \\
-			\z{Q} & Query matrix display statue & Matrix control, response \\
-			\z{T} & Display text on display & Matrix control \\
+			\z{\textasciicircum D} & Abort/terminate command & \\
+			\z{<} & Scroll text across display & \\
+			\z{=} & Set operational parameters & [4]\\
+			\z{@} & Move current column cursor & \\
+			\z{A} & Select character font & \\
+			\z{C} & Clear matrix display & \\
+			\z{H} & Add histogram/bargraph data point & \\
+			\z{I} & Draw bitmap graphic image & \\
+			\z{Q} & Query matrix display statue & [2] [4]\\
+			\z{T} & Display text on display & \\
 			\bottomrule
+			\multicolumn{3}{l}{[1] Busylight compatibile command}\\
+			\multicolumn{3}{l}{[2] Sends response (\acronym{USB} only)}\\
+			\multicolumn{3}{l}{[3] Busylight extension (not in original Busylight)}\\
+			\multicolumn{3}{l}{[4] \acronym{USB} only}\\
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
 \end{table}
 
-Those commands listed with ``response'' in their Notes column send data back to the host
-as described below. None of the other commands do this.
+Although the rev 2 hardware supports the ability to enable the RS-485 transmitter and send data back onto the network,
+this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
+at all times.
 
 \section{\z{*}---Strobe Lights in Sequence}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
 %	\bitheader{0-3} \\
 	\bitbox[]{1}{\scriptsize0}&
@@ -211,6 +251,7 @@ as described below. None of the other commands do this.
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Each \Var*{led} value is an \ascii\ digit character corresponding to a discrete
 \led\ as shown in Table~\ref{tbl:lightcodes}. 
@@ -219,18 +260,23 @@ This command functions identically to the \z{F} command (see below), except that
 are ``strobed'' (flashed very briefly with a pause between each light in the sequence).
 
 \section{\z<---Scroll Text Across Display}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 %	\bitheader{0-8} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize2}&
-	\bitbox[]{1}{\scriptsize\dots}\\
+	\bitbox[]{3}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize$n$+1}&
+	\bitbox[]{1}{\scriptsize$n$+2}&
+	\bitbox[]{1}{\scriptsize$n$+3}\\
 	\bitbox{1}{\z{<}} &
 	\bitbox{1}{\Var*{loop}}&
 	\bitbox{5}{\Var*{string}}&
 	\bitbox{1}{\z{ESC}}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Displays the text \Var*{string} by scrolling it across the display from right to left.
 If \Var*{loop} is ``\z.'', the text is only scrolled once; if it is ``\z{L}'' then it
@@ -260,20 +306,74 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 	\end{center}
 \end{table}
 
+\section{\z{=}---Set Operational Parameters}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-3} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}\\
+	\bitbox{1}{\z{=}} &
+	\bitbox{1}{\Var*{ad}}&
+	\bitbox{1}{\Var*{uspd}}&
+	\bitbox{1}{\Var*{rspd}}&
+	\bitbox{1}{\z{\textasciicircum D}}
+\end{bytefield}
+\end{center}
+
+This command sets a few operational parameters for the sign. Once set, these will be persistent across
+power cycles and reboots.
+
+If the \Var*{ad} parameter is ``\z{*}'' then the RS-485 interface is disabled entirely. Otherwise it is a
+value from 0--63 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
+this sign's address to \Var*{ad}.
+
+The baud rate for the \acronym{USB} and RS-485 interfaces is set by the \Var*{uspd} and \Var*{rspd} values
+respectively. Each is encoded as per Table~\ref{tbl:baudcodes}.
+
+This command may only be sent over the \acronym{USB} port.
+
+By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 port disabled.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{crl}\toprule
+			\bfseries Code & \multicolumn{1}{c}{\bfseries Speed} \\\midrule
+			0 & 300\\
+			1 & 600\\
+			2 & 1,200\\
+			3 & 2,400\\
+			4 & 4,800\\
+			5 & 9,600 & (default)\\
+			6 & 14,400\\
+			7 & 19,200\\
+			8 & 28,800\\
+			9 & 31,250\\
+			A & 38,400\\
+			B & 57,600\\
+			C & 115,200\\
+		\bottomrule
+		\end{tabular}
+		\caption{Baud Rate Codes\label{tbl:baudcodes}}
+	\end{center}
+\end{table}
 
 \section{\z?---Query Discrete \led\ Status}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
 	\bitheader{0-1} \\
 	\bitbox{1}{\z{?}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 This command causes the sign to send a status report back to the host to indicate
 what the discrete \led s are currently showing. This response has the form:
 
 \medskip
 
-\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+\begin{center}\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 	\bitheader{0-8} \\
 	\bitbox{1}{\z{L}} &
 	\bitbox[tbl]{1}{\Var*{led$_0$}} &
@@ -296,6 +396,7 @@ what the discrete \led s are currently showing. This response has the form:
 	\bitbox[rbl]{9}{}\\
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
+\end{center}
 
 The flasher and strober status values are variable-width fields which indicate the
 state of the flasher (see \z{F} command) and strober (see \z{*} command) functions.
@@ -303,11 +404,12 @@ In each case, if there is no defined sequence, the status field will be:
 
 \medskip
 
-\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+\begin{center}\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
 	\bitheader{0-1} \\
 	\bitbox{1}{\Var*{run}} &
 	\bitbox{1}{\z{X}}
 \end{bytefield}
+\end{center}
 
 \smallskip
 
@@ -315,13 +417,14 @@ In each case, if there is no defined sequence, the status field will be:
 
 \medskip
 
-\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+\begin{center}\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
 %	\bitheader{0-6} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize2}&
 	\bitbox[]{1}{\scriptsize3}&
-	\bitbox[]{2}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize\dots}&
 	\bitbox[]{1}{\scriptsize$n+3$}\\
 	\bitbox{1}{\Var*{run}} &
 	\bitbox{1}{\Var*{pos}} &
@@ -331,6 +434,7 @@ In each case, if there is no defined sequence, the status field will be:
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} 
 \end{bytefield}
+\end{center}
 
 In either case, \Var*{run} is the \ascii\ character ``\z{0}'' if the unit is
 stopped or ``\z{1}'' if it is currently running.  If there is a defined sequence,
@@ -368,23 +472,29 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 	\end{center}
 \end{table}
 
+This command may only be sent on the \acronym{USB} port.
+
 \section{\z{@}---Set Column Cursor Position}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
 	\bitheader{0-2} \\
 	\bitbox{1}{\z{@}} &
 	\bitbox{1}{\Var*{pos}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Sets the column cursor position to the value indicated by \Var*{pos}. See Table~\ref{tbl:int063}.
 
 \section{\z{A}---Select Font}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
 	\bitheader{0-2} \\
 	\bitbox{1}{\z{A}} &
 	\bitbox{1}{\Var*{digit}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Sets the font to use for rendering text with the \z< and \z{T} commands.
 The font codes for \Var*{digit} are listed in Table~\ref{tbl:fontcodes}.
@@ -502,16 +612,19 @@ for a complete font glyph listing with codepoint assignments.
 			
 
 \section{\z{C}---Clear Matrix Display}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
 	\bitheader{0-1} \\
 	\bitbox{1}{\z{C}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Clears the matrix display so that no \led s are illuminated. Does not affect
 the discrete \led s.
 
 \section{\z{F}---Flash Lights in Sequence}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
 %	\bitheader{0-7} \\
 	\bitbox[]{1}{\scriptsize0}&
@@ -529,6 +642,7 @@ the discrete \led s.
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Each \Var*{led} value is an \ascii\ digit character corresponding to a discrete
 \led\ as shown in Table~\ref{tbl:lightcodes}. Note that the assignment of colors
@@ -570,12 +684,14 @@ simply as ``\z{\$}''.
 This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 
 \section{\z{H}---Draw Bar Graph Data Point}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
 	\bitheader{0-2} \\
 	\bitbox{1}{\z{H}} &
 	\bitbox{1}{\Var*{n}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 This command is used to draw a bar-graph element. Repeating this command causes a
 scrolling data display which shows a set of data samples over some period of time.
@@ -586,6 +702,7 @@ column of eight lights; a value of 9 is treated as if it were 8). All existing m
 are scrolled left one column.
 
 \section{\z{I}---Draw Bitmap Image}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 	\bitheader{0-8} \\
 	\bitbox{1}{\z{I}} &
@@ -599,6 +716,7 @@ are scrolled left one column.
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Draws an arbitrary bitmap image onto the matrix display starting at column
 \Var*{pos}, encoded as per Table~\ref{tbl:int063}. A \Var*{pos} value of
@@ -644,6 +762,7 @@ to the display. See Table~\ref{tbl:transitions}.
 \end{table}
 
 \section{\z{L}---Light Multiple \led s}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
 %	\bitheader{0-7} \\
 	\bitbox[]{1}{\scriptsize0}&
@@ -661,17 +780,20 @@ to the display. See Table~\ref{tbl:transitions}.
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 This command is identical to the \z{S} command (see below), except that multiple
 discrete \led s can be specified, all of which are illuminated simultaneously.
 See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command), it remains running.
 
 \section{\z{Q}---Query Readerboard Status}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
 	\bitheader{0-1} \\
 	\bitbox{1}{\z{Q}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 This command causes the sign to send a status report back to the host to indicate
 the general status of the device except for the discrete \led\ display which
@@ -679,7 +801,8 @@ may be queried using the \z? command. The response has the form:
 
 \medskip
 
-\noindent\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 %	\bitheader{0-8} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
@@ -702,8 +825,13 @@ may be queried using the \z? command. The response has the form:
 	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{2}{\Var*{coldata$_{63}$}}&
+	\bitbox{1}{\z{=}}&
+	\bitbox{1}{\Var*{ad}}&
+	\bitbox{1}{\Var*{uspd}}&
+	\bitbox{1}{\Var*{rspd}}\\
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
+\end{center}
 
 The \Var*{model} field may be ``\z{L}'' for the legacy hardware the author still has
 lying around (but this shouldn't be something anyone else would need to see), or
@@ -726,16 +854,21 @@ the \led s lit on the matrix display, with \Var*{coldata$_0$} being the leftmost
 and \Var*{coldata$_{63}$} being the rightmost. In each column, the least significant bit indicates
 the \led\ on the top row.
 
+The \Var*{ad}, \Var*{uspd}, and \Var*{rspd} values are as last set by the \z= command (or the factory
+defaults if they were never changed).
+
 The status message sent to the host is terminated by a newline character (hex byte \z{0A}),
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 
 \section{\z{S}---Light Single \led}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
 	\bitheader{0-2} \\
 	\bitbox{1}{\z{S}} &
 	\bitbox{1}{\Var*{led}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Stops the flasher (cancelling any previous \z{F} command) and turns off all discrete
 \led s. The single \led\ indicated by \Var*{led} is turned on. See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command),
@@ -744,6 +877,7 @@ it remains running.
 This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 
 \section{\z{T}---Display Text}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 %	\bitheader{0-8} \\
 	\bitbox[]{1}{\scriptsize0}&
@@ -751,7 +885,9 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 	\bitbox[]{1}{\scriptsize2}&
 	\bitbox[]{1}{\scriptsize3}&
 	\bitbox[]{1}{\scriptsize4}&
-	\bitbox[]{2}{\dots}\\
+	\bitbox[]{2}{\dots}&
+	\bitbox[]{1}{\scriptsize$n$+4}&
+	\bitbox[]{1}{\scriptsize$n$+5}\\
 	\bitbox{1}{\z{T}} &
 	\bitbox{1}{\Var*{merge}}&
 	\bitbox{1}{\Var*{align}}&
@@ -760,6 +896,7 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 	\bitbox{1}{\z{ESC}}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Displays the text \Var*{string} at the current cursor position. The cursor position is
 then moved past the text to be ready for the next string to be printed.
@@ -777,11 +914,13 @@ escape character (hex byte \z{1B}), indicated in the protocol description as \z{
 The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 
 \section{\z{X}---Turn off Discrete \led s}
+\begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
 	\bitheader{0-1} \\
 	\bitbox{1}{\z{X}} &
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
+\end{center}
 
 Turns off the flasher, strober, and all discrete \led s.
 
