@@ -217,10 +217,10 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{Q} & Query matrix display statue & [2] [4]\\
 			\z{T} & Display text on display & \\
 			\bottomrule
-			\multicolumn{3}{l}{[1] Busylight compatibile command}\\
-			\multicolumn{3}{l}{[2] Sends response (\acronym{USB} only)}\\
-			\multicolumn{3}{l}{[3] Busylight extension (not in original Busylight)}\\
-			\multicolumn{3}{l}{[4] \acronym{USB} only}\\
+			\multicolumn{3}{l}{\footnotesize [1] Busylight compatibile command}\\
+			\multicolumn{3}{l}{\footnotesize [2] Sends response (\acronym{USB} only)}\\
+			\multicolumn{3}{l}{\footnotesize [3] Busylight extension (not in original Busylight)}\\
+			\multicolumn{3}{l}{\footnotesize [4] \acronym{USB} only}\\
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
@@ -445,7 +445,7 @@ The status message sent to the host is terminated by a newline character (hex by
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 \begin{table}
 	\begin{center}
-		\begin{tabular}{cccc}\toprule
+		\begin{tabular}{cc|cc}\toprule
 			\multicolumn{1}{c}{\bfseries Value} &
 			\multicolumn{1}{c}{\bfseries Code} &
 			\multicolumn{1}{c}{\bfseries Value} &
@@ -461,7 +461,7 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 			\bottomrule
 		\end{tabular}
 
-		(Each code is the numeric value plus 48.)
+		{\footnotesize (Each code is the numeric value plus 48.)}
 		\caption{\ascii\ Encoded Integer Values (0--63)\label{tbl:int063}}
 	\end{center}
 \end{table}
@@ -599,7 +599,7 @@ for a complete font glyph listing with codepoint assignments.
 
 		\smallskip
 
-		TS\Var*{n} = Thin space of \Var*{n} pixels
+		{\footnotesize TS\Var*{n} = Thin space of \Var*{n} pixels}
 	\end{center}
 	\caption{Font Table for Font \#2\label{tbl:font2}}
 \end{table}
@@ -623,7 +623,9 @@ the discrete \led s.
 %	\bitheader{0-7} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
-	\bitbox[]{3}{\dots}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\dots}&
 	\bitbox[]{1}{\scriptsize$n$}&
 	\bitbox[]{1}{\scriptsize$n+1$}&
 	\bitbox[]{1}{\scriptsize$n+2$}\\
@@ -761,7 +763,9 @@ to the display. See Table~\ref{tbl:transitions}.
 %	\bitheader{0-7} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
-	\bitbox[]{3}{\dots}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\dots}&
 	\bitbox[]{1}{\scriptsize$n$}&
 	\bitbox[]{1}{\scriptsize$n+1$}&
 	\bitbox[]{1}{\scriptsize$n+2$}\\
@@ -779,6 +783,9 @@ to the display. See Table~\ref{tbl:transitions}.
 This command is identical to the \z{S} command (see below), except that multiple
 discrete \led s can be specified, all of which are illuminated simultaneously.
 See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command), it remains running.
+
+The list of \Var*{led} values is terminated by either a dollar sign (\z{\$}) character
+or an escape byte (hex value \z{1B}), represented in the protocol diagram as ``\z{\$}''.
 
 \section{\z{Q}---Query Readerboard Status}
 \begin{center}
@@ -802,27 +809,31 @@ may be queried using the \z? command. The response has the form:
 	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize2}&
 	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize5}&
+	\bitbox[]{1}{\scriptsize6}&
+	\bitbox[]{1}{\scriptsize7}&
 	\bitbox[]{1}{\dots}\\
 	\bitbox{1}{\z{Q}} &
 	\bitbox{1}{\Var*{model}} &
-	\bitbox{1}{\z{V}} &
-	\bitbox{2}{\Var*{hwversion}}
-	\bitbox{1}{\z\$}&
-	\bitbox{1}{\z{R}} &
-	\bitbox{2}{\Var*{romversion}}\\
-	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}& 
-	\bitbox{3}{\Var*{serial}} &
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{M}} &
-	\bitbox[tbl]{2}{\Var*{coldata$_0$}} \\
-	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{2}{\Var*{coldata$_{63}$}}&
-	\bitbox{1}{\z{=}}&
+	\bitbox{1}{\z{=}} &
 	\bitbox{1}{\Var*{ad}}&
 	\bitbox{1}{\Var*{uspd}}&
-	\bitbox{1}{\Var*{rspd}}\\
+	\bitbox{1}{\Var*{rspd}}&
+	\bitbox{1}{\z{V}} &
+	\bitbox{2}{\Var*{hwversion}}\\
+	\bitbox{1}{\z\$}&
+	\bitbox{1}{\z{R}} &
+	\bitbox{2}{\Var*{romversion}}&
+	\bitbox{1}{\z{\$}}& 
+	\bitbox{1}{\z{S}}& 
+	\bitbox{3}{\Var*{serial}} \\
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{M}} &
+	\bitbox[tbl]{2}{\Var*{coldata$_0$}} &
+	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{2}{\Var*{coldata$_{63}$}}\\
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
@@ -904,6 +915,8 @@ The text is rendered in the current font and may contain any 8-bit bytes except 
 noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
 future control codes which may be added to the protocol). The string is terminated by an
 escape character (hex byte \z{1B}), indicated in the protocol description as \z{ESC}.
+(Since a dollar sign may appear in \Var*{string}, the terminator must be an escape
+character for this command.)
 
 The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 
