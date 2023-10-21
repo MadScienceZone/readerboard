@@ -54,7 +54,7 @@ of persons, animals, property, or anything of real value depends on the correct 
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware version 1.0.0 and firmware version 0.0.0.
+	For readerboard hardware version 2.0.0, and firmware version 0.0.0.
 \end{center}
 
 \strut\vfill
@@ -105,78 +105,310 @@ In addition to plain, printable 7-bit \ascii\ characters, a few control codes ar
 recognized as described below. String data may include any 8-bit value except as otherwise
 indicated.
 
-\section{Command Addressing}
-Commands may be received over the \acronym{USB} port (a point-to-point connection with a host computer)
-or the RS-485 port (as part of a network of devices all connected to a single host computer's port).
-Commands received over the \acronym{USB} port \mc{MAY} be prefixed by an address specifier as described
-below. Those received over the RS-485 network \mc{MUST} have such a prefix.
+\section{USB vs. RS-485}
+The protocol used to send commands to the readerboard is different depending on
+whether the host is sending directly to a single readerboard over a \acronym{USB}
+cable, or to (possibly) multiple readerboards over an RS-485 bus network.
 
-The address specifier prefix has the form:
+\subsection{USB}
+A readerboard connected via \acronym{USB} accepts the commands just as documented
+below, with the addition that each such command is terminated by a 
+\z{\textasciicircum D} byte (hex value \z{04}$_{16}$).
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 	\bitbox[]{1}{\scriptsize0}&
-	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize\dots}&
-	\bitbox[]{1}{\scriptsize$n$}&
-	\bitbox[]{1}{\scriptsize$n+1$}\\
-	\bitbox{1}{\z{/}} &
-	\bitbox[tbl]{1}{\Var*{ad$_0$}}&
-	\bitbox[tb]{1}{$\cdots$}&
-	\bitbox[tbr]{1}{\Var*{ad$_{n-1}$}}&
-	\bitbox{1}{\z{\$}}
+	\bitbox[]{1}{\scriptsize$n-1$}&
+	\bitbox[]{1}{\scriptsize$n$}\\
+	\bitbox{3}{\Var*{command}}&
+	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
 \end{center}
 
-The \Var*{ad} parameters give the address(es) of the sign(s) which should obey the following
-command. Each is a value from 0--63 encoded as shown in Table~\ref{tbl:int063}. If the list of
-addresses is empty,
-all signs should respond to the command. The address list
-terminator may be a dollar-sign or escape
-character (hex byte \z{1B}), indicated in the protocol description as \z{\$}.
+If there is an error parsing or executing a command, the readerboard will ignore
+all subsequent input until a \z{\textasciicircum D} is received, whereupon it will
+expect to see the start of another command. Thus, \z{\textasciicircum D} may not
+appear in any transmitted data except to terminate commands.
 
-If sent over the \acronym{USB} port, the address prefix is allowed but ignored, and the readerboard
-acts as if all commands are addressed to it, since the commands are received over a private connection
-between the host and that readerboard.
+\subsection{RS-485}
+Commands sent over RS-485 are intended to target one or more of a set of
+connected readerboards over a network which may also contain other Lumos-protocol-compatible
+devices, so they use a protocol compatible with that use case.
 
-\section{Command Termination and Error Handling}
-The command terminator is ``\z{\textasciicircum D}'' (hex byte value \z{04}). %We
-%\emph{recommend} that every command---or group of commands which together represent
-%a logical update to the sign---be followed by a \z{\textasciicircum D} character.
-This character \emph{must} follow each readerboard command, since the interpretation
-of the next command won't start until receipt of the 
-\z{\textasciicircum D},
-effectively
-ignoring any data sent after the end of the command and before the terminating
-\z{\textasciicircum D}.
+Each command begins with one of the following binary headers, depending on the
+set of target readerboard signs which should obey the command.
 
-The exception to this rule is the set of Busylight-compatible commands
-\z*,
-\z?,
-\z{F},
-\z{S},
-and
-\z{X}.
-Since the Busylight unit did not use any command terminator in its protocol, the readerboard
-unit won't demand one either, although we \emph{recommend} that you do anyway. At the very least,
-you should have a
-\z{\textasciicircum D}
-character sent after a sequence of one or more Busylight-compatible commands.
+\subsubsection{Single Target}
+To send a command to a single sign, begin with a single byte encoded as:
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z{1}}&
+		\bitbox[tbl]{1}{\z0}&
+		\bitbox[tb]{1}{\z0}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad$_0$}}
+	\end{bytefield}
+\end{center}
+where \Var*{ad$_0$} is the sign's address on the bus, which must be a value in the
+range 0--15. This byte is followed by any command as described below. 
 
-%The individual commands are executed immediately upon receipt, without requiring the
-%\z{\textasciicircum D} byte. For example, in the sequence ``\z{H1H2H3\textasciicircum D}''
-%the first bar graph data point will be displayed as soon as ``\z{H1}'' is received.
+\subsubsection{Multiple Targets}
+Alternatively, a command may be targetted to multiple signs by starting the command
+with a multi-byte code:
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z{1}}&
+		\bitbox[tbl]{1}{\z0}&
+		\bitbox[tb]{1}{\z1}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad$_G$}}\\
+		\bitbox{1}{\z0}&
+		\bitbox{3}{\color{reservedslot}\rule{\width}{\height}}&
+		\bitbox{4}{\Var*{n}}\\
+		\bitbox{1}{\z0}&
+		\bitbox{3}{\color{reservedslot}\rule{\width}{\height}}&
+		\bitbox{4}{\Var*{ad$_0$}}\\
+		\bitbox[]{8}{$\vdots$\strut}\\
+		\bitbox{1}{\z0}&
+		\bitbox{3}{\color{reservedslot}\rule{\width}{\height}}&
+		\bitbox{4}{\Var*{ad$_{n-1}$}}
+	\end{bytefield}
+\end{center}
+where \Var*{ad$_G$} is the ``global'' device address which signals readerboards
+generally (see the \z= command below).
+This will send to the \Var*{n} devices addressed as \Var*{ad$_0$} through \Var*{ad$_{n-1}$}.
 
-In case of an error, such as the inability to parse the incoming command or an invalid
-field value, the readerboard will signal the error condition by lighting the white and
-both red discrete \led s, and will then ignore all input until the next
-\z{\textasciicircum D} byte is received.
+\subsubsection{All Targets}
+If you wish to send a command to all attached readerboards, simply send the
+following byte ahead of the command:
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z{1}}&
+		\bitbox[tbl]{1}{\z1}&
+		\bitbox[tb]{1}{\z0}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad$_G$}}
+	\end{bytefield}
+\end{center}
+where \Var*{ad$_G$} is the ``global'' device address which signals readerboards
+generally (see the \z= command below).
 
-Whenever a \z{\textasciicircum D} byte is received, any command being parsed is aborted
-and the sign's input parser is reset. Thus, this byte may be sent in case a partial command
-has been sent but the host becomes aware that it cannot be completed. Note that the command
-may have been partially acted upon by that point, so no assumption should be made as to the
-sign's state.
+\subsubsection{All Off}
+As a special case, the single byte
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z{1}}&
+		\bitbox[tbl]{1}{\z0}&
+		\bitbox[tb]{1}{\z0}&
+		\bitbox[tbr]{1}{\z0}&
+		\bitbox{4}{\Var*{ad}}
+	\end{bytefield}
+\end{center}
+will cause the readerboard addressed as \Var*{ad} to turn off all \led s.
+If \Var*{ad} is the \Var*{ad$_G$} address, then all readerboards will turn off
+all \led s.
 
+No other command bytes need to follow; this byte is sufficient to turn off
+the sign(s).
+
+\subsubsection{Subsequent Command Bytes}
+All subsequent bytes which follow the above binary headers \emph{must} have their
+\acronym{MSB} cleared to \z0. 
+
+To cover cases where a value sent as part of a command must have the \acronym{MSB}
+set, we use the following escape codes:
+\begin{itemize}
+	\item A hex byte \z{7E}$_{16}$ causes the next byte received to have its
+		\acronym{MSB} set upon receipt.
+	\item A hex byte \z{7F}$_{16}$ causes the next byte to be accepted without
+		any further interpretation.
+\end{itemize}
+Thus, the byte \z{C4}$_{16}$ is sent as the two-byte sequence \z{7E~44},
+while a literal \z{7E} is sent as \z{7F~7E} and a literal \z{7F} as \z{7F~7F}.
+
+If there is an error parsing or executing a command, the readerboard will ignore
+all subsequent input until a byte arrives with its \acronym{MSB} set to \z1,
+whereupon it will expect to see the start of another command. 
+
+%\section{Command Addressing}
+%Commands may be received over the \acronym{USB} port (a point-to-point connection with a host computer)
+%or the RS-485 port (as part of a network of devices all connected to a single host computer's port).
+%Commands received over the \acronym{USB} port \mc{MAY} be prefixed by an address specifier as described
+%below. Those received over the RS-485 network \mc{MUST} have such a prefix (unless 
+%using Lumos-compatible mode as described below).
+%
+%The address specifier prefix has the form:
+%\begin{center}
+%\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+%	\bitbox[]{1}{\scriptsize0}&
+%	\bitbox[]{1}{\scriptsize1}&
+%	\bitbox[]{1}{\scriptsize\dots}&
+%	\bitbox[]{1}{\scriptsize$n$}&
+%	\bitbox[]{1}{\scriptsize$n+1$}\\
+%	\bitbox{1}{\z{/}} &
+%	\bitbox[tbl]{1}{\Var*{ad$_0$}}&
+%	\bitbox[tb]{1}{$\cdots$}&
+%	\bitbox[tbr]{1}{\Var*{ad$_{n-1}$}}&
+%	\bitbox{1}{\z{\$}}
+%\end{bytefield}
+%\end{center}
+%
+%The \Var*{ad} parameters give the address(es) of the sign(s) which should obey the following
+%command. Each is a value from 0--63 encoded as shown in Table~\ref{tbl:int063}. If the list of
+%addresses is empty,
+%all signs should respond to the command. The address list
+%terminator may be a dollar-sign or escape
+%character (hex byte \z{1B}), indicated in the protocol description as \z{\$}.
+%
+%If sent over the \acronym{USB} port, the address prefix is allowed but ignored, and the readerboard
+%acts as if all commands are addressed to it, since the commands are received over a private connection
+%between the host and that readerboard.
+%
+%If sent over the RS-485 port, the following escape codes are recognized.
+%To send a byte value greater than 127, it is necessary to send it as the two-byte sequence:
+%\begin{center}
+%	\begin{bytefield}[endianness=big]{8}
+%		\bitheader{0-7} \\
+%		\bitbox{1}{\z0}&
+%		\bitbox[tbl]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tbr]{1}{\z0}\\
+%		\bitbox{1}{\z0}&
+%		\bitbox{7}{\Var*{x}}
+%	\end{bytefield}
+%\end{center}
+%This accepts the byte \Var*{x}, with its \acronym{MSB} set to \z1.
+%
+%To send a literal value of \z{7E}$_{16}$ rather than having it start the above
+%escape, simply start with the other escape sequence:
+%\begin{center}
+%	\begin{bytefield}[endianness=big]{8}
+%		\bitheader{0-7} \\
+%		\bitbox{1}{\z0}&
+%		\bitbox[tbl]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tb]{1}{\z1}&
+%		\bitbox[tbr]{1}{\z1}\\
+%		\bitbox{1}{\z0}&
+%		\bitbox{7}{\Var*{y}}
+%	\end{bytefield}
+%\end{center}
+%This accepts the byte \Var*{y}, without interpreting it further. Thus, to send
+%the hex byte \z{7E}, you send the two bytes \z{7F~7E}. To send a literal \z{7F}
+%byte, send the two bytes \z{7F~7F}.
+%
+%The readerboard \acronym*{MAY} accept 8-bit values in the range 128--255 (hex
+%\z{80}--\z{FF}) without using these escape codes, but this will confuse any other
+%Lumos-compatible devices on the same serial network with them, so the best practice
+%is to always use these escape codes for any value greater than or equal to 126 (hex
+%\z{7E}). If using with other Lumos devices, you \acronym*{MUST} do so.
+%
+%\section{Lumos Compatibility}
+%The readerboard may be connected to an RS-485 network that includes Lumos-protocol
+%devices.\footnote{These include the Lumos power control boards and quiz show equipment
+%created by the author.} 
+%
+%In this case, readerboard commands must begin with a start byte in the form
+%\begin{center}
+%	\begin{bytefield}[endianness=big]{8}
+%		\bitheader{0-7} \\
+%		\bitbox{1}{\z{1}}&
+%		\bitbox{3}{\Var*{cmd}}&
+%		\bitbox{4}{\Var*{ad$_0$}}
+%	\end{bytefield}
+%\end{center}
+%and the address \Var*{ad$_0$} must be in the range 0--15. In this mode, all following
+%bytes sent to the readerboard must have their \acronym{MSB} cleared (\z0).
+%
+%Only two \Var*{cmd} values are recognized by the readerboard.  For compatibility with
+%other Lumos devices which recognize \Var*{cmd}=0 to mean turn off all output, the single-byte command
+%\begin{center}
+%	\begin{bytefield}[endianness=big]{8}
+%		\bitheader{0-7} \\
+%		\bitbox{1}{\z1}&
+%		\bitbox[tbl]{1}{\z0}&
+%		\bitbox[tb]{1}{\z0}&
+%		\bitbox[tbr]{1}{\z0}&
+%		\bitbox{4}{\Var*{ad$_0$}}
+%	\end{bytefield}
+%\end{center}
+%will cause the readerboard addressed as \Var*{ad$_0$} to immediately turn off all
+%\led s.
+%
+%For any other readerboard command, the start byte must be
+%\begin{center}
+%	\begin{bytefield}[endianness=big]{8}
+%		\bitheader{0-7} \\
+%		\bitbox{1}{\z{1}}&
+%		\bitbox[tbl]{1}{\z1}&
+%		\bitbox[tb]{1}{\z0}&
+%		\bitbox[tbr]{1}{\z1}&
+%		\bitbox{4}{\Var*{ad$_0$}}
+%	\end{bytefield}
+%\end{center}
+%
+%This may be followed by an address specifier (starting with a ``\z/'' character)
+%documented above to include more sign addresses other than \Var*{ad$_0$}. If no such
+%specifier is sent, then only sign \Var*{ad$_0$} will act on the command. If an empty
+%specifier is sent, then \emph{all} signs will act on it.
+%
+%That is
+%then followed by any of the readerboard commands documented below.\footnote{This
+%is cheating just a little bit but is based on the assumption that no other Lumos
+%device on any address will have \Var*{cmd} value 5 with the next byte being a
+%``\z/'' character followed by zero or more encoded values 0--63 and an escape or
+%dollar-sign.}
+%
+%\section{Command Termination and Error Handling}
+%The command terminator is ``\z{\textasciicircum D}'' (hex byte value \z{04}). %We
+%%\emph{recommend} that every command---or group of commands which together represent
+%%a logical update to the sign---be followed by a \z{\textasciicircum D} character.
+%This character \emph{must} follow each readerboard command, since the interpretation
+%of the next command won't start until receipt of the 
+%\z{\textasciicircum D},
+%effectively
+%ignoring any data sent after the end of the command and before the terminating
+%\z{\textasciicircum D}.
+%
+%The exception to this rule is the set of Busylight-compatible commands
+%\z*,
+%\z?,
+%\z{F},
+%\z{S},
+%and
+%\z{X}.
+%Since the Busylight unit did not use any command terminator in its protocol, the readerboard
+%unit won't demand one either, although we \emph{recommend} that you do anyway. At the very least,
+%you should have a
+%\z{\textasciicircum D}
+%character sent after a sequence of one or more Busylight-compatible commands.
+%
+%%The individual commands are executed immediately upon receipt, without requiring the
+%%\z{\textasciicircum D} byte. For example, in the sequence ``\z{H1H2H3\textasciicircum D}''
+%%the first bar graph data point will be displayed as soon as ``\z{H1}'' is received.
+%
+%In case of an error, such as the inability to parse the incoming command or an invalid
+%field value, the readerboard will signal the error condition by lighting the white and
+%both red discrete \led s, and will then ignore all input until the next
+%\z{\textasciicircum D} byte is received.
+%
+%Whenever a \z{\textasciicircum D} byte is received, any command being parsed is aborted
+%and the sign's input parser is reset. Thus, this byte may be sent in case a partial command
+%has been sent but the host becomes aware that it cannot be completed. Note that the command
+%may have been partially acted upon by that point, so no assumption should be made as to the
+%sign's state.
+%
 %In the descriptions that follow, a trailing \z{\textasciicircum D} is shown at the end
 %of each command to remind you of the recommendation to send this terminator, even though
 %the commands themselves do not require them, strictly speaking.
@@ -215,7 +447,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{C} & Clear matrix display & \\
 			\z{H} & Add histogram/bargraph data point & \\
 			\z{I} & Draw bitmap graphic image & \\
-			\z{Q} & Query matrix display statue & [2] [4]\\
+			\z{Q} & Query matrix display status & [2] [4]\\
 			\z{T} & Display text on display & \\
 			\bottomrule
 			\multicolumn{3}{l}{\footnotesize [1] Busylight compatibile command}\\
@@ -233,7 +465,7 @@ at all times.
 
 \section{\z{*}---Strobe Lights in Sequence}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
 %	\bitheader{0-3} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
@@ -241,16 +473,14 @@ at all times.
 	\bitbox[]{1}{\scriptsize3}&
 	\bitbox[]{1}{\scriptsize\dots}&
 	\bitbox[]{1}{\scriptsize$n$}&
-	\bitbox[]{1}{\scriptsize$n+1$}&
-	\bitbox[]{1}{\scriptsize$n+2$}\\
+	\bitbox[]{1}{\scriptsize$n+1$}\\
 	\bitbox{1}{\z{*}} &
 	\bitbox[tlb]{1}{\Var*{led$_0$}} &
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
-	\bitbox{1}{\z\$}&
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\z\$}
 \end{bytefield}
 \end{center}
 
@@ -262,20 +492,18 @@ are ``strobed'' (flashed very briefly with a pause between each light in the seq
 
 \section{\z<---Scroll Text Across Display}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
 %	\bitheader{0-8} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize2}&
 	\bitbox[]{3}{\scriptsize\dots}&
 	\bitbox[]{1}{\scriptsize$n$+1}&
-	\bitbox[]{1}{\scriptsize$n$+2}&
-	\bitbox[]{1}{\scriptsize$n$+3}\\
+	\bitbox[]{1}{\scriptsize$n$+2}\\
 	\bitbox{1}{\z{<}} &
 	\bitbox{1}{\Var*{loop}}&
 	\bitbox{5}{\Var*{string}}&
-	\bitbox{1}{\z{ESC}}&
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\z{ESC}}
 \end{bytefield}
 \end{center}
 
@@ -320,7 +548,7 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 	\bitbox{1}{\Var*{ad}}&
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\Var*{ad$_G$}}
 \end{bytefield}
 \end{center}
 
@@ -328,11 +556,18 @@ This command sets a few operational parameters for the sign. Once set, these wil
 power cycles and reboots.
 
 If the \Var*{ad} parameter is ``\z{*}'' then the RS-485 interface is disabled entirely. Otherwise it is a
-value from 0--63 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
+value from 0--15 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
 this sign's address to \Var*{ad}.
 
 The baud rate for the \acronym{USB} and RS-485 interfaces is set by the \Var*{uspd} and \Var*{rspd} values
 respectively. Each is encoded as per Table~\ref{tbl:baudcodes}.
+
+The \Var*{ad$_G$} value is an address in the range 0--15 which is not assigned
+to any other device on the RS-485 network. This is used to signal that all
+readerboards should pay attention to the start of the command because it might
+target them either as part of a list of specific readerboards or because the
+command is intended for all readerboards at once. This is encoded in the 
+same way as \Var*{ad}.
 
 This command may only be sent over the \acronym{USB} port.
 
@@ -362,10 +597,9 @@ By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 por
 
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
-	\bitheader{0-1} \\
-	\bitbox{1}{\z{?}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
+	\bitheader{0} \\
+	\bitbox{1}{\z{?}}
 \end{bytefield}
 \end{center}
 
@@ -471,11 +705,10 @@ This command may only be sent on the \acronym{USB} port.
 
 \section{\z{@}---Set Column Cursor Position}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
-	\bitheader{0-2} \\
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
 	\bitbox{1}{\z{@}} &
-	\bitbox{1}{\Var*{pos}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\Var*{pos}} 
 \end{bytefield}
 \end{center}
 
@@ -483,11 +716,10 @@ Sets the column cursor position to the value indicated by \Var*{pos}. See Table~
 
 \section{\z{A}---Select Font}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
-	\bitheader{0-2} \\
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
 	\bitbox{1}{\z{A}} &
-	\bitbox{1}{\Var*{digit}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\Var*{digit}} 
 \end{bytefield}
 \end{center}
 
@@ -608,10 +840,9 @@ for a complete font glyph listing with codepoint assignments.
 
 \section{\z{C}---Clear Matrix Display}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
-	\bitheader{0-1} \\
-	\bitbox{1}{\z{C}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
+	\bitheader{0} \\
+	\bitbox{1}{\z{C}} 
 \end{bytefield}
 \end{center}
 
@@ -620,7 +851,7 @@ the discrete \led s.
 
 \section{\z{F}---Flash Lights in Sequence}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
 %	\bitheader{0-7} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
@@ -628,16 +859,14 @@ the discrete \led s.
 	\bitbox[]{1}{\scriptsize3}&
 	\bitbox[]{1}{\dots}&
 	\bitbox[]{1}{\scriptsize$n$}&
-	\bitbox[]{1}{\scriptsize$n+1$}&
-	\bitbox[]{1}{\scriptsize$n+2$}\\
+	\bitbox[]{1}{\scriptsize$n+1$}\\
 	\bitbox{1}{\z{F}} &
 	\bitbox[tbl]{1}{\Var*{led$_0$}} &
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
-	\bitbox{1}{\z\$}&
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\z\$}
 \end{bytefield}
 \end{center}
 
@@ -682,11 +911,10 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 
 \section{\z{H}---Draw Bar Graph Data Point}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
-	\bitheader{0-2} \\
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
 	\bitbox{1}{\z{H}} &
-	\bitbox{1}{\Var*{n}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\Var*{n}} 
 \end{bytefield}
 \end{center}
 
@@ -700,8 +928,8 @@ are scrolled left one column.
 
 \section{\z{I}---Draw Bitmap Image}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
-	\bitheader{0-8} \\
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+	\bitheader{0-7} \\
 	\bitbox{1}{\z{I}} &
 	\bitbox{1}{\Var*{merge}} &
 	\bitbox{1}{\Var*{pos}} &
@@ -710,8 +938,7 @@ are scrolled left one column.
 	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} \\
 	\bitbox[tbr]{2}{\Var*{coldata$_{n-1}$}} &
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\z{\$}} 
 \end{bytefield}
 \end{center}
 
@@ -760,7 +987,7 @@ to the display. See Table~\ref{tbl:transitions}.
 
 \section{\z{L}---Light Multiple \led s}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
 %	\bitheader{0-7} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
@@ -768,16 +995,14 @@ to the display. See Table~\ref{tbl:transitions}.
 	\bitbox[]{1}{\scriptsize3}&
 	\bitbox[]{1}{\dots}&
 	\bitbox[]{1}{\scriptsize$n$}&
-	\bitbox[]{1}{\scriptsize$n+1$}&
-	\bitbox[]{1}{\scriptsize$n+2$}\\
+	\bitbox[]{1}{\scriptsize$n+1$}\\
 	\bitbox{1}{\z{L}} &
 	\bitbox[tbl]{1}{\Var*{led$_0$}} &
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$}&
 	\bitbox[tb]{1}{\Var*{led$_{n-1}$}} &
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\z{\$}} 
 \end{bytefield}
 \end{center}
 
@@ -790,10 +1015,9 @@ or an escape byte (hex value \z{1B}), represented in the protocol diagram as ``\
 
 \section{\z{Q}---Query Readerboard Status}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
-	\bitheader{0-1} \\
-	\bitbox{1}{\z{Q}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
+	\bitheader{0} \\
+	\bitbox{1}{\z{Q}} 
 \end{bytefield}
 \end{center}
 
@@ -814,21 +1038,23 @@ may be queried using the \z? command. The response has the form:
 	\bitbox[]{1}{\scriptsize5}&
 	\bitbox[]{1}{\scriptsize6}&
 	\bitbox[]{1}{\scriptsize7}&
-	\bitbox[]{1}{\dots}\\
+	\bitbox[]{1}{\scriptsize8}\\
 	\bitbox{1}{\z{Q}} &
 	\bitbox{1}{\Var*{model}} &
 	\bitbox{1}{\z{=}} &
 	\bitbox{1}{\Var*{ad}}&
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
-	\bitbox{1}{\z{V}} &
-	\bitbox{2}{\Var*{hwversion}}\\
+	\bitbox{1}{\Var*{ad$_G$}}&
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{V}} \\
+	\bitbox{2}{\Var*{hwversion}}
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{R}} &
 	\bitbox{2}{\Var*{romversion}}&
 	\bitbox{1}{\z{\$}}& 
 	\bitbox{1}{\z{S}}& 
-	\bitbox{3}{\Var*{serial}} \\
+	\bitbox{1}{\Var*{serial}} \\
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} &
 	\bitbox[tbl]{2}{\Var*{coldata$_0$}} &
@@ -868,11 +1094,10 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 
 \section{\z{S}---Light Single \led}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{3}
-	\bitheader{0-2} \\
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-1} \\
 	\bitbox{1}{\z{S}} &
-	\bitbox{1}{\Var*{led}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\Var*{led}} 
 \end{bytefield}
 \end{center}
 
@@ -884,7 +1109,7 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 
 \section{\z{T}---Display Text}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
 %	\bitheader{0-8} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
@@ -892,15 +1117,13 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 	\bitbox[]{1}{\scriptsize3}&
 	\bitbox[]{1}{\scriptsize4}&
 	\bitbox[]{2}{\dots}&
-	\bitbox[]{1}{\scriptsize$n$+4}&
-	\bitbox[]{1}{\scriptsize$n$+5}\\
+	\bitbox[]{1}{\scriptsize$n$+4}\\
 	\bitbox{1}{\z{T}} &
 	\bitbox{1}{\Var*{merge}}&
 	\bitbox{1}{\Var*{align}}&
 	\bitbox{1}{\Var*{trans}}&
 	\bitbox{3}{\Var*{string}}&
-	\bitbox{1}{\z{ESC}}&
-	\bitbox{1}{\z{\textasciicircum D}}
+	\bitbox{1}{\z{ESC}}
 \end{bytefield}
 \end{center}
 
@@ -923,10 +1146,9 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 
 \section{\z{X}---Turn off Discrete \led s}
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
-	\bitheader{0-1} \\
-	\bitbox{1}{\z{X}} &
-	\bitbox{1}{\z{\textasciicircum D}}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
+	\bitheader{0} \\
+	\bitbox{1}{\z{X}} 
 \end{bytefield}
 \end{center}
 
