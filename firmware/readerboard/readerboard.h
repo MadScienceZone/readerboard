@@ -1,6 +1,17 @@
 #ifndef READERBOARD_CORE
 #define READERBOARD_CORE
 
+#define BANNER_HARDWARE_VERS "HW 2.0.0  "
+#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
+#define BANNER_SERIAL_NUMBER "S/N XXXXXX"
+#define SERIAL_VERSION_STAMP "V2.0.0$R0.0.0$SXXXXX$"
+//                             \___/  \___/  \___/
+//                               |      |      |
+//                  Hardware version    |      |
+//                         Firmware version    |
+//                                 Serial number
+//
+
 extern const int N_ROWS;
 extern byte image_buffer[];
 

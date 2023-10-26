@@ -10,13 +10,90 @@
 // and the version numbers may be any string conforming to semantic versioning 2.0.0
 // (see semver.org).
 //
-#define SERIAL_VERSION_STAMP "V1.0.0$R0.0.0$SXXXXX$"
-//                             \___/  \___/  \___/
-//                               |      |      |
-//                  Hardware version    |      |
-//                         Firmware version    |
-//                                 Serial number
 //
+// Implementation Notes
+//     Commands are accepted on the USB and RS-485 interfaces (if the latter is enabled).
+//     We use a common parser based around a simple state machine in either case, but
+//     it knows what input source it's in the middle of reading a command from. If any
+//     data are received on the other interface than the one an incomplete command is still
+//     being expected from, the interpreter shifts to the error state and then switches
+//     to start reading the new incoming command instead.
+//
+// USB
+//     Commands received via USB must be terminated by a ^D. If an error is encountered,
+//     the interpreter will ignore data until a ^D is received before starting to interpret
+//     anything further.
+//
+// RS-485
+//     When enabled, the device has a designated address 00-15 (Ad) so that it can pay
+//     attention to commands intended for it while ignoring commands for other devices.
+//     There is also a global address (Ag) which the device will also respond to, so that
+//     commands may be addressed to multiple units at once.
+//
+//     On this interface, commands start with a byte that has the MSB set. All other bytes
+//     have MSB cleared. If an error is encountered, the interpreter will ignore data until
+//     finding a byte with MSB set.
+//
+//     The following escape codes are recognized:
+//         $7E xx   accept xx with MSB set
+//         $7F xx   accept xx without further interpretation
+//
+//     The recognized start bytes are: (a=Ad or Ag)
+//         $8a      turn off all lights (no command follows; this single byte suffices)
+//         $9a      start of normal command addressed to unit a (TODO: accept Ag and remove $Dg?)
+//         $Ba      start of command addressed to explicit list of addresses
+//         $Dg      start of normal command addressed to all units
+//
+// State Machine
+//     -> ERR       signal error condition and go to ERROR state
+//     -> END       go to END state
+//     +            change transition and then re-examine current input byte
+//                                                                             ____ 
+//          $8a/$8g (485) _      $Bg (485)        _________  N    ____________|_   | Ad[0]-Ad[N-2]
+//                       | |  +----------------->|Collect N|---->|CollectAddress|<-+
+//        MSB=1 (485)+   | |  |                  |_________|     |______________|
+//  _____  ^D (USB)     _|_V__|_   $9a/$Dg (485)  _____             |Ad[N-1]
+// |ERROR|----------->||Idle    ||-------------->|Start|<-----------+
+// |_____|<-----------||________||               |_____|
+//   ^ |       *            |                        |
+//   |_|*                   |<-----------------------+     _ 
+//          ?/Q (USB)       |            ____             | |*  MSB=1 (485)+
+//  END <-------------------+ '*'   ____|_   | led       _V_|_  ^D (USB)
+//                          +----->|Strobe|<-+      $   |END  |-----------> Idle
+//   _____    = (USB)       |      |______|------------>|_____|
+//  |Set  |<----------------+  C                         
+//  |_____|                 +-----> END                        ____ 
+//    | Ad/'_'              |  <    ______  loop      ________|_   | char
+//   _V_____                +----->|Scroll|--------->|ScrollText|<-+       ESC
+//  |SetUspd|               |      |______|          |__________|-------------> END
+//  |_______|               |  @    ______  pos
+//    | speed               +----->|SetCol|---------> END
+//   _V_____                |      |______|
+//  |SetRspd|               |  A    __________  n
+//  |_______|               +----->|SelectFont|-----> END
+//    | speed               |      |__________|
+//   _V_____                |           ____
+//  |SetDg  |               |  F    ___|_   |led
+//  |_______|               +----->|Flash|<-+      $
+//    | Addr                |      |_____|----------> END
+//    V                     |  H    ________  n
+//   END                    +----->|BarGraph|-------> END
+//                          |      |________|                                                          ____
+//                          |  I    __________ merge   ________ pos     _______________ trans  _______|_   |nybble
+//                          +----->|ImageMerge|------>|ImageCol|------>|ImageTransition|----->|ImageData|<-+    $
+//                          |      |__________|       |________|       |_______________|      |_________|---------> END
+//                          |             ____
+//                          |  L    _____|_   |led
+//                          +----->|LightOn|<-+     $
+//                          |      |_______|-----------> END
+//                          |  S    ________ led
+//                          +----->|LightSet|----------> END
+//                          |      |________|                                                        ____
+//                          |  T    _________ merge  _________ align   ______________ trans   ______|_   |char
+//                          +----->|TextMerge|----->|TextAlign|------>|TextTransition|------>|TextData|<-+     ESC
+//                          |      |_________|      |_________|       |______________|       |________|------------> END
+//                          |  X
+//                          +-----> END
 //
 // Recognized commands:
 //     <align> ::= '.' | '<' | '|' | '>' (.=none, <=left, |=center, >=right)
@@ -570,6 +647,7 @@ void CommandStateMachine::commit_graph_datapoint(int value)
 
     shift_left(image_buffer);
     switch (value) {
+	case 0: bits = 0x00; break;
     case 1: bits = 0x80; break;
     case 2: bits = 0xc0; break;
     case 3: bits = 0xe0; break;

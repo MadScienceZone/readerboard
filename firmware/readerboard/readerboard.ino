@@ -17,21 +17,41 @@
  */
 
 #include <TimerEvent.h>
+#include <EEPROM.h>
 #include "fonts.h"
 #include "commands.h"
 #include "readerboard.h"
+
+
+//
+// EEPROM locations
+// $00 0x4B
+// $01 baud rate code
+//
+#define EE_ADDR_SENTINEL  (0x00)
+#define EE_ADDR_USB_SPEED (0x01)
+#define EE_VALUE_SENTINEL (0x4b)
+#define EE_DEFAULT_SPEED  ('5')
 
 /* Hardware model selected for this firmware.
  * The interface is similar enough to the older project I put together
  * out of salvaged and spare parts which made a 7-row display that we
  * can support that as well as the newer 8-row display. Set HW_MODEL
- * to the desired hardware. Be sure to use the correct shield for the
- * selected hardware model. The two are not compatible.
+ * to the desired hardware. Be sure to use the correct Arduino shield 
+ * for the selected hardware model. The two are not compatible.
  */
 
 #define MODEL_LEGACY_64x7 (0)
 #define MODEL_CURRENT_64x8 (1)
 #define HW_MODEL (MODEL_CURRENT_64x8)
+
+#if HW_MODEL != MODEL_CURRENT_64x8
+# if HW_MODEL == MODEL_LEGACY_64x7
+#  warning "Generating code for legacy 64x7 readerboards: this is probably not what you want."
+# else
+#  error "HW_MODEL not set to a supported hardware configuration"
+# endif
+#endif
 
 /* I/O port to use for full 8-bit write operations to the sign board */
 /* On the Mega 2560, PORTF<7:0> corresponds to <A7:A0> pins */
@@ -743,6 +763,13 @@ void flag_init(void)
 {
 #if HW_MODEL == MODEL_CURRENT_64x8
     digitalWrite(PIN_L0, HIGH);
+    digitalWrite(PIN_L1, LOW);
+    digitalWrite(PIN_L2, LOW);
+    digitalWrite(PIN_L3, LOW);
+    digitalWrite(PIN_L4, LOW);
+    digitalWrite(PIN_L5, LOW);
+    digitalWrite(PIN_L6, LOW);
+    digitalWrite(PIN_L7, LOW);
 #endif
 }
 
@@ -750,6 +777,27 @@ void flag_ready(void)
 {
 #if HW_MODEL == MODEL_CURRENT_64x8
     digitalWrite(PIN_L0, LOW);
+    digitalWrite(PIN_L1, LOW);
+    digitalWrite(PIN_L2, LOW);
+    digitalWrite(PIN_L3, LOW);
+    digitalWrite(PIN_L4, LOW);
+    digitalWrite(PIN_L5, LOW);
+    digitalWrite(PIN_L6, LOW);
+    digitalWrite(PIN_L7, LOW);
+#endif
+}
+
+void flat_test(void)
+{
+#if HW_MODEL == MODEL_CURRENT_64x8
+	digitalWrite(PIN_L0, HIGH);
+	digitalWrite(PIN_L1, HIGH);
+	digitalWrite(PIN_L2, HIGH);
+	digitalWrite(PIN_L3, HIGH);
+	digitalWrite(PIN_L4, HIGH);
+	digitalWrite(PIN_L5, HIGH);
+	digitalWrite(PIN_L6, HIGH);
+	digitalWrite(PIN_L7, HIGH);
 #endif
 }
 
@@ -771,6 +819,23 @@ void strobe_status(void)
 	analogWrite(PIN_STATUS_LED, status_value);
 }
 
+void default_eeprom_settings(void) {
+	if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL) {
+		// apparently unset; set to "factory defaults"
+		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
+		EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
+		return;
+	}
+
+	int speed = EEPROM.read(EE_ADDR_USB_SPEED);
+	if (!((speed >= '0' && speed <= '9') 
+	|| (speed >= 'a' && speed <= 'c') 
+	|| (speed >= 'A' && speed <= 'C'))) {
+		// baud rate setting invalid; return to default
+		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
+	}
+}
+
 //
 // setup()
 //   Called after reboot to set up the device.
@@ -779,6 +844,7 @@ void setup(void)
 {
     setup_pins();
     flag_init();
+	default_eeprom_settings();
 
 #if HW_MODEL == MODEL_CURRENT_64x8
     flasher.stop();
@@ -791,10 +857,52 @@ void setup(void)
 	status_timer.setPeriod(10);
 	status_timer.enable();
 
-    Serial.begin(9600);
-    while (!Serial);
+	start_usb_serial();
 
+	// TODO If RS-485 is enabled, start that UART too
+
+	flag_test();
+	delay(500);
     flag_ready();
+	// TODO display_text(font, string, mS_delay)
+	// TODO clear_matrix()
+	display_text(0, BANNER_HARDWARE_VERS,  500);
+	display_text(0, BANNER_FIRMWARE_VERS,  500);
+	display_text(0, BANNER_SERIAL_NUMBER, 1000);
+	display_text(0, "ADDRESS XX", 1000);	// 00-15 or --
+	display_text(0, "GLOBAL  XX", 1000);	// 00-15 or --
+	display_text(0, "USB XXXXXX", 1000);	// speed
+	display_text(0, "485 XXXXXX", 1000);	// speed or OFF
+	display_text(0, "MadScience",  500);
+	display_text(0, "Zone \xa92023",  500);
+	clear_matrix();
+	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
+}
+
+void start_usb_serial(void) {
+	int speed = 9600;
+
+	switch (EEPROM.read(EE_ADDR_USB_SPEED)) {
+		case '0': speed =    300; break;
+		case '1': speed =    600; break;
+		case '2': speed =   1200; break;
+		case '3': speed =   2400; break;
+		case '4': speed =   4800; break;
+		case '5': speed =   9600; break;
+		case '6': speed =  14400; break;
+		case '7': speed =  19200; break;
+		case '8': speed =  28800; break;
+		case '9': speed =  31250; break;
+		case 'a':
+		case 'A': speed =  38400; break;
+		case 'b':
+		case 'B': speed =  57600; break;
+		case 'c':
+		case 'C': speed = 115200; break;
+	}
+
+	Serial.begin(speed);
+	while (!Serial);
 }
 
 //
@@ -826,4 +934,6 @@ void loop(void)
     if (Serial.available() > 0) {
         receive_serial_data();
     }
+
+	/* TODO receive commands via RS-485 port */
 }
