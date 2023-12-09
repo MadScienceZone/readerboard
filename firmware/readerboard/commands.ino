@@ -348,7 +348,7 @@ void CommandStateMachine::accept(int inputchar)
 #if HW_MODEL == MODEL_LEGACY_64x7
             Serial.write('L');
 #else
-# if HW_MODEL == MODEL_CURRENT_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8 || MODEL_CURRENT_64x8_INTEGRATED
             Serial.write('M');
 # else
 #  error "hardware model not supported"
@@ -363,7 +363,7 @@ void CommandStateMachine::accept(int inputchar)
             end_cmd();
             break;
 
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || MODEL_CURRENT_64x8_INTEGRATED
         case 'F':
         case 'f':
             state = FlashState;
@@ -401,7 +401,7 @@ void CommandStateMachine::accept(int inputchar)
         break;
 
     // Collecting LED numbers to form a flash or strobe sequence
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || MODEL_CURRENT_64x8_INTEGRATED
     case FlashState:
     case StrobeState:
         switch (inputchar) {

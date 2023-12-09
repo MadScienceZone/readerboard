@@ -43,13 +43,17 @@
 
 #define MODEL_LEGACY_64x7 (0)
 #define MODEL_CURRENT_64x8 (1)
+#define MODEL_CURRENT_64x8_INTEGRATED (2)
+
 #define HW_MODEL (MODEL_CURRENT_64x8)
 
 #if HW_MODEL != MODEL_CURRENT_64x8
-# if HW_MODEL == MODEL_LEGACY_64x7
-#  warning "Generating code for legacy 64x7 readerboards: this is probably not what you want."
-# else
-#  error "HW_MODEL not set to a supported hardware configuration"
+# if HW_MODEL != MODEL_CURRENT_64x8_INTEGRATED
+#  if HW_MODEL == MODEL_LEGACY_64x7
+#   warning "Generating code for legacy 64x7 readerboards: this is probably not what you want."
+#  else
+#   error "HW_MODEL not set to a supported hardware configuration"
+#  endif
 # endif
 #endif
 
@@ -82,7 +86,7 @@ const int COL_BLK_7 = 7;    // rightmost column block is LSB
 const int PIN_PS0   = A8;   // control line PS0
 const int PIN_PS1   = A9;   // control line PS1
 #else
-# if HW_MODEL == MODEL_CURRENT_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8 
 const int N_ROWS    = 8;    // number of rows on the display
 const int COL_BLK_7 = 0;    // rightmost column block is MSB byte
 const int COL_BLK_6 = 1;    //                |
@@ -109,10 +113,53 @@ const int PIN_L5    = 3;    // discrete LED L5 (yellow)
 const int PIN_L6    = 4;    // discrete LED L6 (yellow)
 const int PIN_L7    = 5;    // discrete LED L7 (green)
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
+const int PIN__RE_TE = 10;	// 0=enable RS-483 receiver; 1=enable transmitter (default=receiver enabled)
 # else
-#  error "HW_MODEL not set to supported hardware configuration"
+#  if HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
+const int N_ROWS    = 8;    // number of rows on the display
+const int COL_BLK_7 = 7;    // leftmost column block is MSB byte of port
+const int COL_BLK_6 = 6;    //                |
+const int COL_BLK_5 = 5;    //                |
+const int COL_BLK_4 = 4;    //                |
+const int COL_BLK_3 = 3;    //                |
+const int COL_BLK_2 = 2;    //                |
+const int COL_BLK_1 = 1;    //                V
+const int COL_BLK_0 = 0;    // rightmost column block is LSB byte of port
+const int PIN_SRCLK = A8;  // shift register clock (strobe)
+const int PIN_RCLK  = A11;  // storage register clock (strobe)
+const int PIN__G    = A10;  // column output ~enable
+const int PIN__SRCLR= A9;  // shift register ~clear
+const int PIN_REN   = A15;  // row output enable
+const int PIN_R0    = A12;   // row address bit 0
+const int PIN_R1    = A13;   // row address bit 1
+const int PIN_R2    = A14;  // row address bit 2
+const int PIN_L0    = 9;    // discrete LED L0 (white)
+const int PIN_L1    = 8;    // discrete LED L1 (blue)
+const int PIN_L2    = 7;    // discrete LED L2 (blue)
+const int PIN_L3    = 6;    // discrete LED L3 (red)
+const int PIN_L4    = 5;    // discrete LED L4 (red)
+const int PIN_L5    = 4;    // discrete LED L5 (yellow)
+const int PIN_L6    = 3;    // discrete LED L6 (yellow)
+const int PIN_L7    = 2;    // discrete LED L7 (green)
+const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
+const int PIN__RE = 17;		// 0=enable RS-483 receiver; 1=disable receiver (default=receiver disabled)
+const int PIN_TE = 16;		// 0=disable RS-483 transmitter; 1=enable transmitter (default=transmitter disabled)
+#  else
+#   error "HW_MODEL not set to supported hardware configuration"
+#  endif
 # endif
 #endif
+
+#if HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
+const int PIN_D0    = A7;   // column data bit 0
+const int PIN_D1    = A6;   // column data bit 1
+const int PIN_D2    = A5;   // column data bit 2
+const int PIN_D3    = A4;   // column data bit 3
+const int PIN_D4    = A3;   // column data bit 4
+const int PIN_D5    = A2;   // column data bit 5
+const int PIN_D6    = A1;   // column data bit 6
+const int PIN_D7    = A0;   // column data bit 7
+#else
 const int PIN_D0    = A0;   // column data bit 0
 const int PIN_D1    = A1;   // column data bit 1
 const int PIN_D2    = A2;   // column data bit 2
@@ -121,6 +168,7 @@ const int PIN_D4    = A4;   // column data bit 4
 const int PIN_D5    = A5;   // column data bit 5
 const int PIN_D6    = A6;   // column data bit 6
 const int PIN_D7    = A7;   // column data bit 7
+#endif
 
 //
 // setup_pins()
@@ -145,7 +193,7 @@ void setup_pins(void)
     digitalWrite(PIN_PS0, HIGH);    //  1   1   (shift)
     digitalWrite(PIN_PS1, LOW);     //  1   0   IDLE
 #else
-# if HW_MODEL == MODEL_CURRENT_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
     pinMode(PIN_SRCLK,  OUTPUT);
     pinMode(PIN_RCLK,   OUTPUT);
     pinMode(PIN__G,     OUTPUT);
@@ -179,6 +227,8 @@ void setup_pins(void)
     digitalWrite(PIN_L5, LOW);
     digitalWrite(PIN_L6, LOW);
     digitalWrite(PIN_L7, LOW);
+	// TODO Until we know that RS-485 is enabled, we leave the drive control pins in tristate
+	// TODO mode so they default correctly.
 # else
 #  error "HW_MODEL not set to supported hardware configuration"
 # endif
@@ -225,7 +275,8 @@ void LED_row_off(void)
     digitalWrite(PIN_PS0, LOW);     //  0   0   gate 0 to turn off rows
     digitalWrite(PIN_PS0, HIGH);    //  1   0   idle
 #else                                   //            _____ _
-# if HW_MODEL == MODEL_CURRENT_64x8     // SRCLK RCLK SRCLR G REN
+# if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
+										// SRCLK RCLK SRCLR G REN
     digitalWrite(PIN_RCLK, LOW);        //   X     0    X   X  X
     digitalWrite(PIN_SRCLK, LOW);       //   0     0    X   X  X    
     digitalWrite(PIN__SRCLR, HIGH);     //   0     0    1   X  X
@@ -261,7 +312,7 @@ void LED_row_on(int row, byte *buf)
         digitalWrite(PIN_PS0, LOW);                 //  0   0   show row
     }
 #else
-# if HW_MODEL == MODEL_CURRENT_64x8
+# if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
     /* shift out columns */
     digitalWrite(PIN__G, HIGH);         // SRCLK RCLK SRCLR G REN
     digitalWrite(PIN__SRCLR, LOW);      //   X     X    0   1  X
@@ -553,7 +604,7 @@ void shift_left(byte *buffer)
 // author's busylight project, which this project is intended
 // to be compatible with.
 //
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
 const int LED_SEQUENCE_LEN = 64;
 class LightBlinker {
     unsigned int on_period;
@@ -761,7 +812,7 @@ void strobe_lights(void)
 //
 void flag_init(void)
 {
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
     digitalWrite(PIN_L0, HIGH);
     digitalWrite(PIN_L1, LOW);
     digitalWrite(PIN_L2, LOW);
@@ -775,7 +826,7 @@ void flag_init(void)
 
 void flag_ready(void)
 {
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
     digitalWrite(PIN_L0, LOW);
     digitalWrite(PIN_L1, LOW);
     digitalWrite(PIN_L2, LOW);
@@ -789,7 +840,7 @@ void flag_ready(void)
 
 void flat_test(void)
 {
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
 	digitalWrite(PIN_L0, HIGH);
 	digitalWrite(PIN_L1, HIGH);
 	digitalWrite(PIN_L2, HIGH);
@@ -846,7 +897,7 @@ void setup(void)
     flag_init();
 	default_eeprom_settings();
 
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
     flasher.stop();
     strober.stop();
 #endif
@@ -922,7 +973,7 @@ void loop(void)
         last_refresh = millis();
     }
 
-#if HW_MODEL == MODEL_CURRENT_64x8
+#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
     /* flash/strobe discrete LEDs as needed */
     flasher.update();
     strober.update();
