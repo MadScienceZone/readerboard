@@ -54,7 +54,7 @@ of persons, animals, property, or anything of real value depends on the correct 
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware version 2.0.0, and firmware version 0.0.0.
+	For readerboard hardware version 2.1.0, and firmware version 0.0.0.
 \end{center}
 
 \strut\vfill
@@ -82,6 +82,53 @@ for the full set of licensing terms.
 \listoftables
 \mainmatter
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  _   _    _    ____  ______        ___    ____  _____ 
+% | | | |  / \  |  _ \|  _ \ \      / / \  |  _ \| ____|
+% | |_| | / _ \ | |_) | | | \ \ /\ / / _ \ | |_) |  _|  
+% |  _  |/ ___ \|  _ <| |_| |\ V  V / ___ \|  _ <| |___ 
+% |_| |_/_/   \_\_| \_\____/  \_/\_/_/   \_\_| \_\_____|
+%
+\chapter{Hardware}
+\epigraph{People who are really serious about software should make their own hardware.}{---Alan Kay}
+\LJversal{A}{s a hobby project,} the design of the hardware and software for the readerboard
+project ``grew in the telling'' as new ideas sprang to mind. As of this writing, there are three
+different models of hardware prototypes which were designed and created.
+
+\section{Version 1.0.1}
+The initial prototype was a fairly large board, approximately 20\sfrac{5}{8}$\times$6\sfrac{5}{8}$''$
+with an \acronym{LED} pitch of \sfrac{1}{3}$''$.
+
+It requires an Arduino Mega 2560 or Arduino Due to drive it. A custom-made shield board attaches to
+the Arduino, which provides connectors for power and ribbon cables to drive the display (one to control
+the matrix, the other for the 8 status \acronym{LED}s which appear in a horizontal row along the bottom
+right of the matrix).
+
+\section{Version 2.0.0}
+This version is based on the 1.0.1 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
+with an \acronym{LED} pitch of \sfrac{1}{4}$''$. It also replaces the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
+It also relocates the ribbon cable which connects the Arduino controller to the \acronym{LED} matrix, moves the
+eight status \acronym{LED}s to a vertical column to the right of the matrix, and switches to resistor arrays
+for the matrix current limiting resistors, instead of the individual discrete resistors used on the 1.0.1 board.
+
+\section{Version 2.1.0}
+Version 2.1.0 is a significant change to the 2.0.0 board in terms of how it interfaces with the Arduino, although it has the same size and physical
+layout as the 2.0.0 board.
+
+This one eliminates the need for the ribbon cables and shield board. Instead, the Arduino controller mounts
+directly to the back of the display board. This means that the lower portion of the left edge of the enclosure
+has all of the external connections in one place, including power, \acronym{RS-485} in and out, and the 
+\acronym{USB} connector(s) on the Arduino itself.
+
+\section{Firmware Implications}
+The boards for versions 1.0.1 and 2.0.0 were compatible and used the same Arduino shield. Thus, they
+use the same firmware images. The 2.1.0 board, however, which integrates the Arduino directly instead
+of using a separate shield with ribbon cables, assigns signals to different I/O pins, and as such
+needs a different firmware image. 
+
+Both images are generated from the same source files, with compile-time switches to make one or the other.
+
+                                                      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  ____  ____   ___ _____ ___   ____ ___  _     
 % |  _ \|  _ \ / _ \_   _/ _ \ / ___/ _ \| |    
@@ -133,7 +180,7 @@ appear in any transmitted data except to terminate commands.
 \subsection{RS-485}
 Commands sent over RS-485 are intended to target one or more of a set of
 connected readerboards over a network which may also contain other Lumos-protocol-compatible
-devices, so they use a protocol compatible with that use case.
+devices, so they adhere to a protocol that is also compatible with those devices.
 
 Each command begins with one of the following binary headers, depending on the
 set of target readerboard signs which should obey the command.
@@ -167,20 +214,24 @@ with a multi-byte code:
 		\bitbox[tbr]{1}{\z1}&
 		\bitbox{4}{\Var*{ad$_G$}}\\
 		\bitbox{1}{\z0}&
-		\bitbox{3}{\color{reservedslot}\rule{\width}{\height}}&
-		\bitbox{4}{\Var*{n}}\\
 		\bitbox{1}{\z0}&
-		\bitbox{3}{\color{reservedslot}\rule{\width}{\height}}&
-		\bitbox{4}{\Var*{ad$_0$}}\\
+		\bitbox{6}{\Var*{n}}\\
+		\bitbox{1}{\z0}&
+		\bitbox{1}{\z0}&
+		\bitbox{6}{\Var*{ad$_0$}}\\
 		\bitbox[]{8}{$\vdots$\strut}\\
 		\bitbox{1}{\z0}&
-		\bitbox{3}{\color{reservedslot}\rule{\width}{\height}}&
-		\bitbox{4}{\Var*{ad$_{n-1}$}}
+		\bitbox{1}{\z0}&
+		\bitbox{6}{\Var*{ad$_{n-1}$}}
 	\end{bytefield}
 \end{center}
 where \Var*{ad$_G$} is the ``global'' device address which signals readerboards
 generally (see the \z= command below).
 This will send to the \Var*{n} devices addressed as \Var*{ad$_0$} through \Var*{ad$_{n-1}$}.
+
+Note that device addresses are constrained to the range 0--15 if they are to be addressed in
+the command start byte. However, using the multiple target header, device addresses in the
+range 0--63 may be used.
 
 %\subsubsection{All Targets}
 %If you wish to send a command to all attached readerboards, simply send the
@@ -235,6 +286,26 @@ while a literal \z{7E} is sent as \z{7F~7E} and a literal \z{7F} as \z{7F~7F}.
 If there is an error parsing or executing a command, the readerboard will ignore
 all subsequent input until a byte arrives with its \acronym{MSB} set to \z1,
 whereupon it will expect to see the start of another command. 
+
+A few illustrative examples are shown in Table~\ref{tbl:escapes}.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{ll}\toprule
+			\multicolumn{1}{c}{\bfseries Input Sequence}&
+			\multicolumn{1}{c}{\bfseries Resulting Byte}\\\midrule
+			\z{00}    & \z{00} \\
+			\z{7D}    & \z{7D} \\
+			\z{7F 7E} & \z{7E} \\
+			\z{7F 7F} & \z{7F} \\
+			\z{7E 00} & \z{80} \\
+			\z{7E 01} & \z{81} \\
+			\z{7E 7D} & \z{FD} \\
+			\z{7E 7E} & \z{FE} \\
+			\z{7E 7F} & \z{FF} \\\bottomrule
+		\end{tabular}
+		\caption{Examples of RS-485 Escape Bytes.\label{tbl:escapes}}
+	\end{center}
+\end{table}
 
 %\section{Command Addressing}
 %Commands may be received over the \acronym{USB} port (a point-to-point connection with a host computer)
@@ -910,7 +981,7 @@ corresponding position in the sequence.
 			\bottomrule
 		\end{tabular}\\
 		{\footnotesize *If a sign is built with different colors in these positions, the letter codes\\ for those
-		\led s will match the custom color arrangement for that sign.}
+		\led s will match the custom color arrangement for that sign.\\(Custom firmware modification required.)}
 		\caption{Discrete \led\ Codes and Colors\label{tbl:lightcodes}}
 	\end{center}
 \end{table}
@@ -1130,10 +1201,10 @@ If a dedicated (non-readerboard) busylight device is sent the
 	\bitbox{1}{\z{Q}} &
 	\bitbox{1}{\z{B}} &
 	\bitbox{1}{\z{=}} &
-	\bitbox{1}{\color{reservedslot}\rule{\width}{\height}}&
+	\bitbox{1}{\Var*{ad}}&
 	\bitbox{1}{\Var*{uspd}}&
-	\bitbox{1}{\color{reservedslot}\rule{\width}{\height}}&
-	\bitbox{1}{\color{reservedslot}\rule{\width}{\height}}&
+	\bitbox{1}{\Var*{rspd}}&
+	\bitbox{1}{\Var*{ad$_G$}}&
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{V}} \\
 	\bitbox{2}{\Var*{hwversion}}
@@ -1213,7 +1284,146 @@ Turns off the flasher, strober, and all discrete \led s.
 This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 
 \chapter{Pinouts}
-\input pinouts
+\epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
+\LJversal{T}{his chapter describes} each connector used by the readerboard devices and what signals are present
+on which pins.
+
+\section{Connectors for Version 2.1.0 Boards}
+\subsection{Power / RS-485 (8-pin terminal) [2.1.0 J0]}
+The single external connector on version 2.1.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
+and ground on pins 3 and 4 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
+communications will be used, the incoming signal is received on pins 1, 2, and 5 while the outgoing signal is on
+pins 6, 7, and 8. (In actuality, the ``input'' and ``output'' sense is arbitrary and either set of A and B signals
+may be used as input or output.) 
+
+If this device is the last in the RS-485 network chain, insert a 120$\Omega$ resistor between the A and B terminals
+that would have been used as the output if there had been another device connected there. This properly terminates
+the RS-485 network at that point.
+\begin{center}
+	\begin{tabular}{rl|rl}
+		1&A (Data in +)    &5&GND\\
+		2&B (Data in --)   &6&GND\\
+		3&+9\,V DC in      &7&B (Data out --)\\
+		4&GND              &8&A (Data out +)\\
+	\end{tabular}
+\end{center}
+
+
+\section{Connectors for Legacy Boards}
+\subsection{Matrix Control (24-pin ribbon cable) [1.0.1 J1, 2.0.0 J1]}
+%
+%   . . . . . . . . . . . . .
+%   . . . . . . . . . . . . .
+%
+\begin{center}
+	\begin{tikzpicture}[scale=.25]
+		\foreach \x in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12} {
+			\foreach \y in {1, 2} {
+				\draw (\x-.1,\y-.1) -- (\x-.1,\y+.1) -- (\x+.1,\y+.1) -- (\x+.1,\y-.1) -- cycle;
+			}
+		}
+		%\draw         (.4,.4) -- (.4,2.6) -- (13.6,2.6) -- (13.6,.4) -- (.4,.4);
+		\draw         (.4,.4) -- (.4,2.6) -- (12.6,2.6) -- (12.6,.4) -- (8,.4) -- (8,.2) -- (6,.2) -- (6,.4) -- cycle;
+		\draw [thick] (.2,.2) -- (.2,2.8) -- (12.8,2.8) -- (12.8,.2) -- cycle;
+		\node [below] at (1,0) {\strut1};
+		\node [above] at (1,3) {\strut2};
+%		\node [below] at (2,0) {\strut3};
+%		\node [above] at (2,3) {\strut4};
+		\node [below] at (3.5,0) {\strut$\cdots$};
+		\node [above] at (3.5,3) {\strut$\cdots$};
+		\node [below] at (12,0) {\strut 23};
+		\node [above] at (12,3) {\strut 24};
+	\end{tikzpicture}
+\end{center}
+For readerboards before version 2.1.0, this 24-position ribbon cable carries signals to directly drive the 64$\times$8 \acronym{LED}
+matrix.  The other end of this cable mates with J0 on the shield board. The pinout of its \acronym{IDC} header  is:
+\begin{center}
+	\begin{tabular}{rl|rl|rl|rl}
+		1&D6     & 7&RCLK                          &13&+5\,V DC&19&Gnd\\
+		2&D5     & 8&D2                            &14&+5\,V DC&20&Gnd\\
+		3&D7     & 9&$\overline{\hbox{\mc{G}}}$    &15&+5\,V DC&21&R2\\
+		4&D4     &10&D1                            &16&+5\,V DC&22&REN\\
+		5&SRCLK  &11&$\overline{\hbox{\mc{SRCLR}}}$&17&Gnd     &23&R1\\
+		6&D3     &12&D0                            &18&Gnd     &24&R0\\
+	\end{tabular}
+\end{center}
+\subsection{Discrete LEDs (10-pin ribbon cable) [1.0.1 J2, 2.0.0 J2]}
+%
+%   . . . . . . . . . . . . .
+%   . . . . . . . . . . . . .
+%
+\begin{center}
+	\begin{tikzpicture}[scale=.25]
+		\foreach \x in {1, 2, 3, 4, 5} {
+			\foreach \y in {1, 2} {
+				\draw (\x-.1,\y-.1) -- (\x-.1,\y+.1) -- (\x+.1,\y+.1) -- (\x+.1,\y-.1) -- cycle;
+			}
+		}
+		%\draw         (.4,.4) -- (.4,2.6) -- (13.6,2.6) -- (13.6,.4) -- (.4,.4);
+		\draw         (.4,.4) -- (.4,2.6) -- (5.6,2.6) -- (5.6,.4) -- (2,.4) -- (2,.2) -- (3,.2) -- (3,.4) -- cycle;
+		\draw [thick] (.2,.2) -- (.2,2.8) -- (5.8,2.8) -- (5.8,.2) -- cycle;
+		\node [below] at (1,0) {\strut1};
+		\node [above] at (1,3) {\strut2};
+%		\node [below] at (2,0) {\strut3};
+%		\node [above] at (2,3) {\strut4};
+		\node [below] at (3,0) {\strut$\cdots$};
+		\node [above] at (3,3) {\strut$\cdots$};
+		\node [below] at (5,0) {\strut 9};
+		\node [above] at (5,3) {\strut 10};
+	\end{tikzpicture}
+\end{center}
+For readerboards before version 2.1.0, this 24-position ribbon cable carries signals to directly drive the 64$\times$8 \acronym{LED}
+matrix.  The other end of the cable mates with J1 on the shield board. The pinout of its \acronym{IDC} header  is:
+\begin{center}
+	\begin{tabular}{rl|rl}
+		1&GND& 6&L6\\
+		2&GND& 7&L2\\
+		3&L0 & 8&L5\\
+		4&L7 & 9&L3\\
+		5&L1 &10&L4\\
+	\end{tabular}
+\end{center}
+\subsection{Board Power (3-pin screw terminal) [1.0.1 J0, 2.0.0 J0]}
+This 3-position screw terminal block provides power to the readerboard. Note that the +5\,V supply is also connected
+to pins 13--16, and Ground to pins 17--20 of J1, the only power required here is the +9\,V input that drives the \acronym{LED}s themselves.
+\begin{center}
+	\begin{tabular}{rl}
+		1&+5\,V DC in\\
+		2&GND\\
+		3&+9\,V DC in\\
+	\end{tabular}
+\end{center}
+
+\subsection{Shield Power (5-pin screw terminal) [Shield J2]}
+This 5-position screw terminal block accepts incoming +9\,V DC power and ground on pins 4 and 3 respectively. It then provides
++5\,V DC, +9\,V DC, and ground outputs on pins 1, 2, and 5 respectively to supply power to the main display board.
+\begin{center}
+	\begin{tabular}{rl}
+		1&+5\,V DC out\\
+		2&GND\\
+		3&GND\\
+		4&+9\,V DC in\\
+		5&+9\,V DC out\\
+	\end{tabular}
+\end{center}
+
+\subsection{Shield RS-485 (6-pin screw terminal) [Shield J4]}
+This 6-position screw terminal block accepts incoming RS-485 signals A, B, and ground on pins 2, 1, and 3 respectively, and outputs
+the network signals A, B, and ground on pins 5, 6, and 4 respectively, to go on to the next device in the chain. If this is the last
+device, then nothing should be connected to pins 5 and 6. Instead, install jumper J5 which connects a 120$\Omega$ resistor across
+those terminals to terminate the network at that point.
+\begin{center}
+	\begin{tabular}{rl}
+		1&B (Data In --)\\
+		2&A (Data In +)\\
+		3&GND\\
+		4&GND\\
+		5&A (Data Out +)\\
+		6&B (Data Out --)\\
+	\end{tabular}
+\end{center}
+
+%\input pinouts
 
 \indexintoc
 
