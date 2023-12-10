@@ -104,6 +104,13 @@ the Arduino, which provides connectors for power and ribbon cables to drive the 
 the matrix, the other for the 8 status \acronym{LED}s which appear in a horizontal row along the bottom
 right of the matrix).
 
+%One of the problems with this board is the use of the obsolete \acronym{TPIC6B595} chip. Later boards
+%replaced this with a newer version. While it's technically possible to use the newer \acronym{STPIC6D595} chips
+%on the 1.0.1 board, doing so requires a non-standard placement of the newer chip on the older chip's pads, 
+%bending pins up, soldering jumper wires, possibly cutting traces, and and due
+%to a pinout incompatibility between the two chips, the firmware also needs to be altered. As such, we don't
+%recommend going this route. It would be best to use the newer board with the chips it was designed for.
+
 \section{Version 2.0.0}
 This version is based on the 1.0.1 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
 with an \acronym{LED} pitch of \sfrac{1}{4}$''$. It also replaces the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
