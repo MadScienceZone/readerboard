@@ -238,6 +238,34 @@ void setup_pins(void)
 byte image_buffer[8 * N_ROWS];      // image to render onto
 byte hw_buffer[8 * N_ROWS];         // image to refresh onto hardware
 
+// Row addressing
+// R4 R3 R2 R1 R0
+//  0  0  0  0  0 RED row 0
+//  0  0  0  0  1 RED row 1
+//  0  0  0  1  0 RED row 2
+//  0  0  0  1  1 RED row 3
+//  0  0  1  0  0 RED row 4
+//  0  0  1  0  1 RED row 5
+//  0  0  1  1  0 RED row 6
+//  0  0  1  1  1 RED row 7
+//  0  1  0  0  0 GRN row 0
+//  0  1  0  0  1 GRN row 1
+//  0  1  0  1  0 GRN row 2
+//  0  1  0  1  1 GRN row 3
+//  0  1  1  0  0 GRN row 4
+//  0  1  1  0  1 GRN row 5
+//  0  1  1  1  0 GRN row 6
+//  0  1  1  1  1 GRN row 7
+//  1  0  0  0  0 BLU row 0
+//  1  0  0  0  1 BLU row 1
+//  1  0  0  1  0 BLU row 2
+//  1  0  0  1  1 BLU row 3
+//  1  0  1  0  0 BLU row 4
+//  1  0  1  0  1 BLU row 5
+//  1  0  1  1  0 BLU row 6
+//  1  0  1  1  1 BLU row 7
+//  1  1  x  x  x all rows off
+
 //
 // setup_buffers()
 //   Initialize buffers to zero.
