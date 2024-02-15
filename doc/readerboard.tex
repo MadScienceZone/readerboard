@@ -210,7 +210,7 @@ If the global address \Var{ad$_G$} is given as the \Var*{ad} value, then all rea
 which have that set as their global address will obey the command.
 
 \subsubsection{Multiple Targets}
-Alternatively, a command may be targetted to multiple signs by starting the command
+Alternatively, a command may be targeted to multiple signs by starting the command
 with a multi-byte code:
 \begin{center}
 	\begin{bytefield}[endianness=big]{8}
@@ -527,6 +527,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{C} & Clear matrix display & \\
 			\z{H} & Add histogram/bargraph data point & \\
 			\z{I} & Draw bitmap graphic image & \\
+			\z{K} & Set current color & \\
 			\z{Q} & Query matrix display status & [2] [4]\\
 			\z{T} & Display text on display & \\
 			\bottomrule
@@ -608,6 +609,7 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 			\z{\textasciicircum D} & \z{04} & Never allowed in strings (command terminator)\\
 			\z{\textasciicircum F}\Var*{digit} & \z{06}\Var*{digit} & Switch current font\\
 			\z{\textasciicircum H}\Var*{pos} & \z{08}\Var*{pos} & Move cursor left \Var*{pos} columns\\
+			\z{\textasciicircum K}\Var*{rgb} & \z{0B}\Var*{rgb} & Change color to \Var*{rgb}\\
 			\z{\textasciicircum L}\Var*{pos} & \z{0C}\Var*{pos} & Move cursor right \Var*{pos} columns\\
 			\z{\textasciicircum [} & \z{1B} & Never allowed in strings (string terminator)\\
 			\bottomrule
@@ -839,7 +841,7 @@ for a complete font glyph listing with codepoint assignments.
 			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
 			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
 			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
-			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tUnused&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&!&\z"&\#&\$&\%&\&&\z'&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
@@ -884,7 +886,7 @@ for a complete font glyph listing with codepoint assignments.
 			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
 			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
 			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
-			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tUnused&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&\bfseries!&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
@@ -1016,13 +1018,34 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 \end{bytefield}
 \end{center}
 
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-7} \\
+	\bitbox{1}{\z{H}} &
+	\bitbox{1}{\z{K}} &
+	\bitbox{1}{\Var*{rgb$_0$}} &
+	\bitbox{1}{\Var*{rgb$_1$}} &
+	\bitbox{1}{\Var*{rgb$_2$}} &
+	\bitbox{1}{\Var*{rgb$_3$}} &
+	\bitbox{1}{\Var*{rgb$_4$}} &
+	\bitbox{1}{\Var*{rgb$_5$}} \\
+	\bitbox{1}{\Var*{rgb$_6$}} &
+	\bitbox{1}{\Var*{rgb$_7$}} 
+\end{bytefield}
+\end{center}
+
 This command is used to draw a bar-graph element. Repeating this command causes a
 scrolling data display which shows a set of data samples over some period of time.
+
+In the simplest form, it takes a single byte parameter.
 The value \Var*{n} is an \ascii\ digit character in the range ``\z0''--``\z8'', and
 is drawn in the far-right column of the matrix display, as a column of \Var*{n} lights
 stacked up from the bottom row (a value of 0 results in no lights, up to 8 which is a full
 column of eight lights; a value of 9 is treated as if it were 8). All existing matrix data
 are scrolled left one column.
+
+In the second form, it takes eight \Var*{rgb} values (q.v.) which give the color to light up
+each row in the bar-graph column.
 
 \section{\z{I}---Draw Bitmap Image}
 \begin{center}
@@ -1036,7 +1059,11 @@ are scrolled left one column.
 	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} \\
 	\bitbox[tbr]{2}{\Var*{coldata$_{n-1}$}} &
-	\bitbox{1}{\z{\$}} 
+	\bitbox{1}{\z{\$}} &
+	\bitbox{2}{\Var*{coldata}\dots} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{2}{\Var*{coldata}\dots} &
+	\bitbox{1}{\z{\$}} &
 \end{bytefield}
 \end{center}
 
@@ -1051,6 +1078,10 @@ least-significant bit representing the top row of the matrix.
 The column data values are terminated by either a dollar-sign (``\z{\$}'') character or the
 escape control character (hex byte \z{1B}), indicated in the protocol diagram above
 simply as ``\z{\$}''.
+
+The first set of column data provide the bits for the red color plane. After the terminating
+byte, two more sets of column data are sent, each with identical format to the first, to provide
+the bits for the green and blue color planes, respectively.
 
 The column cursor is moved to be after the end of the image.
 
@@ -1082,6 +1113,40 @@ to the display. See Table~\ref{tbl:transitions}.
 		\caption{Transition Effect Codes\label{tbl:transitions}}
 	\end{center}
 \end{table}
+
+\section{\z{K}---Set Current Color}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{K}} &
+	\bitbox{1}{\Var*{rgb}} &
+	\bitbox{1}{\z{\$}} 
+\end{bytefield}
+\end{center}
+
+This command sets the color which all future commands will use by default (although
+some of them allow for the specification of colors directly on an \emph{ad hoc} basis,
+which does not affect the current default color).
+
+The \Var*{rgb} value is a digit in the range 0--7, with the meanings defined in Table~\ref{tbl:rgbcolors}.
+Note that anything drawn in black simply turns off the corresponding pixels.
+\begin{table}
+	\begin{center}
+	\begin{tabular}{cl}\toprule
+		\bfseries Code & \bfseries Color \\\midrule
+		\z0&black\\
+		\z1&red\\
+		\z2&green\\
+		\z3&yellow\\
+		\z4&blue\\
+		\z5&magenta\\
+		\z6&cyan\\
+		\z7&white\\\bottomrule
+	\end{tabular}
+	\caption{Color codes for \Var*{rgb} parameters\label{tbl:rgbcolors}}
+	\end{center}
+\end{table}
+
 
 \section{\z{L}---Light Multiple \led s}
 \begin{center}
@@ -1155,10 +1220,20 @@ may be queried using the \z? command. The response has the form:
 	\bitbox{1}{\Var*{serial}} \\
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} &
-	\bitbox[tbl]{2}{\Var*{coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
+	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
+	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{2}{\Var*{coldata$_{63}$}}\\
+	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}\\
+	\bitbox{1}{\z{\$}}&
+	\bitbox[tbl]{2}{\Var*{G coldata$_0$}} &
+	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{2}{\Var*{G coldata$_{63}$}}&
+	\bitbox{1}{\z{\$}}\\
+	\bitbox[tbl]{2}{\Var*{B coldata$_0$}} &
+	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{2}{\Var*{B coldata$_{63}$}}&
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
