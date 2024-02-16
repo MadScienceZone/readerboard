@@ -1023,14 +1023,14 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 	\bitheader{0-7} \\
 	\bitbox{1}{\z{H}} &
 	\bitbox{1}{\z{K}} &
-	\bitbox{1}{\Var*{rgb$_0$}} &
-	\bitbox{1}{\Var*{rgb$_1$}} &
-	\bitbox{1}{\Var*{rgb$_2$}} &
-	\bitbox{1}{\Var*{rgb$_3$}} &
-	\bitbox{1}{\Var*{rgb$_4$}} &
-	\bitbox{1}{\Var*{rgb$_5$}} \\
-	\bitbox{1}{\Var*{rgb$_6$}} &
-	\bitbox{1}{\Var*{rgb$_7$}} 
+	\bitbox[tbl]{1}{\Var*{rgb$_0$}} &
+	\bitbox[tb]{1}{\Var*{rgb$_1$}} &
+	\bitbox[tb]{1}{\Var*{rgb$_2$}} &
+	\bitbox[tb]{1}{\Var*{rgb$_3$}} &
+	\bitbox[tb]{1}{\Var*{rgb$_4$}} &
+	\bitbox[tb]{1}{\Var*{rgb$_5$}} \\
+	\bitbox[tb]{1}{\Var*{rgb$_6$}} &
+	\bitbox[tbr]{1}{\Var*{rgb$_7$}} 
 \end{bytefield}
 \end{center}
 
@@ -1055,14 +1055,14 @@ each row in the bar-graph column.
 	\bitbox{1}{\Var*{merge}} &
 	\bitbox{1}{\Var*{pos}} &
 	\bitbox{1}{\Var*{trans}} &
-	\bitbox[tbl]{2}{\Var*{coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{coldata$_1$}} &
+	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
+	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} \\
-	\bitbox[tbr]{2}{\Var*{coldata$_{n-1}$}} &
+	\bitbox[tbr]{2}{\Var*{R coldata$_{n-1}$}} &
 	\bitbox{1}{\z{\$}} &
-	\bitbox{2}{\Var*{coldata}\dots} &
+	\bitbox{2}{\Var*{G coldata}\dots} &
 	\bitbox{1}{\z{\$}} &
-	\bitbox{2}{\Var*{coldata}\dots} &
+	\bitbox{2}{\Var*{B coldata}\dots} &
 	\bitbox{1}{\z{\$}} &
 \end{bytefield}
 \end{center}
@@ -1239,8 +1239,9 @@ may be queried using the \z? command. The response has the form:
 \end{center}
 
 The \Var*{model} field may be ``\z{L}'' for the legacy hardware the author still has
-lying around (but this shouldn't be something anyone else would need to see), or
-``\z{M}'' for the current 64$\times$8 matrix display hardware.
+lying around (but this shouldn't be something anyone else would need to see),
+``\z{M}'' for the current 64$\times$8 matrix display hardware, or
+``\z{C}'' for 64$\times$8 \acronym{RGB} color display boards.
 
 \Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
 hardware the firmware was compiled to drive, and of the firmware itself. Each of
@@ -1370,8 +1371,12 @@ This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 \LJversal{T}{his chapter describes} each connector used by the readerboard devices and what signals are present
 on which pins.
 
-\section{Connectors for Version 2.1.0 Boards}
-\subsection{Power / RS-485 (8-pin terminal) [2.1.0 J0]}
+\section{Connectors for Version 3.1.0 Boards}
+\section{Arduino Bus Connectors [3.1.0 J0]}
+Two parallel rows of stacking pins, for a total of 50 pins, extend out of the back of the readerboard \acronym{PCB}.
+An Arduino Mega 2560 or Due microcontroller board is connected to these pins.
+
+\subsection{Power / RS-485 (8-pin terminal) [3.1.0 J1]}
 The single external connector on version 2.1.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
 and ground on pins 3 and 4 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
 communications will be used, the incoming signal is received on pins 1, 2, and 5 while the outgoing signal is on
@@ -1389,6 +1394,11 @@ the RS-485 network at that point.
 		4&GND              &8&A (Data out +)\\
 	\end{tabular}
 \end{center}
+
+
+\section{Connectors for Version 2.1.0 Boards}
+\subsection{Power / RS-485 (8-pin terminal) [2.1.0 J0]}
+This is wired the same as J1 on the 3.1.0 boards.
 
 
 \section{Connectors for Legacy Boards}

@@ -13953,7 +13953,7 @@ Layer(6 "bottom" "copper")
 	Line[3660.00mil 4410.00mil 3900.00mil 4410.00mil 10.00mil 20.00mil "clearline"]
 	Line[3900.00mil 4410.00mil 3910.00mil 4400.00mil 10.00mil 20.00mil "clearline"]
 	Line[3910.00mil 4400.00mil 3910.00mil 4370.00mil 10.00mil 20.00mil "clearline"]
-	Text[15950.00mil 4975.00mil 0 100 "READERBOARD RGB MATRIX64X8 3.1.0-2/2024 SLW SS" "clearline,onsolder"]
+	Text[15950.00mil 4975.00mil 0 100 "READERBOARD RGB MATRIX64X8 3.2.0-2/2024 SLW SS" "clearline,onsolder"]
 )
 Layer(7 "outline" "copper")
 (
@@ -14446,7 +14446,7 @@ Layer(10 "top silk" "silk")
 	Text[13490.00mil 780.00mil 0 100 "U9 STPIC6D595MTR" "clearline"]
 	Text[15260.00mil 780.00mil 0 100 "U10 STPIC6D595MTR" "clearline"]
 	Text[15125.00mil 4380.00mil 0 320 "64x8 RGB MATRIX LED DISPLAY" "clearline"]
-	Text[17350.00mil 4575.00mil 0 100 "REV 3.1.0 2/2024" "clearline"]
+	Text[17350.00mil 4575.00mil 0 100 "REV 3.2.0 2/2024" "clearline"]
 	Text[15125.00mil 4560.00mil 0 144 "STEVE WILLOUGHBY" "clearline"]
 	Text[1675.00mil 75.00mil 0 320 "0" "clearline"]
 	Text[3675.00mil 75.00mil 0 320 "1" "clearline"]
