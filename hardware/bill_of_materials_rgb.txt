@@ -25,8 +25,8 @@ R25-28		4						360Ω resistor (assumes default color choices)
 R32-34		3						10K resistor
 Rterm		1			 			120Ω resistor (to terminate the RS-485 bus if needed)
 U0,12,13	3	595-CD74HCT238PWR  **	TSSOP-16	CD74HCT238PWR non-inverting 3-to-8 decoder
-U1,2,14,15	4						ULN2803CDWR octal NPN darlington array
-U3-10		8						STPIC6D595 power 8-bit shift register
-U11		1						THVD1439 half-duplex RS-485 driver/receiver
+U1,2,14,15	4				SOIC-20		ULN2803CDWR octal NPN darlington array
+U3-10		8				SOIC-16		STPIC6D595MTR power 8-bit shift register
+U11		1				SOIC-8		THVD1439 half-duplex RS-485 driver/receiver
 		24				TO-220AB 	heat sinks for Q0-Q23
 		1						Power supply, 9 V DC, at least 1.5 A
