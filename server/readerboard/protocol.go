@@ -59,11 +59,6 @@ const (
 	ColorWhite             = 7
 )
 
-func (l LightStatus) MarshalJSON() ([]byte, error) {
-}
-func (l *LightStatus) UnmarshalJSON(data []byte) error {
-}
-
 type BaseMessage struct {
 	MessageType string `json:"m"`
 	Addresses   []int  `json:"a"`
@@ -163,24 +158,24 @@ func (v *Alignment) MarshalJSON() ([]byte, error) {
 }
 
 func (v *LightStatus) UnmarshalJSON(j []byte) error {
-	a, err := unmarshalJSONRuneString(j, "_")
+	a, err := unmarshalJSONRuneString(j, '_')
 	*v = LightStatus(a)
 	return err
 }
 
 func (v *TransitionEffect) UnmarshalJSON(j []byte) error {
-	a, err := unmarshalJSONRuneString(j, ".")
+	a, err := unmarshalJSONRuneString(j, '.')
 	*v = TransitionEffect(a)
 	return err
 }
 
 func (v *Alignment) UnmarshalJSON(j []byte) error {
-	a, err := unmarshalJSONRuneString(j, "<")
+	a, err := unmarshalJSONRuneString(j, '<')
 	*v = Alignment(a)
 	return err
 }
 
-func unmarshalJSONRuneString(j []byte, defval string) error {
+func unmarshalJSONRuneString(j []byte, defval rune) (rune, error) {
 	var s string
 	if err := json.Unmarshal(j, &s); err != nil {
 		return defval, err
