@@ -30,3 +30,19 @@ U3-10		8				SOIC-16		STPIC6D595MTR power 8-bit shift register
 U11		1				SOIC-8		THVD1439 half-duplex RS-485 driver/receiver
 		24				TO-220AB 	heat sinks for Q0-Q23
 		1						Power supply, 9 V DC, at least 1.5 A
+
+
+TPIC6B595DW[RG4]		STPIC6D595MTR
+SOIC 20				SOIC 16
+
+NC      1   20 NC
+Vcc     2   19 GND	Vcc 1  16 GND
+Sin     3   18 Sout	Sin 2  15 SRCK
+D0      4   17 D7	D0  3  14 D7
+D1      5   16 D6	D1  4  13 D6
+D2      6   15 D5	D2  5  12 D5
+D3      7   14 D4	D3  6  11 D4
+/SRCLR  8   13 SRCK    /CLR 7  10 RCK
+/G      9   12 RCK     /G   8   9 Sout
+GND    10   11 GND
+
