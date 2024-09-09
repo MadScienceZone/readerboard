@@ -2,47 +2,50 @@ Bill of Materials for 64x8 RGB matrix project v3.0.0
 Be sure to verify the mechanical size of all components ordered
 to ensure they will fit on the PCB.
 
-PART NO		QTY	MOUSER			FOOTPRINT	DESCRIPTION
-        	1						PCB
-		1						Arduino Due (or Mega 2560, but the Due will perform better)
-C0-9,11,12	12	810-FA18X7R1H10400	100 ls		0.1 μF capacitor
-C10		1	667-ECA-1HM100I		100 ls		10 μF electrolytic capacitor
-D0-511		512						LED, 5mm, RGB, common cathode
-D512		1						LED, 5mm, green
-D513-14		2						LED, 5mm, yellow
-D515-16		2						LED, 5mm, red
-D517-18		2						LED, 5mm, blue
-D519		1						LED, 5mm, white
-J0		1						Arduino stacking pin set
-J1		1						8-position Euro-style terminal block
-J2		1						2-position jumper header
-P0		1	710-609002115121	100 ls		2-position jumper shunt
-Q0-23		24	942-IRF9530NPBF		TO-220AB	IRF9530 p-channel MOSFET
-R0-7,35-50	24	603-MFR-24FRF521K			1K resistor
-R8-23		16						4x360Ω resistor array, isolated
-R24,29-31	4	603-MRF-25FTE52-300R			300Ω resistor (assumes default color choices)
-R25-28		4						360Ω resistor (assumes default color choices)
-R32-34		3						10K resistor
-Rterm		1			 			120Ω resistor (to terminate the RS-485 bus if needed)
-U0,12,13	3	595-CD74HCT238PWR  **	TSSOP-16	CD74HCT238PWR non-inverting 3-to-8 decoder
-U1,2,14,15	4				SOIC-20		ULN2803CDWR octal NPN darlington array
-U3-10		8				SOIC-16		STPIC6D595MTR power 8-bit shift register
-U11		1				SOIC-8		THVD1439 half-duplex RS-485 driver/receiver
-		24				TO-220AB 	heat sinks for Q0-Q23
-		1						Power supply, 9 V DC, at least 1.5 A
+			for 2
+PART NO		QTY	NEED	MOUSER			FOOTPRINT	DESCRIPTION
+        	1	0						PCB
+		1	0						Arduino Due (or Mega 2560, but the Due will perform better)
+C0-9,11,12	12	4.	810-FA18X7R1H10400	100 ls		0.1 μF capacitor
+C10		1	0	667-ECA-1HM100I		100 ls		10 μF electrolytic capacitor
+D0-511		512	500.						LED, 5mm, RGB, common cathode
+D512		1	0						LED, 5mm, green
+D513-14		2	0						LED, 5mm, yellow
+D515-16		2	0						LED, 5mm, red
+D517-18		2	0						LED, 5mm, blue
+D519		1	0						LED, 5mm, white
+J0		1	?						Arduino stacking pin set
+J1		1	0						8-position Euro-style terminal block
+J2		1	0						2-position jumper header
+P0		1	0	710-609002115121	100 ls		2-position jumper shunt
+Q0-23		24	32.	942-IRF9530NPBF		TO-220AB	IRF9530 p-channel MOSFET
+R0-7,35-50	24	32.	603-MFR-24FRF521K			1K resistor
+R8-23		16	0-HAVE 32x 4x390R				4x360Ω resistor array, isolated
+R24,29-31	4	0	603-MFR-25FTE52-300R			300Ω resistor (assumes default color choices)
+R25-28		4	0						360Ω resistor (assumes default color choices)
+R32-34		3	4.	603-MFR-25FRF5210K			10K resistor
+Rterm		1	0			 			120Ω resistor (to terminate the RS-485 bus if needed)
+U0,12,13	3	4.	595-CD74HCT238PWR  **	TSSOP-16	CD74HCT238PWR non-inverting 3-to-8 decoder
+U1,2,14,15	4	0				SOIC-20		ULN2803CDWR octal NPN darlington array
+U3-10		8	0				SOIC-16		STPIC6D595MTR power 8-bit shift register
+U11		1	0				SOIC-8		THVD1439 half-duplex RS-485 driver/receiver
+		24	0				TO-220AB 	heat sinks for Q0-Q23
+		1	2.						Power supply, 9 V DC, at least 1.5 A
 
 
-TPIC6B595DW[RG4]		STPIC6D595MTR
-SOIC 20				SOIC 16
+ULN2803CDWR	ULN2803A SOP-18
+body width 7.5	body width   7.50
+body len  12.60	body length 11.45
+pin wid   11.43	pin width   10.10
+pin space  1.27	pin space    1.27
 
-NC      1   20 NC
-Vcc     2   19 GND	Vcc 1  16 GND
-Sin     3   18 Sout	Sin 2  15 SRCK
-D0      4   17 D7	D0  3  14 D7
-D1      5   16 D6	D1  4  13 D6
-D2      6   15 D5	D2  5  12 D5
-D3      7   14 D4	D3  6  11 D4
-/SRCLR  8   13 SRCK    /CLR 7  10 RCK
-/G      9   12 RCK     /G   8   9 Sout
-GND    10   11 GND
-
+01 -->-- 20	01 -->-- 18
+02 -->-- 19	02 -->-- 17
+03 -->-- 18	03 -->-- 16
+04 -->-- 17	04 -->-- 15
+05 -->-- 16	05 -->-- 14
+06 -->-- 15	06 -->-- 13
+07 -->-- 14	07 -->-- 12
+08 -->-- 13	08 -->-- 11
+09 Gnd C 12	09 Gnd C 10
+10 -N/C- 11
