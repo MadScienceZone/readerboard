@@ -1116,7 +1116,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{04x}&&\bfseries!&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{04x}&&\bfseries!&$\square$&$\blacksquare$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&\tUnused&\\\hline
 			\emph{06x}&\bfseries 0&\bfseries 1&\bfseries 2&\bfseries 3&\bfseries 4&\bfseries 5&\bfseries 6&\bfseries 7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
 			\emph{07x}&\bfseries 8&\bfseries 9&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
@@ -1656,6 +1656,96 @@ Turns off the flasher, strober, and all discrete \led s.
 
 This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 
+\chapter{Server-Only Commands}
+\epigraph{The enjoyment of one’s tools is an essential ingredient of successful work.}{---Donald E. Knuth}
+\LJversal{F}{or the most part} the server exists as a way to host readerboards and busylights from a central machine
+while allowing users on other networked machines to post messages to them. One shortcoming of this approach is that
+although \emph{access} to the devices is made widely available, \emph{coordination} between the users wishing to
+place content on display is not provided. Each update totally changes the state of the target devices.
+
+This chapter describes server-side coordination between users in a network environment by providing a set of
+commands which clients can post to the server to request information to be displayed for them alongside other
+content other users have posted. It also provides some services to keep boards updated with information
+known to the server which the devices don't themselves track, such as time of day.
+
+\section{\z{post}---Post a Message to the Displays}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/post?a=|\Var*{ad}|&t=|\Var*{text}|&id=|\Var*{id}|&trans=|\Var*{trans}\\
+		|&until=|\Var*{datetime}|&hold=|\Var*{duration}|&color=|\Var*{rgb}|&repeat=|\Var*{schedule}
+	\end{Coding}
+\end{center}
+
+Adds a text message to the display list.  The message may include the special tokens listed in
+Table~\ref{tbl:msgcodes}. The server will maintain the list of posted images
+and will update the devices as needed to display dynamic content.
+
+If any lower-level display matrix commands are received that directly manipulate
+the matrix, the display of posted messages is suspended in favor of the directly
+set content. When a \z{clear} command is received, then display of the posted
+message list will resume.
+
+The \Var*{id} value must be unique but the server doesn't assign these in order
+to keep the \acronym{API} simple. Thus, it is recommended that you assign these as
+\acronym{UUID}s or other scheme to keep them from colliding.
+
+If \z{trans} is given, this message will be introduced using the specified
+transition effect.
+
+If \z{until} is given, the message will automatically unpost when the specified
+date and time is reached.
+
+If \z{hold} is given, the message will remain on-screen for the specified time
+duration before moving on to the next posted message.
+
+If \z{color} is given, the current color will be changed to the specified value
+before writing the message; otherwise (or additionally) color codes may be
+added in-line in the message text.
+
+If \z{repeat} is given, \Var*{schedule} specifies (in a way yet to be determined)
+a repeating display schedule for this message (e.g., display this every hour on the hour).
+
+\begin{table}
+	\begin{center}
+		\begin{tabular}{ll}\toprule
+			\bfseries Code&\bfseries Description\\\midrule
+			\z{\{big\}}&Display letters and numbers in large font\\
+			\z{\{date\}}&Date as ``\Var*{dd}\z-\Var*{mmm}\z-\Var*{yyyy}''\\
+			\z{\{normal\}}&Stop displaying numbers in large font\\
+			\z{\{mdy\}}&Date as ``\Var*{mm}\z/\Var*{dd}\z/\Var*{yyyy}''\\
+			\z{\{pom\}}&Phase of the moon (as a symbol)\\
+			\z{\{time12\}}&Time as ``\Var*{hh}\z:\Var*{mm} \z{AM}/\z{PM}'' on 12-hour clock\\
+			\z{\{time24\}}&Time as ``\Var*{hh}\z:\Var*{mm}'' on 24-hour clock\\
+			\z{\{ymd\}}&Date as ``\Var*{yyyy}\z-\Var*{mm}\z-\Var*{dd}''\\
+			\z{\{\$}\Var*{name}\z{\}}&User variable \Var*{name}\\
+			\z{\{\{}&Literal ``\z{\{}''\\
+			\z{\}\}}&Literal ``\z{\}}''\\
+			\bottomrule
+		\end{tabular}
+		\caption{Special Codes in Post Messages\label{tbl:msgcodes}}
+	\end{center}
+\end{table}
+
+\section{\z{unpost}---Remove a Posted Message}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/unpost?a=|\Var*{ad}|&id=|\Var*{id}
+	\end{Coding}
+\end{center}
+
+Remove the message with the given \Var*{id} from the display list.
+
+\section{\z{update}---Update Dynamic Content}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/update?|\Var*{name$_0$}|=|\Var*{value$_0$}|&|\Var*{name$_1$}|=|\Var*{value$_1$}\dots
+	\end{Coding}
+\end{center}
+
+For each \Var*{name} and \Var*{value} pair, define or update the corresponding
+user variable (usable in posted messages as \z{\{\$}\Var*{name}\z{\}}). The
+updated value will be displayed from this point until it is updated again.
+
 \chapter{Pinouts}
 \epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
 \LJversal{T}{his chapter describes} each connector used by the readerboard devices and what signals are present
@@ -1807,6 +1897,10 @@ those terminals to terminate the network at that point.
 		6&A (Data Out +)\\
 	\end{tabular}
 \end{center}
+
+\chapter{Future Ideas}
+Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
+is set on the color code, to allow arbitrary parts of the matrix to flash.
 
 \chapter{Schematics and Diagrams}
 The following page includes the schematics for the current 3.2.1 version of the readerboard \acronym{PCB}

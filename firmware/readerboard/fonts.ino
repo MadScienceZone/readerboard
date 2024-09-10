@@ -146,7 +146,7 @@ const PROGMEM word GlyphMetricDataFont2Offsets[169] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
-    0,     0,     0,  1143,     0,     0,     0,     0,     0,     0, 
+    0,     0,     0,  1143,  1690,  1695,     0,     0,     0,     0, 
     0,     0,     0,     0,    53,     0,    60,     0,  1428,  1434, 
  1440,  1446,  1452,  1458,  1464,  1470,  1476,  1482,     0,     0, 
     0,     0,     0,     0,  1146,  1267,  1273,  1280,  1287,  1294, 
@@ -164,7 +164,7 @@ const byte * const GlyphMetricDataLengths[3] = {GlyphMetricDataFont0Lengths, Gly
 const byte * const GlyphMetricDataSpaces[3] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces};
 const word * const GlyphMetricDataOffsets[3] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets};
 /* font bitmap data */
-const PROGMEM byte CharacterBitmap[1690] = {
+const PROGMEM byte CharacterBitmap[1700] = {
  0x3E, 0x22, 0x22, 0x22, 0x3E,
                                          // 0 - 4
                                          //     .....
@@ -3535,6 +3535,26 @@ const PROGMEM byte CharacterBitmap[1690] = {
                                          //     @@@....@
                                          //     .@@@..@.
                                          //     ..@@@@..
+ 0x7F, 0x41, 0x41, 0x41, 0x7F,
+                                         // 1690 - 1694
+                                         //     @@@@@
+                                         //     @...@
+                                         //     @...@
+                                         //     @...@
+                                         //     @...@
+                                         //     @...@
+                                         //     @@@@@
+                                         //     .....
+ 0x7F, 0x7F, 0x7F, 0x7F, 0x7F,
+                                         // 1695 - 1699
+                                         //     @@@@@
+                                         //     @@@@@
+                                         //     @@@@@
+                                         //     @@@@@
+                                         //     @@@@@
+                                         //     @@@@@
+                                         //     @@@@@
+                                         //     .....
 };
 
 
@@ -3552,7 +3572,7 @@ bool get_font_metric_data(byte font, byte codepoint, byte *leng, byte *space, un
 
 byte get_font_bitmap_data(unsigned int offset) 
 {
-    if (offset < 0 || offset >= 1690)
+    if (offset < 0 || offset >= 1700)
         return 0;
     return pgm_read_byte_far(CharacterBitmap + offset);
 }

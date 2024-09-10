@@ -290,3 +290,9 @@ byte get_font_bitmap_data(unsigned int offset)
     return pgm_read_byte_far(CharacterBitmap + offset);
 }}
 ''')
+
+with open("fonts.tex", "w") as tex:
+    for font_id, font in enumerate(font_data):
+        for codepoint in sorted(font.keys()):
+            f = font[codepoint]
+            tex.write(f'% font {font_id} codepoint {codepoint} name {f.name} space {f.space} width {f.width}\n')
