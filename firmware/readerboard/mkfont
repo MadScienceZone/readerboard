@@ -293,6 +293,29 @@ byte get_font_bitmap_data(unsigned int offset)
 
 with open("fonts.tex", "w") as tex:
     for font_id, font in enumerate(font_data):
+        tex.write(f'\\section{{Font {font_id}}}\n')
+        n=0
         for codepoint in sorted(font.keys()):
-            f = font[codepoint]
-            tex.write(f'% font {font_id} codepoint {codepoint} name {f.name} space {f.space} width {f.width}\n')
+            ff = f = font[codepoint]
+            while f.alias_for is not None:
+                if f.alias_font is not None:
+                    f = font_data[f.alias_font][f.alias_for]
+                else:
+                    f = font_data[font_id][f.alias_for]
+
+            tex.write(f'% font {font_id} codepoint {codepoint} name {ff.name} space {f.space} width {f.width} offset {f.offset}\n')
+            tex.write('\\noindent\\begin{tikzpicture}[x=3.5mm,y=3.5mm]\n\\node [right] at (1,0) {'+str(codepoint)+'};\n')
+            for bit in range(8):
+                for pos in range(f.space):
+                    if pos >= f.width:
+                        tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit}) {{}};\n')
+                    elif bitmap_data[f.offset+pos] & (1<<bit):
+                        tex.write(f'\\node [circle, fill=red, draw=black, minimum size=3mm] at ({pos+1},{8-bit}) {{}};\n')
+                    else:
+                        tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit}) {{}};\n')
+            tex.write('\\end{tikzpicture}')
+            n += 1
+            if n % 5 == 0:
+                tex.write('\n\n')
+            else:
+                tex.write('\\quad \n')
