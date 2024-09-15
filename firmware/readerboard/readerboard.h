@@ -3,7 +3,7 @@
 
 #define BANNER_HARDWARE_VERS "HW 3.2.3  "
 #define BANNER_FIRMWARE_VERS "FW 0.0.0  "
-#define BANNER_SERIAL_NUMBER "S/N 100"
+#define BANNER_SERIAL_NUMBER "S/N 100   "
 #define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$S100$"
 //                             \___/  \___/  \___/
 //                               |      |      |

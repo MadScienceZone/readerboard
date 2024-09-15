@@ -16,8 +16,8 @@
  * Steve Willoughby 2023
  */
 
-//#include <TimerEvent.h>
-//#include <EEPROM.h>
+#include <TimerEvent.h>
+#include <EEPROM.h>
 //#include "fonts.h"
 //#include "commands.h"
 #include "readerboard.h"
@@ -73,84 +73,49 @@
 const int REFRESH_MS = 25;
 
 const int PIN_STATUS_LED = 13;
+
+
+// Hardware notes
+// DUE    MEGA                 READERBOARD              DUE    MEGA
+//                                                  LED 13~    13~
+//                                                      12~    12~
+//                                                      11~    11~
+//                                                      10~    10~
+//                                    L4                09~    09~
+//                                    L5                08~    08~
+//     
+//                                    L6                07~    07~
+//                                    L7                06~    06~
+//  A0/54  A0/54                 D7   L3                05~    05~
+//  A1/55  A0/55                 D6   L2                04~    04~
+//  A2/56  A0/56                 D5   L1                03~    03~
+//  A3/57  A0/57                 D4   L0                02~    02~
+//  A4/58  A0/58                 D3   USB TxD           01/TX0 01/TX0~
+//  A5/59  A0/59                 D2   USB RxD           00/RX0 00/RX0~
+//  A6/60  A0/60                 D1                     
+//  A7/61  A0/61                 D0   485 TxD           14/TX3 14/TX3
+//                                    485 RxD           15/RX3 15/RX3
+//  A8/62  A0/62              SRCLK   485 DE            16/TX2 16/TX2
+//  A9/63  A0/53               /CLR   485 /RE           17/RX2 17/RX2
+// A10/64 A10/64                  /G                    18/TX1 18/TX1
+// A11/65 A11/65                RCLK   R3               19/RX1 19/RX1
+//     66 A12/66                  R0                    20/SDA 20/SDA
+//     67 A13/67                  R1                    21/SCL 21/SCL
+//     68 A14/68                  R2
+//     69 A15/69                  R4
+// 
+// Use programming port for USB connection
 //
-//#if HW_MODEL == MODEL_LEGACY_64x7
-//const int N_ROWS    = 7;    // number of rows on the display
-//const int COL_BLK_0 = 0;    // leftmost column block is MSB
-//const int COL_BLK_1 = 1;    //                |
-//const int COL_BLK_2 = 2;    //                |
-//const int COL_BLK_3 = 3;    //                |
-//const int COL_BLK_4 = 4;    //                |
-//const int COL_BLK_5 = 5;    //                |
-//const int COL_BLK_6 = 6;    //                V
-//const int COL_BLK_7 = 7;    // rightmost column block is LSB
-//const int PIN_PS0   = A8;   // control line PS0
-//const int PIN_PS1   = A9;   // control line PS1
-//#else
-//# if HW_MODEL == MODEL_CURRENT_64x8 
-//const int N_ROWS    = 8;    // number of rows on the display
-//const int COL_BLK_7 = 0;    // rightmost column block is MSB byte
-//const int COL_BLK_6 = 1;    //                |
-//const int COL_BLK_5 = 2;    //                |
-//const int COL_BLK_4 = 3;    //                |
-//const int COL_BLK_3 = 4;    //                |
-//const int COL_BLK_2 = 5;    //                |
-//const int COL_BLK_1 = 6;    //                V
-//const int COL_BLK_0 = 7;    // leftmost column block is LSB byte
-//const int PIN_SRCLK = A12;  // shift register clock (strobe)
-//const int PIN_RCLK  = A13;  // storage register clock (strobe)
-//const int PIN__G    = A14;  // column output ~enable
-//const int PIN__SRCLR= A15;  // shift register ~clear
-//const int PIN_REN   = A10;  // row output enable
-//const int PIN_R0    = A8;   // row address bit 0
-//const int PIN_R1    = A9;   // row address bit 1
-//const int PIN_R2    = A11;  // row address bit 2
-//const int PIN_L0    = 9;    // discrete LED L0 (white)
-//const int PIN_L1    = 8;    // discrete LED L1 (blue)
-//const int PIN_L2    = 7;    // discrete LED L2 (blue)
-//const int PIN_L3    = 6;    // discrete LED L3 (red)
-//const int PIN_L4    = 2;    // discrete LED L4 (red)
-//const int PIN_L5    = 3;    // discrete LED L5 (yellow)
-//const int PIN_L6    = 4;    // discrete LED L6 (yellow)
-//const int PIN_L7    = 5;    // discrete LED L7 (green)
-//const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
-//const int PIN__RE_TE = 10;	// 0=enable RS-483 receiver; 1=enable transmitter (default=receiver enabled)
-//# else
-//#  if HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//const int N_ROWS    = 8;    // number of rows on the display
-//const int COL_BLK_7 = 7;    // leftmost column block is MSB byte of port
-//const int COL_BLK_6 = 6;    //                |
-//const int COL_BLK_5 = 5;    //                |
-//const int COL_BLK_4 = 4;    //                |
-//const int COL_BLK_3 = 3;    //                |
-//const int COL_BLK_2 = 2;    //                |
-//const int COL_BLK_1 = 1;    //                V
-//const int COL_BLK_0 = 0;    // rightmost column block is LSB byte of port
-//const int PIN_SRCLK = A8;  // shift register clock (strobe)
-//const int PIN_RCLK  = A11;  // storage register clock (strobe)
-//const int PIN__G    = A10;  // column output ~enable
-//const int PIN__SRCLR= A9;  // shift register ~clear
-//const int PIN_REN   = A15;  // row output enable
-//const int PIN_R0    = A12;   // row address bit 0
-//const int PIN_R1    = A13;   // row address bit 1
-//const int PIN_R2    = A14;  // row address bit 2
-//const int PIN_L0    = 9;    // discrete LED L0 (white)
-//const int PIN_L1    = 8;    // discrete LED L1 (blue)
-//const int PIN_L2    = 7;    // discrete LED L2 (blue)
-//const int PIN_L3    = 6;    // discrete LED L3 (red)
-//const int PIN_L4    = 5;    // discrete LED L4 (red)
-//const int PIN_L5    = 4;    // discrete LED L5 (yellow)
-//const int PIN_L6    = 3;    // discrete LED L6 (yellow)
-//const int PIN_L7    = 2;    // discrete LED L7 (green)
-//const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
-//const int PIN__RE = 17;		// 0=enable RS-483 receiver; 1=disable receiver (default=receiver disabled)
-//const int PIN_TE = 16;		// 0=disable RS-483 transmitter; 1=enable transmitter (default=transmitter disabled)
-//#  else
-//#   error "HW_MODEL not set to supported hardware configuration"
-//#  endif
-//# endif
-//#endif
-//
+// Auto-reset
+// Classic Arduinos reset when DTR or RTS is triggered on connection. Prevent with 10uF cap on RST to GND.
+// Leonardo resets when port is "touched" at 1200bps, not merely opened.
+// NOTE: "while (!Serial);" waits for the port to be connected to.
+// Due native port doesn't reset the system, so using that prevents resets
+// Due programming port: open at 1200 to erase; other opens cause reset like other boards. Cap doesn't work.
+// but a 1K resistor between RST and 3.3V will keep reset high.
+
+
+
 #if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
 # if HW_MC == HW_MC_MEGA_2560
 const int PIN_D0    = A7;   // column data bit 0
@@ -249,9 +214,9 @@ void setup_pins(void)
     digitalWrite(PIN__SRCLR, LOW);  //   X    X   1   0    X  X  X  X  X    clear shift registers
     digitalWrite(PIN_R4, HIGH);     //   X    X   1   0    1  X  X  X  X    
     digitalWrite(PIN_R3, HIGH);     //   X    X   1   0    1  1  X  X  X    disable row source outputs
-    digitalWrite(PIN_R2, HIGH);     //   X    X   1   0    1  1  0  X  X
-    digitalWrite(PIN_R1, HIGH);     //   X    X   1   0    1  1  0  0  X
-    digitalWrite(PIN_R0, HIGH);     //   X    X   1   0    1  1  0  0  0
+    digitalWrite(PIN_R2, LOW);      //   X    X   1   0    1  1  0  X  X
+    digitalWrite(PIN_R1, LOW);      //   X    X   1   0    1  1  0  0  X
+    digitalWrite(PIN_R0, LOW);      //   X    X   1   0    1  1  0  0  0
     digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   0    1  1  0  0  0    clock idle
     digitalWrite(PIN_RCLK, LOW);    //   0    0   1   0    1  1  0  0  0    clock idle
     digitalWrite(PIN_DE, LOW);      // RS-485 driver disabled
@@ -267,55 +232,8 @@ void setup_pins(void)
     digitalWrite(PIN_L5, LOW);
     digitalWrite(PIN_L6, LOW);
     digitalWrite(PIN_L7, LOW);
-//#if HW_MODEL == MODEL_LEGACY_64x7
-//    pinMode(PIN_PS0, OUTPUT);
-//    pinMode(PIN_PS1, OUTPUT);
-//    digitalWrite(PIN_PS0, LOW);     // PS0 PS1
-//    digitalWrite(PIN_PS1, HIGH);    //  0   1   RESET
-//    digitalWrite(PIN_PS0, HIGH);    //  1   1   (shift)
-//    digitalWrite(PIN_PS1, LOW);     //  1   0   IDLE
-//#else
-//# if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//    pinMode(PIN_SRCLK,  OUTPUT);
-//    pinMode(PIN_RCLK,   OUTPUT);
-//    pinMode(PIN__G,     OUTPUT);
-//    pinMode(PIN__SRCLR, OUTPUT);
-//    pinMode(PIN_REN,    OUTPUT);
-//    pinMode(PIN_R0,     OUTPUT);        //            _ _____
-//    pinMode(PIN_R1,     OUTPUT);        // SRCLK RCLK G SRCLR REN
-//    pinMode(PIN_R2,     OUTPUT);        //   X     X  X   X    X    
-//    digitalWrite(PIN__G,     HIGH);     //   X     X  1   X    X    column outputs off
-//    digitalWrite(PIN__SRCLR, LOW);      //   X     X  1   0    X    reset shift registers
-//    digitalWrite(PIN_REN,    LOW);      //   X     X  1   0    0    row outputs off
-//    digitalWrite(PIN_SRCLK,  LOW);      //   0     X  1   0    0    
-//    digitalWrite(PIN_RCLK,   LOW);      //   0     0  1   0    0
-//    digitalWrite(PIN__SRCLR, HIGH);     //   0     0  1   1    0    ready
-//    digitalWrite(PIN_R0,     LOW);
-//    digitalWrite(PIN_R1,     LOW);
-//    digitalWrite(PIN_R2,     LOW);
-//    pinMode(PIN_L0, OUTPUT);
-//    pinMode(PIN_L1, OUTPUT);
-//    pinMode(PIN_L2, OUTPUT);
-//    pinMode(PIN_L3, OUTPUT);
-//    pinMode(PIN_L4, OUTPUT);
-//    pinMode(PIN_L5, OUTPUT);
-//    pinMode(PIN_L6, OUTPUT);
-//    pinMode(PIN_L7, OUTPUT);
-//    digitalWrite(PIN_L0, LOW);
-//    digitalWrite(PIN_L1, LOW);
-//    digitalWrite(PIN_L2, LOW);
-//    digitalWrite(PIN_L3, LOW);
-//    digitalWrite(PIN_L4, LOW);
-//    digitalWrite(PIN_L5, LOW);
-//    digitalWrite(PIN_L6, LOW);
-//    digitalWrite(PIN_L7, LOW);
-//	// TODO Until we know that RS-485 is enabled, we leave the drive control pins in tristate
-//	// TODO mode so they default correctly.
-//# else
-//#  error "HW_MODEL not set to supported hardware configuration"
-//# endif
-//#endif
 }
+
 //
 //byte image_buffer[8 * N_ROWS];      // image to render onto
 //byte hw_buffer[8 * N_ROWS];         // image to refresh onto hardware
@@ -709,160 +627,158 @@ void setup_pins(void)
 //}
 //
 //
-////
-//// The following LightBlinker support was adapted from the
-//// author's busylight project, which this project is intended
-//// to be compatible with.
-////
-//#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//const int LED_SEQUENCE_LEN = 64;
-//class LightBlinker {
-//    unsigned int on_period;
-//    unsigned int off_period;
-//    bool         cur_state;
-//    byte         cur_index;
-//    byte         sequence_length;
-//    byte         sequence[LED_SEQUENCE_LEN];
-//    TimerEvent   timer;
 //
-//public:
-//    LightBlinker(unsigned int on, unsigned int off, void (*callback)(void));
-//    void update(void);
-//    void stop(void);
-//    void append(byte);
-//    int  length(void);
-//    void advance(void);
-//    void start(void);
-//    void report_state(void);
-//};
+// The following LightBlinker support was adapted from the
+// author's busylight project, which this project is intended
+// to be compatible with.
 //
-//LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
-//{
-//    timer.set(0, callback);
-//    timer.disable();
-//    cur_state = false;
-//    cur_index = 0;
-//    sequence_length = 0;
-//    on_period = on;
-//    off_period = off;
-//}
-//
-//int LightBlinker::length(void)
-//{
-//    return sequence_length;
-//}
-//
-//void LightBlinker::append(byte v)
-//{
-//    if (sequence_length < LED_SEQUENCE_LEN) {
-//        sequence[sequence_length++] = v;
-//    }
-//}
-//
-//void LightBlinker::report_state(void)
-//{
-//    int i = 0;
-//    Serial.write(cur_state ? '1' : '0');
-//    if (sequence_length > 0) {
-//        Serial.write(cur_index + '0');
-//        Serial.write('@');
-//        for (i = 0; i < sequence_length; i++) {
-//            Serial.write(sequence[i] + '0');
-//        }
-//    }
-//    else {
-//        Serial.write('X');
-//    }
-//}
-//
-//void discrete_set(byte l, bool value)
-//{
-//    if (l < 8) {
-//        digitalWrite(discrete_led_set[l], value? HIGH : LOW);
-//    }
-//}
-//
-//bool discrete_query(byte l)
-//{
-//    if (l < 8) {
-//        return digitalRead(discrete_led_set[l]) == HIGH;
-//    }
-//    return false;
-//}
-//        
-//
-//void LightBlinker::advance(void)
-//{
-//    if (sequence_length < 2) {
-//        if (cur_state) {
-//            discrete_set(sequence[0], false);
-//            cur_state = false;
-//            if (off_period > 0)
-//                timer.setPeriod(off_period);
-//        }
-//        else {
-//            discrete_set(sequence[0], true);
-//            cur_state = true;
-//            if (off_period > 0)
-//                timer.setPeriod(on_period);
-//        }
-//        return;
-//    }
-//
-//    if (sequence_length > LED_SEQUENCE_LEN)
-//        sequence_length = LED_SEQUENCE_LEN;
-//    
-//    if (off_period == 0) {
-//        cur_state = true;
-//        discrete_set(sequence[cur_index], false);
-//        cur_index = (cur_index + 1) % sequence_length;
-//        discrete_set(sequence[cur_index], true);
-//    }
-//    else {
-//        if (cur_state) {
-//            discrete_set(sequence[cur_index], false);
-//            timer.setPeriod(off_period);
-//            cur_state = false;
-//        }
-//        else {
-//            cur_index = (cur_index + 1) % sequence_length;
-//            discrete_set(sequence[cur_index], true);
-//            timer.setPeriod(on_period);
-//            cur_state = true;
-//        }
-//    }
-//}
-//
-//void LightBlinker::update(void)
-//{
-//    timer.update();
-//}
-//
-//void LightBlinker::stop(void)
-//{
-//    timer.disable();
-//    sequence_length = 0;
-//}
-//
-//void LightBlinker::start(void)
-//{
-//    if (sequence_length > 0) {
-//        cur_index = 0;
-//        cur_state = true;
-//        discrete_set(sequence[0], true);
-//        timer.reset();
-//        timer.setPeriod(on_period);
-//        timer.enable();
-//    }
-//    else {
-//        stop();
-//    }
-//}
-//
-//void flash_lights(void);
-//void strobe_lights(void);
-//LightBlinker flasher(200, 0, flash_lights);
-//LightBlinker strober(50,2000, strobe_lights);
+const int LED_SEQUENCE_LEN = 64;
+class LightBlinker {
+    unsigned int on_period;
+    unsigned int off_period;
+    bool         cur_state;
+    byte         cur_index;
+    byte         sequence_length;
+    byte         sequence[LED_SEQUENCE_LEN];
+    TimerEvent   timer;
+
+public:
+    LightBlinker(unsigned int on, unsigned int off, void (*callback)(void));
+    void update(void);
+    void stop(void);
+    void append(byte);
+    int  length(void);
+    void advance(void);
+    void start(void);
+    void report_state(void);
+};
+
+LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
+{
+    timer.set(0, callback);
+    timer.disable();
+    cur_state = false;
+    cur_index = 0;
+    sequence_length = 0;
+    on_period = on;
+    off_period = off;
+}
+
+int LightBlinker::length(void)
+{
+    return sequence_length;
+}
+
+void LightBlinker::append(byte v)
+{
+    if (sequence_length < LED_SEQUENCE_LEN) {
+        sequence[sequence_length++] = v;
+    }
+}
+
+void LightBlinker::report_state(void)
+{
+    int i = 0;
+    Serial.write(cur_state ? '1' : '0');
+    if (sequence_length > 0) {
+        Serial.write(cur_index + '0');
+        Serial.write('@');
+        for (i = 0; i < sequence_length; i++) {
+            Serial.write(sequence[i] + '0');
+        }
+    }
+    else {
+        Serial.write('X');
+    }
+}
+
+void discrete_set(byte l, bool value)
+{
+    if (l < 8) {
+        digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+    }
+}
+
+bool discrete_query(byte l)
+{
+    if (l < 8) {
+        return digitalRead(discrete_led_set[l]) == HIGH;
+    }
+    return false;
+}
+        
+void LightBlinker::advance(void)
+{
+    if (sequence_length < 2) {
+        if (cur_state) {
+            discrete_set(sequence[0], false);
+            cur_state = false;
+            if (off_period > 0)
+                timer.setPeriod(off_period);
+        }
+        else {
+            discrete_set(sequence[0], true);
+            cur_state = true;
+            if (off_period > 0)
+                timer.setPeriod(on_period);
+        }
+        return;
+    }
+
+    if (sequence_length > LED_SEQUENCE_LEN)
+        sequence_length = LED_SEQUENCE_LEN;
+    
+    if (off_period == 0) {
+        cur_state = true;
+        discrete_set(sequence[cur_index], false);
+        cur_index = (cur_index + 1) % sequence_length;
+        discrete_set(sequence[cur_index], true);
+    }
+    else {
+        if (cur_state) {
+            discrete_set(sequence[cur_index], false);
+            timer.setPeriod(off_period);
+            cur_state = false;
+        }
+        else {
+            cur_index = (cur_index + 1) % sequence_length;
+            discrete_set(sequence[cur_index], true);
+            timer.setPeriod(on_period);
+            cur_state = true;
+        }
+    }
+}
+
+void LightBlinker::update(void)
+{
+    timer.update();
+}
+
+void LightBlinker::stop(void)
+{
+    timer.disable();
+    sequence_length = 0;
+}
+
+void LightBlinker::start(void)
+{
+    if (sequence_length > 0) {
+        cur_index = 0;
+        cur_state = true;
+        discrete_set(sequence[0], true);
+        timer.reset();
+        timer.setPeriod(on_period);
+        timer.enable();
+    }
+    else {
+        stop();
+    }
+}
+
+void flash_lights(void);
+void strobe_lights(void);
+LightBlinker flasher(200, 0, flash_lights);
+LightBlinker strober(50,2000, strobe_lights);
 //TransitionManager transitions;
 //
 //void next_transition(void)
@@ -888,28 +804,28 @@ void setup_pins(void)
 //		transitions.start_transition(src, transition, 100);
 //	}
 //}
-//
-//void discrete_all_off(bool stop_blinkers)
-//{
-//  if (stop_blinkers) {
-//    flasher.stop();
-//    strober.stop();
-//  }
-//  for (int i=0; i < 8; i++) {
-//    digitalWrite(discrete_led_set[i], LOW);
-//  }
-//}
-//
-//void flash_lights(void)
-//{
-//    flasher.advance();
-//}
-//
-//void strobe_lights(void)
-//{
-//    strober.advance();
-//}
-//
+
+void discrete_all_off(bool stop_blinkers)
+{
+  if (stop_blinkers) {
+    flasher.stop();
+    strober.stop();
+  }
+  for (int i=0; i < 8; i++) {
+    digitalWrite(discrete_led_set[i], LOW);
+  }
+}
+
+void flash_lights(void)
+{
+    flasher.advance();
+}
+
+void strobe_lights(void)
+{
+    strober.advance();
+}
+
 //#endif /* MODEL_CURRENT_64x8 */
 //
 //
@@ -977,52 +893,42 @@ void flag_test(void)
 #endif
 }
 
-//	digitalWrite(PIN_L0, HIGH);
-//	digitalWrite(PIN_L1, HIGH);
-//	digitalWrite(PIN_L2, HIGH);
-//	digitalWrite(PIN_L3, HIGH);
-//	digitalWrite(PIN_L4, HIGH);
-//	digitalWrite(PIN_L5, HIGH);
-//	digitalWrite(PIN_L6, HIGH);
-//	digitalWrite(PIN_L7, HIGH);
-//#endif
-//}
-//
-//TimerEvent status_timer;
-//void strobe_status(void)
-//{
-//	static int status_value = 0;
-//	static int increment = 1;
-//
-//	status_value += increment;
-//	if (status_value < 0) {
-//		status_value = 1;
-//		increment = 1;
-//	} 
-//	else if (status_value > 255) {
-//		status_value = 254;
-//		increment = -1;
-//	}
-//	analogWrite(PIN_STATUS_LED, status_value);
-//}
-//
-//void default_eeprom_settings(void) {
-//	if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL) {
-//		// apparently unset; set to "factory defaults"
-//		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
-//		EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
-//		return;
-//	}
-//
-//	int speed = EEPROM.read(EE_ADDR_USB_SPEED);
-//	if (!((speed >= '0' && speed <= '9') 
-//	|| (speed >= 'a' && speed <= 'c') 
-//	|| (speed >= 'A' && speed <= 'C'))) {
-//		// baud rate setting invalid; return to default
-//		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
-//	}
-//}
-//
+TimerEvent status_timer;
+void strobe_status(void)
+{
+	static int status_value = 0;
+	static int increment = 1;
+
+	status_value += increment;
+	if (status_value < 0) {
+		status_value = 1;
+		increment = 1;
+	} 
+	else if (status_value > 255) {
+		status_value = 254;
+		increment = -1;
+	}
+	analogWrite(PIN_STATUS_LED, status_value);
+}
+
+void default_eeprom_settings(void) {
+	if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL) {
+		// apparently unset; set to "factory defaults"
+		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
+		EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
+		return;
+	}
+
+	int speed = EEPROM.read(EE_ADDR_USB_SPEED);
+	if (!((speed >= '0' && speed <= '9') 
+	|| (speed >= 'a' && speed <= 'c') 
+	|| (speed >= 'A' && speed <= 'C'))) {
+		// baud rate setting invalid; return to default
+		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
+	}
+}
+
+
 //
 // setup()
 //   Called after reboot to set up the device.
@@ -1031,19 +937,17 @@ void setup(void)
 {
     setup_pins();
     flag_init();
-//	default_eeprom_settings();
-//
-//#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//    flasher.stop();
-//    strober.stop();
-//#endif
+	default_eeprom_settings();
+
+    flasher.stop();
+    strober.stop();
 //    setup_commands();
 //    setup_buffers();
-//	status_timer.set(0, strobe_status);
-//	status_timer.reset();
-//	status_timer.setPeriod(10);
-//	status_timer.enable();
-//
+	status_timer.set(0, strobe_status);
+	status_timer.reset();
+	status_timer.setPeriod(10);
+	status_timer.enable();
+
 //	start_usb_serial();
 //
 //	// TODO If RS-485 is enabled, start that UART too
@@ -1065,6 +969,7 @@ void setup(void)
 //	clear_matrix();
 //	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
 }
+
 //
 //void start_usb_serial(void) {
 //	int speed = 9600;
@@ -1102,6 +1007,44 @@ void loop(void)
     delay(250);
     flag_ready();
     delay(750);
+
+	/* test readerboard column 0 */
+#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
+    //                              //            _ _____
+    //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN__G, HIGH);     //   X    X   1   X    X  X  X  X  X    disable column drains
+    digitalWrite(PIN__SRCLR, LOW);  //   X    X   1   0    X  X  X  X  X    clear shift registers
+    digitalWrite(PIN__SRCLR, HIGH); //   X    X   1   1    X  X  X  X  X    |
+    digitalWrite(PIN_R4, HIGH);     //   X    X   1   1    1  X  X  X  X    disable row source outputs
+    digitalWrite(PIN_R3, HIGH);     //   X    X   1   1    1  1  X  X  X    |
+    digitalWrite(PIN_R2, LOW);      //   X    X   1   1    1  1  0  X  X	Select row 0
+    digitalWrite(PIN_R1, LOW);      //   X    X   1   1    1  1  0  0  X    |
+    digitalWrite(PIN_R0, LOW);      //   X    X   1   1    1  1  0  0  0    |
+    digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   1    1  1  0  0  0    clock idle
+    digitalWrite(PIN_RCLK, LOW);    //   0    0   1   1    1  1  0  0  0    clock idle
+	digitalWrite(PIN_D0, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_SRCLK, HIGH);	//   1    0   1   1    1  1  0  0  0    clock in bit
+	digitalWrite(PIN_SRCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
+	digitalWrite(PIN_RCLK, HIGH);	//   0    1   1   1    1  1  0  0  0    clock data to output buffer
+	digitalWrite(PIN_RCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
+
+	for (int row=0; row<24; row++) {
+		//												//            _ _____
+		//												// SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+		digitalWrite(PIN_R0, (row&0x01)==0? LOW:HIGH);  //   0     0  1   1    1  1  0  0  X address row
+		digitalWrite(PIN_R1, (row&0x02)==0? LOW:HIGH);  //   0     0  1   1    1  1  0  X  X |
+		digitalWrite(PIN_R2, (row&0x04)==0? LOW:HIGH);  //   0     0  1   1    1  1  X  X  X |
+		digitalWrite(PIN_R3, (row&0x08)==0? LOW:HIGH);  //   0     0  1   1    1  X  X  X  X |
+		digitalWrite(PIN_R4, (row&0x10)==0? LOW:HIGH);  //   0     0  1   1    X  X  X  X  X |
+		digitalWrite(PIN__G, LOW);                      //   0     0  0   1    X  X  X  X  X turn on columns
+		delay(1000);
+		digitalWrite(PIN__G, HIGH);                     //   0     0  0   1    X  X  X  X  X turn off columns
+	}
+#else
+# error "HW_CONTROL_LOGIC not set to a supported model"
+#endif
+
+
 //    unsigned long last_refresh = 0;
 //    int cur_row = 0;
 //
