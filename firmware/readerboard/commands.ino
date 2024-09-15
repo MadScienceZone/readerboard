@@ -1,3 +1,4 @@
+#if 0
 #include "readerboard.h"
 #include "commands.h"
 
@@ -691,3 +692,4 @@ void receive_serial_data(void)
         cmd.accept(Serial.read());
     }
 }
+#endif

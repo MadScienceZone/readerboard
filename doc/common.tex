@@ -67,7 +67,7 @@
 %  SourceCode                               Print block of source code in a box
 %  Coding                                   Use |verbatim| and \Var in env
 %                                            also \Var* puts <> around variable name
-\documentclass[letterpaper,twoside,onecolumn,openright,draft          ]{memoir}
+\documentclass[letterpaper,twoside,onecolumn,openright,final          ]{memoir}
 %    vs.       others...   oneside twocolumn openleft  draft showtrims
 %                          twoside onecolumn openany   ms
 %                                            openright final 
@@ -111,6 +111,7 @@
 \usepackage{algorithm}
 \usepackage[colorlinks=true,linkcolor=blue]{hyperref}
 \usepackage{enumitem}
+\usepackage{wasysym}
 \makeindex
 \newcommand\ix[1]{#1\index{#1}}
 %\makeglossary

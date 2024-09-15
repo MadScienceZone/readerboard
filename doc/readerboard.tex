@@ -53,6 +53,11 @@ representation as to suitability or fitness for any purpose whatsoever, and disc
 warranty to the full extent permitted by applicable law.  It is explicitly not designed for use where the safety
 of persons, animals, property, or anything of real value depends on the correct operation of the software.
 
+As an educational exercise, it is assumed that the user has the necessary skill to appropriately set up, build,
+and use this project. Do not proceed to use, whether exactly as provided in the repository or with modifications
+of your own, unless you know exactly what you're doing and have verified that your actions and the product
+materials are suitable for your purpose and function as expected.
+
 \strut\vfill
 
 \begin{center}\bfseries
@@ -207,7 +212,7 @@ in the way of connecting subsequent ones. For example:
 			\item U0, U12, U13: CD74HCT238PWR
 			\item U1, U2, U14, U15: ULN2803CDWR (ULN2803A SOP-18 packages may be used if aligned to the top 18 pads, leaving the bottom two empty, if they have otherwise identical pinouts and characteristics)
 			\item U3--U10: STPIC6D595MTR
-			\item U11: THVD1439DR
+			\item U11: THVD1439DR (Note that this chip is oriented 180$^{\circ}$ from the other chips on the board, with pin~1 to the lower right.)
 		\end{itemize}
 	\item Solder the discrete resistors: R0--R7, R24--R50. See below first to ensure the correct values are used
 		for R24--R31.
@@ -1117,19 +1122,19 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&\bfseries!&$\square$&$\blacksquare$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
-			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&\tUnused&\\\hline
+			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&thin .&\\\hline
 			\emph{06x}&\bfseries 0&\bfseries 1&\bfseries 2&\bfseries 3&\bfseries 4&\bfseries 5&\bfseries 6&\bfseries 7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
 			\emph{07x}&\bfseries 8&\bfseries 9&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{10x}&\textcopyright&\bfseries A&\bfseries B&\bfseries C&\bfseries D&\bfseries E&\bfseries F&\bfseries G&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
 			\emph{11x}&\bfseries H&\bfseries I&\bfseries J&\bfseries K&\bfseries L&\bfseries M&\bfseries N&\bfseries O&\\\hline
 			\emph{12x}&\bfseries P&\bfseries Q&\bfseries R&\bfseries S&\bfseries T&\bfseries U&\bfseries V&\bfseries W&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
 			\emph{13x}&\bfseries X&\bfseries Y&\bfseries Z&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{14x}&\tUnused&\faArrowLeft&\faArrowRight&\faArrowUp&\faArrowDown&$\nwarrow$&$\nearrow$&$\searrow$&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
+			\emph{14x}&\textregistered&\faArrowLeft&\faArrowRight&\faArrowUp&\faArrowDown&$\nwarrow$&$\nearrow$&$\searrow$&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
 			\emph{15x}&$\swarrow$&$\leftarrow$&$\rightarrow$&$\uparrow$&$\downarrow$&\raise1ex\hbox{\rule{1ex}{1ex}}\rule{1ex}{1ex}&\rule{1em}{1em}&\tUnused&\\\hline
 			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
-			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
-			\emph{21x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&zero&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
 			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&NM&WC&1Q&WG&FM&WG&3Q&WC&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
@@ -1393,20 +1398,29 @@ This command sets the color which all future commands will use by default (altho
 some of them allow for the specification of colors directly on an \emph{ad hoc} basis,
 which does not affect the current default color).
 
-The \Var*{rgb} value is a digit in the range 0--7, with the meanings defined in Table~\ref{tbl:rgbcolors}.
+The \Var*{rgb} value is a value encoded as defined in Table~\ref{tbl:rgbcolors}.
 Note that anything drawn in black simply turns off the corresponding pixels.
 \begin{table}
 	\begin{center}
 	\begin{tabular}{cl}\toprule
 		\bfseries Code & \bfseries Color \\\midrule
-		\z0&black\\
+		\z0&black (off)\\
 		\z1&red\\
 		\z2&green\\
 		\z3&yellow\\
 		\z4&blue\\
 		\z5&magenta\\
 		\z6&cyan\\
-		\z7&white\\\bottomrule
+		\z7&white\\\midrule
+%		\z8&flashing black\\
+		\z9&flashing red\\
+		\z{:}&flashing green\\
+		\z{;}&flashing yellow\\
+		\z{<}&flashing blue\\
+		\z{=}&flashing magenta\\
+		\z{>}&flashing cyan\\
+		\z{?}&flashing white\\
+		\bottomrule
 	\end{tabular}
 	\caption{Color codes for \Var*{rgb} parameters\label{tbl:rgbcolors}}
 	\end{center}
@@ -1749,10 +1763,12 @@ updated value will be displayed from this point until it is updated again.
 \chapter{Pinouts}
 \epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
 \LJversal{T}{his chapter describes} each connector used by the readerboard devices and what signals are present
-on which pins.
+on which pins. Note that this begins with the current hardware revision, which is most likely the only part you need
+to know about. Following that are the connector descriptions for older, legacy versions of the hardware. Be careful to
+know which version you need to refer to.
 
-\section{Connectors for Version 3.1.0 Boards}
-\subsection{Arduino Bus Connectors [3.1.0 J0]}
+\section{Connectors for Version 3.2 Boards}
+\subsection{Arduino Bus Connectors [J0]}
 Two parallel rows of stacking pins, for a total of 50 pins, extend out of the back of the readerboard \acronym{PCB}.
 An Arduino Mega 2560 or Due microcontroller board is connected to these pins.
 
@@ -1761,7 +1777,7 @@ for initial configuration and/or to use it as a directly-connected singleton dev
 devices in use, it may be preferable to switch to the \acronym{RS-485} network after initial configuration of the
 device.)
 
-\subsection{Power / RS-485 (8-pin terminal) [3.1.0 J1]}
+\subsection{Power / RS-485 (8-pin terminal) [J1]}
 The single external connector on version 2.1.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
 and ground on pins 3 and 4 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
 communications will be used, the incoming signal is received on pins 1, 2, and 5 while the outgoing signal is on
@@ -1780,12 +1796,13 @@ the RS-485 network at that point.
 	\end{tabular}
 \end{center}
 
+{\color{gray}
 \section{Connectors for Legacy Boards}
-\subsection{Connectors for Version 2.1.0 Boards}
-\subsubsection{Power / RS-485 (8-pin terminal) [2.1.0 J0]}
-This is wired the same as J1 on the 3.1.0 boards.
+\subsection{Connectors for Version 2.1 Boards}
+\subsubsection{Power / RS-485 (8-pin terminal) [J0]}
+This is wired the same as J1 on the revision 3.2 boards.
 \subsection{Earlier Boards}
-\subsubsection{Matrix Control (24-pin ribbon cable) [1.0.1 J1, 2.0.0 J1]}
+\subsubsection{Matrix Control (24-pin ribbon cable) [J1]}
 %
 %   . . . . . . . . . . . . .
 %   . . . . . . . . . . . . .
@@ -1822,7 +1839,7 @@ matrix.  The other end of this cable mates with J0 on the shield board. The pino
 		6&D3     &12&D0                            &18&Gnd     &24&R0\\
 	\end{tabular}
 \end{center}
-\subsubsection{Discrete LEDs (10-pin ribbon cable) [1.0.1 J2, 2.0.0 J2]}
+\subsubsection{Discrete LEDs (10-pin ribbon cable) [J2]}
 %
 %   . . . . . . . . . . . . .
 %   . . . . . . . . . . . . .
@@ -1858,7 +1875,7 @@ matrix.  The other end of the cable mates with J1 on the shield board. The pinou
 		5&L1 &10&L4\\
 	\end{tabular}
 \end{center}
-\subsubsection{Board Power (3-pin screw terminal) [1.0.1 J0, 2.0.0 J0]}
+\subsubsection{Board Power (3-pin screw terminal) [J0]}
 This 3-position screw terminal block provides power to the readerboard. Note that the +5\,V supply is also connected
 to pins 13--16, and Ground to pins 17--20 of J1, the only power required here is the +9\,V input that drives the \acronym{LED}s themselves.
 \begin{center}
@@ -1897,20 +1914,209 @@ those terminals to terminate the network at that point.
 		6&A (Data Out +)\\
 	\end{tabular}
 \end{center}
+}
 
-\chapter{Font Glyphs}
+\chapter{Font Glyphs}\label{chap:fonts}
 \input{../firmware/readerboard/fonts.tex}
+\section{Font Definition Files}
+In the \z{firmware/readerboard} directory there are a set of files with \z{.font} suffixes,
+which define the fonts that the readerboard can employ when writing text to the matrix.
+If you edit these files, or add more fonts, make the appropriate adjustments to the
+\z{Makefile} and run \z{make} in that directory to regenerate the glyph images on the
+preceding pages of this document, and the source files where the glyphs are actually
+stored in the device firmware. Then recompile the firmware image and flash it onto
+the hardware devices.
 
-\chapter{Future Ideas}
-Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
-is set on the color code, to allow arbitrary parts of the matrix to flash.
+Each file defines up to 256 glyphs with codepoint values 0--255. The firmware will not
+allow some codepoints to be printed (see above, Tables~\ref{tbl:controlcodes}, \ref{tbl:font0}, and \ref{tbl:font2} on pp.~\pageref{tbl:controlcodes}--\pageref{tbl:font2}), so to avoid reserved codes we recommend using codepoints $\ge$ 32. 
+
+Any line which begins (possibly after leading whitespace) with a semicolon (`\z;') is a comment and is ignored completely.
+
+Each glyph definition begins with a line enclosed in square brackets, in the form
+\begin{center}
+	\begin{Coding}
+		|[|\Var*{codepoint} \Var*{description}|]|
+	\end{Coding}
+\end{center}
+Where \Var*{codepoint} is either the codepoint expressed as a decimal integer (e.g., ``\z{42}'') or
+a dollar sign followed by the codepoint as a hex integer (e.g., ``\z{\$2B}''), and
+\Var*{description} is an arbitrary text description of the character being defined.
+
+For example:
+\begin{SourceCode}
+[$25 percent]
+@@..@|
+@@..@|
+...@.|
+..@..|
+.@...|
+@..@@|
+@..@@|
+
+[$2E period]
+..||||
+..||||
+..||||
+..||||
+..||||
+@@||||
+@@||||
+\end{SourceCode}
+
+As a special case, a glyph introduced with the heading
+\begin{center}
+	\begin{Coding}
+		|[default]|
+	\end{Coding}
+\end{center}
+is defined to be the default glyph to be used if the user
+tries to print a glyph that is not defined in the font. Only
+one default glyph may be defined in the entire set of fonts.
+
+The non-blank lines which follow the bracketed header line define
+the bitmap for the glyph. In this definition, positions which are off
+are noted with `\z{.}' or `\z{|}', while positions where the \acronym{LED} is
+on are noted with `\z{@}'.
+
+Any completely blank columns to the right of all lit pixels should be
+represented by `\z{|}' rather than `\z{.}'. This will make note of the drawn
+width of the character but the columns to the right which consist of `\z{|}'
+characters are not actually stored in the firmware bitmap image, thus conserving
+\acronym{ROM} space.
+
+If fewer than eight rows are specified, it is assumed that the rows that are present
+start at the top of the display, and the remaining unspecified rows are all off.
+
+\subsection{Character Aliases}
+If a character glyph is to be identical to another glyph, there is no point
+in storing two or more identical bitmaps in the \acronym{ROM}. In such a case,
+rather than presenting the duplicate bitmap, the character definition
+is simply
+\begin{center}
+	\begin{Coding}
+		|->|\Var*{codepoint}\\
+		or\\
+		|->|\Var*{codepoint}|,|\Var*{font index}
+	\end{Coding}
+\end{center}
+In the first case, the glyph for the indicated codepoint will be reused for this character,
+such as the case in Font~\#0 where the prime character (hex \z{\$87}) looks identical to
+the single-quote character (hex \z{\$27}). Only the single-quote glyph is actually specified
+in \z{standard.font}, so the prime character is defined only as
+\begin{SourceCode}
+[$87 prime]
+->$27
+\end{SourceCode}
+
+In the second case, the glyph to be duplicated comes from a different font file entirely.
+For example, many characters in Font~\#1 (\z{stand\-ard\-\_var\-i\-able.font}) have the same glyphs
+as Font~\#0, such as:
+\begin{SourceCode}
+[$23 pound sign]
+->$23,0
+\end{SourceCode}
+
+\chapter{Preparing and Updating Firmware Images}
+The firmware that runs on the readerboard hardware (or, more precisely, the Arduino single-board
+computer attached to the circuit board) is located in the \z{firmware/readerboard} directory of the
+readerboard project repository.
+
+After updating the code from the repository if necessary, perform the following steps to configure and
+prepare the firmware image:
+
+{\bfseries Step 1: Configuration.}
+Edit the first few lines of \z{readerboard.h}:
+\begin{SourceCode}
+#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
+#define BANNER_SERIAL_NUMBER "S/N XXXXXX"
+#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$SXXXXX$"
+//                             \___/  \___/  \___/
+//                               |      |      |
+//                  Hardware version    |      |
+//                         Firmware version    |
+//                                 Serial number
+\end{SourceCode}
+
+The \z{BANNER\_FIRMWARE\_VERS} value should match the version of the firm\-ware source code you are compiling.
+
+Set the \z{BANNER\_SERIAL\_NUMBER} value to the serial number for your specific device. Serial numbers under 300 are
+reserved for the project author's use. If building your own device, assign a serial number that makes sense to you.
+It will help you manage your collection of devices best if you give them unique serial numbers since those can be
+queried by software.
+
+Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous three values while still preserving
+the format ``\z{V}\dots\z{\$R}\dots\z{\$S}\dots\z{\$}''. This string will be sent verbatim as part
+of the device's response to being queried for its configuration and status.
+
+An example of a properly configured file looks like this:
+\begin{SourceCode}
+#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+#define BANNER_FIRMWARE_VERS "FW 1.2.0  "
+#define BANNER_SERIAL_NUMBER "S/N R1024 "
+#define SERIAL_VERSION_STAMP "V3.2.3$R1.2.0$SR1024$"
+//                             \___/  \___/  \___/
+//                               |      |      |
+//                  Hardware version    |      |
+//                         Firmware version    |
+//                                 Serial number
+\end{SourceCode}
+
+{\bfseries Step 2: Set Hardware Model}.
+A little further down \z{readerboard.h}, there is a pair of lines like:
+\begin{SourceCode}
+#define HW_MODEL (MODEL_3xx_RGB)
+#define HW_MC (HW_MC_DUE)
+\end{SourceCode}
+		This should come already set up for the latest hardware model (in this example,
+		the revision 3 \acronym{RGB} models which incorporate the Arduino directly onto
+		the main circuit board). If your hardware uses a different design, such as one
+		of the older legacy boards, \z{HW\_MODEL} needs to be changed to another hardware
+		name, provided that name is actually supported (and supported correctly) in the rest
+		of the firmware. 
+
+		The supported values for these two configuration settings are listed in
+		Table~\ref{tab:hwmodel}.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{lp{3in}}\toprule
+			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MODEL} (Readerboard Hardware Model):}\\
+			\z{MODEL\_3xx\_RGB}&\acronym{PCB} revision 3.0 and later with \acronym{RGB} \acronym{LED}s installed.\\
+			\z{MODEL\_3xx\_MONOCHROME}&\acronym{PCB} revision 3.0 and later with single-color \acronym{LED}s installed with their
+				anodes soldered into pin 4 (the blue circuit).\\\midrule
+			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MC} (Microcontroller Installed):}\\
+			\z{HW\_MC\_MEGA\_2560}&Arduino Mega 2560.\\
+			\z{HW\_MC\_DUE}&Arduino Due.\\
+			\bottomrule
+		\end{tabular}
+		\caption{Firmware Configuration Values\label{tab:hwmodel}}
+	\end{center}
+\end{table}
+
+
+{\bfseries Step 3: Make.}
+		Run the \z{make} program. This will build the font tables from the various
+		\z{*.font} files into the firmware code so the target device will be able to
+		generate characters from those fonts.
+
+		Customizing and extending the fonts is described in Chapter~\ref{chap:fonts}.
+
+{\bfseries Step 4: Compile.}
+		Using your Arduino compiler tools, compile the \z{readerboard.ino} file and upload it
+		to your readerboard hardware. This step assumes you have set up your own Arduino
+		development environment and is beyond the scope of this document to help you with.
+
+%\chapter{Future Ideas}
+%Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
+%is set on the color code, to allow arbitrary parts of the matrix to flash.
 
 \chapter{Schematics and Diagrams}
 The following page includes the schematics for the current 3.2.1 version of the readerboard \acronym{PCB}
 and the board assembly diagram, showing where the components are placed.
 \newpage
-\noindent\includegraphics[height=.7\textheight,angle=90]{../hardware/matrix64x8_rgb_300_schematic.png}
-\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_300_assembly.png}
+\noindent\includegraphics[width=\textheight,angle=90]{../hardware/matrix64x8_rgb_300_schematic.png}
+\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_300_assembly-0.png}
+\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_300_assembly-1.png}
 \indexintoc
 
 \printindex
