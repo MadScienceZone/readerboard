@@ -61,7 +61,7 @@ materials are suitable for your purpose and function as expected.
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware (\acronym{PCB}) version 3.2.2, schematic version 3.2.3, and firmware version 0.0.0.
+	For readerboard hardware (\acronym{PCB}) version 3.2.3, schematic version 3.2.3, and firmware version 0.0.0.
 \end{center}
 
 \strut\vfill
@@ -139,22 +139,16 @@ The current version of the hardware expands on the version 2.1 design by replaci
 \acronym{RGB} \acronym{LED}s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
 green, and blue \acronym{LED} elements.
 
-As of this writing, the current revision of this board is schematic version 3.2.3 and \acronym{PCB} version 3.2.2.
+As of this writing, the current revision of this board is schematic version 3.2.3 and \acronym{PCB} version 3.2.3.
+The improvement over 3.2.2 is a cut-out to accommodate the connectors on the Arduino board and the addition of R51.
+Otherwise, 3.2.2 boards full function the same as the 3.2.3 revision.
 
 \section{Firmware Implications}
-The boards for versions 1.0 and 2.0 were compatible and used the same Arduino shield. Thus, they
-use the same firmware images. The 2.1 board, however, which integrates the Arduino directly instead
-of using a separate shield with ribbon cables, assigns signals to different I/O pins, and as such
-needs a different firmware image. 
+The boards before \acronym{PCB} revision 3.2.2 are not supported by the firmware. They were prototype ideas
+which were never built, so this shouldn't be a problem. 
 
-Both images are generated from the same source files, with compile-time switches to make one or the other.
-
-Version 3.2 expands the number of logical rows due to the \acronym{RGB} implementation, which requires
-corresponding changes to the firmware and protocol to support the new color data.
-
-{\color{red} At this point in development it is unclear whether we'll continue making the different versions
-available using compile-time switches or if we'll just support this version going forward.}
-
+There are compile-time switches documented starting on p.~\pageref{config-fw} which adjust the firmware
+image for different microcontrollers (and possibly, in the future, different board revisions).
 
 \section{Construction}
 Once you have created a printed circuit board (\acronym{PCB}) from the fabrication files included with the
@@ -185,7 +179,7 @@ heat or static electricity discharge.
 		J2&1&&2-position jumper header\\
 		P0&1&&2-position jumper shunt\\
 		Q0--23&24&\mouser{942-IRF9530NPBF}&\mc{IRF9530} p-channel \acronym{MOSFET}\\
-		R0--7,35--50&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
+		R0--7,35--51&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
 		R8--23&16&&4$\times$360$\Omega$ resistor array, isolated\\
 		R24,29--31&4&\mouser{603-MFR-25FTE52-300R}&300$\Omega$ resistor\\
 		R25--28&4&&360$\Omega$ resistor\\
@@ -237,7 +231,8 @@ in the way of connecting subsequent ones. For example:
 			\item D518: blue (with R30=300$\Omega$)
 			\item D519 (top): white (with R31=300$\Omega$)
 		\end{itemize}
-	\item Solder the 10$\mu$F capacitor C10, being mindful of the correct polarity.
+	\item \strong{If you are using an Arduino Due:} solder R51 (1K).
+	\item \strong{If you are using an Arduino Mega 2560:} Solder the 10$\mu$F capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
 	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
 		Ensure the pins extend down and out the back of the board.
 	\item Solder the 2-pin header J2.
@@ -729,6 +724,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{off}&\z{X} & All \led s off & [1]\\
 			\midrule
 			&\z{\textasciicircum D} & Abort/terminate command & \\
+			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
 			&\z{=} & Set operational parameters & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
@@ -752,6 +748,22 @@ The remaining commands are used for management of the matrix display. All comman
 Although the rev 2 hardware supports the ability to enable the RS-485 transmitter and send data back onto the network,
 this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
 at all times.
+
+\section{\z{\%}---Run Full Lamp Test Pattern}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
+	\bitheader{0} \\
+	\bitbox{1}{\z{\%}} 
+\end{bytefield}
+\\
+%|{"m":"clear","a":[|\Var*{ad$_0$}|,|\dots|]}|
+\begin{Coding}
+	|/readerboard/v1/test?a=|\Var*{ad}
+\end{Coding}
+\end{center}
+
+Displays various test patterns on the display to show that each element of each \acronym{LED} is working correctly
+individually and in concert with others.
 
 \section{\z{*}---Strobe Lights in Sequence}
 \begin{center}
@@ -1178,6 +1190,7 @@ for a complete font glyph listing with codepoint assignments.
 
 Clears the matrix display so that no \led s are illuminated. Does not affect
 the discrete \led s.
+
 
 \section{\z{F}---Flash Lights in Sequence}
 \begin{center}
@@ -1778,15 +1791,25 @@ devices in use, it may be preferable to switch to the \acronym{RS-485} network a
 device.)
 
 \subsection{Power / RS-485 (8-pin terminal) [J1]}
-The single external connector on version 2.1.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
-and ground on pins 3 and 4 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
-communications will be used, the incoming signal is received on pins 1, 2, and 5 while the outgoing signal is on
-pins 6, 7, and 8. (In actuality, the ``input'' and ``output'' sense is arbitrary and either set of A and B signals
+The single external connector on version 3.2.3 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
+and ground on pins 8 and 7 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
+communications will be used, the incoming signal is received on pins 1, 2, and 6 while the outgoing signal is on
+pins 3, 4, and 5. (In actuality, the ``input'' and ``output'' sense is arbitrary and either set of A and B signals
 may be used as input or output.) 
 
 If this device is the last in the RS-485 network chain, insert a 120$\Omega$ resistor between the A and B terminals
 that would have been used as the output if there had been another device connected there. This properly terminates
 the RS-485 network at that point.
+\begin{center}
+	\begin{tabular}{rl|rl}
+		1&A (Data in +)    &5&GND\\
+		2&B (Data in --)   &6&GND\\
+		3&A (Data out +)   &7&GND\\
+		4&B (Data out --)  &8&+9\,V DC in
+	\end{tabular}
+\end{center}
+
+The pinout of J1 for revision 3.2.2 boards is different:
 \begin{center}
 	\begin{tabular}{rl|rl}
 		1&A (Data in +)    &5&GND\\
@@ -2024,7 +2047,7 @@ readerboard project repository.
 After updating the code from the repository if necessary, perform the following steps to configure and
 prepare the firmware image:
 
-{\bfseries Step 1: Configuration.}
+{\bfseries Step 1: Configuration.}\label{config-fw}
 Edit the first few lines of \z{readerboard.h}:
 \begin{SourceCode}
 #define BANNER_HARDWARE_VERS "HW 3.2.3  "

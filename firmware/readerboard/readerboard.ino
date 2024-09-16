@@ -13,11 +13,11 @@
  * Arduino Mega 2560 (or equiv.) firmware to drive
  * 64x7 (my older design) or (current) 64x8 matrix displays.
  *
- * Steve Willoughby 2023
+ * Steve Willoughby (c) 2023, 2024
  */
 
 #include <TimerEvent.h>
-#include <EEPROM.h>
+//#include <EEPROM.h>
 //#include "fonts.h"
 //#include "commands.h"
 #include "readerboard.h"
@@ -31,7 +31,6 @@
 #define EE_ADDR_SENTINEL  (0x00)
 #define EE_ADDR_USB_SPEED (0x01)
 #define EE_VALUE_SENTINEL (0x4b)
-#define EE_DEFAULT_SPEED  ('5')
 
 /* Hardware model selected for this firmware.
  * The interface is similar enough to the older project I put together
@@ -104,6 +103,13 @@ const int PIN_STATUS_LED = 13;
 //     68 A14/68                  R2
 //     69 A15/69                  R4
 // 
+//     --    4K  EEPROM
+//    96K    8K  SRAM
+//   512K  256K  flash memory
+//     32    16  word size (bits)
+//    ARM ATmga  architecture
+// (Due uC is Atmel SAM3X8E ARM Cortex-M3 at 84MHz)
+// (Mega uC is ATmega2560 at 16MHz)
 // Use programming port for USB connection
 //
 // Auto-reset
@@ -678,7 +684,7 @@ void LightBlinker::append(byte v)
 
 void LightBlinker::report_state(void)
 {
-    int i = 0;
+/*    int i = 0;
     Serial.write(cur_state ? '1' : '0');
     if (sequence_length > 0) {
         Serial.write(cur_index + '0');
@@ -689,7 +695,7 @@ void LightBlinker::report_state(void)
     }
     else {
         Serial.write('X');
-    }
+    }*/
 }
 
 void discrete_set(byte l, bool value)
@@ -777,8 +783,8 @@ void LightBlinker::start(void)
 
 void flash_lights(void);
 void strobe_lights(void);
-LightBlinker flasher(200, 0, flash_lights);
-LightBlinker strober(50,2000, strobe_lights);
+LightBlinker flasher(200,   0, flash_lights);
+LightBlinker strober(50, 2000, strobe_lights);
 //TransitionManager transitions;
 //
 //void next_transition(void)
@@ -911,7 +917,22 @@ void strobe_status(void)
 	analogWrite(PIN_STATUS_LED, status_value);
 }
 
-void default_eeprom_settings(void) {
+void default_eeprom_settings(void) 
+{
+#if HW_MC == HW_MC_MEGA_2560
+# error "Support for Mega 2560 not implemented"
+#else
+# if HW_MC == HW_MC_DUE
+#  if HAS_I2C_EEPROM
+#   error "Support for Due w/external EEPROM not implemented"
+#  else
+    /* nothing to do */
+#  endif
+# else
+#  error "No valid HW_MC configured"
+# endif
+#endif
+  /*
 	if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL) {
 		// apparently unset; set to "factory defaults"
 		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
@@ -926,6 +947,7 @@ void default_eeprom_settings(void) {
 		// baud rate setting invalid; return to default
 		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
 	}
+  */
 }
 
 
@@ -937,7 +959,7 @@ void setup(void)
 {
     setup_pins();
     flag_init();
-	default_eeprom_settings();
+	  default_eeprom_settings();
 
     flasher.stop();
     strober.stop();
@@ -1008,7 +1030,7 @@ void loop(void)
     flag_ready();
     delay(750);
 
-	/* test readerboard column 0 */
+	/* test readerboard columns individually */
 #if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
     //                              //            _ _____
     //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -1022,12 +1044,132 @@ void loop(void)
     digitalWrite(PIN_R0, LOW);      //   X    X   1   1    1  1  0  0  0    |
     digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   1    1  1  0  0  0    clock idle
     digitalWrite(PIN_RCLK, LOW);    //   0    0   1   1    1  1  0  0  0    clock idle
+                                    //
+    test_pattern();
+}
+
+void test_pattern(void) 
+{
 	digitalWrite(PIN_D0, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D1, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D2, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D3, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D4, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D5, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D6, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
+	digitalWrite(PIN_D7, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
 	digitalWrite(PIN_SRCLK, HIGH);	//   1    0   1   1    1  1  0  0  0    clock in bit
 	digitalWrite(PIN_SRCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
 	digitalWrite(PIN_RCLK, HIGH);	//   0    1   1   1    1  1  0  0  0    clock data to output buffer
 	digitalWrite(PIN_RCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
+	digitalWrite(PIN_D0, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D1, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D2, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D3, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D4, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D5, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D6, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+	digitalWrite(PIN_D7, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
+    for (int i=0; i<8; i++) {
+        xx();
+        digitalWrite(PIN_SRCLK, HIGH);	//   1    0   1   1    1  1  0  0  0    clock in bit
+        digitalWrite(PIN_SRCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
+        digitalWrite(PIN_RCLK, HIGH);	//   0    1   1   1    1  1  0  0  0    clock data to output buffer
+        digitalWrite(PIN_RCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
+    }
+    xx();
 
+    /* test high-speed full-matrix refresh */
+    for (byte color=1; color <=7; color++) {
+        test_row(color, 0xaa, 0x55);
+    }
+    for (byte color=1; color <=7; color++) {
+        test_row(color, 0x55, 0xaa);
+    }
+    test_row(7, 0x01, 0x01);
+    test_row(7, 0x02, 0x02);
+    test_row(7, 0x04, 0x04);
+    test_row(7, 0x08, 0x08);
+    test_row(7, 0x10, 0x10);
+    test_row(7, 0x20, 0x20);
+    test_row(7, 0x40, 0x40);
+    test_row(7, 0x80, 0x80);
+}
+
+void test_col(byte bit_pattern) 
+{
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
+    digitalWrite(PIN__SRCLR, HIGH);	    //   X    X   1   1    X  X  X  X  X    |
+    for (int bit=7; bit >= 0; bit--) {
+        digitalWrite(PIN_D0, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D1, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D2, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D3, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D4, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D5, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D6, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        digitalWrite(PIN_D7, (bit_pattern & (1 << bit))==0?LOW:HIGH);
+        //                              //            _ _____
+        //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN_SRCLK, HIGH);	//   1    0   1   1    X  X  X  X  X    clock in bit
+        digitalWrite(PIN_SRCLK, LOW);	//   0    0   1   1    X  X  X  X  X    |
+    }
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN_RCLK, HIGH);   	//   0    1   1   1    X  X  X  X  X    clock data to output buffer
+    digitalWrite(PIN_RCLK, LOW);    	//   0    0   1   1    X  X  X  X  X    |
+}
+
+void test_row(byte color, byte bit_pattern1, byte bit_pattern2) 
+{
+    int rep;
+    if (color == 7) {
+        rep = 67;
+    } else if (color == 1 || color == 2 || color == 4) {
+        rep = 200;
+    } else {
+        rep = 100;
+    }
+
+    for (int i=0; i<rep; i++) {
+        if (color & 1) {
+            digitalWrite(PIN_R4, LOW);  // red plane
+            digitalWrite(PIN_R3, LOW);
+            test_rows(bit_pattern1, bit_pattern2);
+        }
+        if (color & 2) {
+            digitalWrite(PIN_R4, LOW);  // green plane
+            digitalWrite(PIN_R3, HIGH); // 
+            test_rows(bit_pattern1, bit_pattern2);
+        }
+        if (color & 4) {
+            digitalWrite(PIN_R4, HIGH); // blue plane
+            digitalWrite(PIN_R3, LOW);  // 
+            test_rows(bit_pattern1, bit_pattern2);
+        }
+        digitalWrite(PIN_R4, HIGH); // all rows off
+        digitalWrite(PIN_R3, HIGH); // 
+    }
+}
+
+void test_rows(byte bit_pattern1, byte bit_pattern2)
+{
+    for (int r=0; r<8; r++) {
+        digitalWrite(PIN__G, HIGH);
+        test_col((r%2)==0?bit_pattern1:bit_pattern2);
+        digitalWrite(PIN_R0, (r&0x01)==0?LOW:HIGH);
+        digitalWrite(PIN_R1, (r&0x02)==0?LOW:HIGH);
+        digitalWrite(PIN_R2, (r&0x04)==0?LOW:HIGH);
+        digitalWrite(PIN__G, LOW);
+        delayMicroseconds(500);
+        digitalWrite(PIN__G, HIGH);
+    }
+}
+
+void xx(void) 
+{
 	for (int row=0; row<24; row++) {
 		//												//            _ _____
 		//												// SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -1037,9 +1179,10 @@ void loop(void)
 		digitalWrite(PIN_R3, (row&0x08)==0? LOW:HIGH);  //   0     0  1   1    1  X  X  X  X |
 		digitalWrite(PIN_R4, (row&0x10)==0? LOW:HIGH);  //   0     0  1   1    X  X  X  X  X |
 		digitalWrite(PIN__G, LOW);                      //   0     0  0   1    X  X  X  X  X turn on columns
-		delay(1000);
+		delay(100);
 		digitalWrite(PIN__G, HIGH);                     //   0     0  0   1    X  X  X  X  X turn off columns
 	}
+}
 #else
 # error "HW_CONTROL_LOGIC not set to a supported model"
 #endif
@@ -1070,4 +1213,4 @@ void loop(void)
 //    }
 //
 //	/* TODO receive commands via RS-485 port */
-}
+//}

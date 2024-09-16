@@ -1,35 +1,56 @@
 #ifndef READERBOARD_CORE
 #define READERBOARD_CORE
 
-#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+
+// Readerboard hardware models for HW_MODEL
+#define MODEL_3xx_MONOCHROME (3)
+#define MODEL_3xx_RGB (4)
+
+/* LEGACY models NO LONGER supported. Do not use these.
+#define MODEL_LEGACY_64x7 (0)
+#define MODEL_LEGACY_64x8 (1)
+#define MODEL_LEGACY_64x8_INTEGRATED (2)
+---------------------------------------------------------*/
+
+// Microcontroller Models for HW_MC
+#define HW_MC_MEGA_2560 (0)
+#define HW_MC_DUE (1)
+
+// BEGIN CONFIGURATION SECTION
+// TODO: Set these before compiling for a particular hardware configuration
+#define HW_MODEL (MODEL_3xx_RGB)
+#define HW_MC (HW_MC_DUE)
+#define HAS_I2C_EEPROM (false)
+
+// TODO: Set these default settings (this will be the "factory default settings")
+//       On Due-based systems without external EEPROM, this is the only way to
+//       make these settings at all. On every other model, this is just the default
+//       that can be overridden by configuring the unit since the new configuration
+//       values can be saved in EEPROM.
+//
+// Default baud rate. Allowed values are '0'=300, '1'=600, '2'=1200, '3'=2400,
+//                    '4'=4800, '5'=9600, '6'=14400, '7'=19200, '8'=28800,
+//                    '9'=31250, 'A'=38400, 'B'=57600, 'C'=115200.
+#define EE_DEFAULT_SPEED  ('5')
+//
+// Default device address (may be any value from 0-63 except the global address).
+#define EE_DEFAULT_ADDRESS (0)
+//
+// Default global device address (may be any value from 0-15).
+#define EE_DEFAULT_GLOBAL_ADDRESS (15)
+//
+// TODO: Adjust these for your version and serial number
+#define BANNER_HARDWARE_VERS "HW 3.2.2  "
 #define BANNER_FIRMWARE_VERS "FW 0.0.0  "
-#define BANNER_SERIAL_NUMBER "S/N 100   "
-#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$S100$"
-//                             \___/  \___/  \___/
+#define BANNER_SERIAL_NUMBER "S/N RB____"
+#define SERIAL_VERSION_STAMP "V3.2.2$R0.0.0$SRB____$"
+//                             \___/  \___/  \____/
 //                               |      |      |
 //                  Hardware version    |      |
 //                         Firmware version    |
 //                                 Serial number
 //
-
-#define MODEL_3xx_MONOCHROME (3)
-#define MODEL_3xx_RGB (4)
-
-// LEGACY models NO LONGER supported. Do not use these.
-#define MODEL_LEGACY_64x7 (0)
-#define MODEL_LEGACY_64x8 (1)
-#define MODEL_LEGACY_64x8_INTEGRATED (2)
-
-// MICROCONTROLLER MODEL
-#define HW_MC_MEGA_2560 (0)
-#define HW_MC_DUE (1)
-
-// TODO: rename these
-//#define MODEL_CURRENT_64x8 (1)
-//#define MODEL_CURRENT_64x8_INTEGRATED (2)
-
-#define HW_MODEL (MODEL_3xx_RGB)
-#define HW_MC (HW_MC_DUE)
+// END CONFIGURATION SECTION
 
 //extern const int N_ROWS;
 //extern byte image_buffer[];
@@ -42,9 +63,9 @@
 //extern void setup_buffers(void);
 //
 //#if HW_MODEL == MODEL_3xx_RGB
-//extern void discrete_all_off(bool stop_blinkers);
-//extern bool discrete_query(byte lightno);
-//extern void discrete_set(byte lightno, bool value);
+extern void discrete_all_off(bool stop_blinkers);
+extern bool discrete_query(byte lightno);
+extern void discrete_set(byte lightno, bool value);
 //#endif
 //
 //typedef enum { 
