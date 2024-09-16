@@ -31,13 +31,25 @@
 // Default baud rate. Allowed values are '0'=300, '1'=600, '2'=1200, '3'=2400,
 //                    '4'=4800, '5'=9600, '6'=14400, '7'=19200, '8'=28800,
 //                    '9'=31250, 'A'=38400, 'B'=57600, 'C'=115200.
-#define EE_DEFAULT_SPEED  ('5')
+#define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
+#define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
 //
 // Default device address (may be any value from 0-63 except the global address).
 #define EE_DEFAULT_ADDRESS (0)
 //
 // Default global device address (may be any value from 0-15).
 #define EE_DEFAULT_GLOBAL_ADDRESS (15)
+//
+// TODO: Adjust these for the colors of discrete status LEDs on this unit. These
+//       can be used for color values in commands sent to the device.
+#define STATUS_LED_COLOR_L0 ('G')
+#define STATUS_LED_COLOR_L1 ('y')
+#define STATUS_LED_COLOR_L2 ('Y')
+#define STATUS_LED_COLOR_L3 ('r')
+#define STATUS_LED_COLOR_L4 ('R')
+#define STATUS_LED_COLOR_L5 ('b')
+#define STATUS_LED_COLOR_L6 ('B')
+#define STATUS_LED_COLOR_L7 ('W')
 //
 // TODO: Adjust these for your version and serial number
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "

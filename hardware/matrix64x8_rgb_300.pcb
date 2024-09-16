@@ -1,4 +1,4 @@
-# release: pcb v4.3.0-g9dea9f5a
+# release: pcb 4.2.2
 
 # To read pcb files, the pcb version (or the git source date) must be >= the file version
 FileVersion[20091103]
@@ -14320,14 +14320,14 @@ Layer(9 "bottom silk" "silk")
 	Text[11675.00mil 250.00mil 0 276 "5" "clearline,onsolder"]
 	Text[13650.00mil 250.00mil 0 276 "6" "clearline,onsolder"]
 	Text[15400.00mil 250.00mil 0 276 "7" "clearline,onsolder"]
-	Text[17525.00mil 1150.00mil 0 144 "L0" "clearline,onsolder"]
-	Text[17525.00mil 1400.00mil 0 144 "L1" "clearline,onsolder"]
-	Text[17525.00mil 1650.00mil 0 144 "L2" "clearline,onsolder"]
-	Text[17525.00mil 1900.00mil 0 144 "L3" "clearline,onsolder"]
-	Text[17525.00mil 2150.00mil 0 144 "L4" "clearline,onsolder"]
-	Text[17525.00mil 2400.00mil 0 144 "L5" "clearline,onsolder"]
-	Text[17525.00mil 2650.00mil 0 144 "L6" "clearline,onsolder"]
-	Text[17525.00mil 2900.00mil 0 144 "L7" "clearline,onsolder"]
+	Text[17525.00mil 1150.00mil 0 144 "L7" "clearline,onsolder"]
+	Text[17525.00mil 1400.00mil 0 144 "L6" "clearline,onsolder"]
+	Text[17525.00mil 1650.00mil 0 144 "L5" "clearline,onsolder"]
+	Text[17525.00mil 1900.00mil 0 144 "L4" "clearline,onsolder"]
+	Text[17525.00mil 2150.00mil 0 144 "L3" "clearline,onsolder"]
+	Text[17525.00mil 2400.00mil 0 144 "L2" "clearline,onsolder"]
+	Text[17525.00mil 2650.00mil 0 144 "L1" "clearline,onsolder"]
+	Text[17525.00mil 2900.00mil 0 144 "L0" "clearline,onsolder"]
 	Text[17700.00mil 1150.00mil 0 166 "WHT" "clearline,onsolder"]
 	Text[17700.00mil 1400.00mil 0 166 "BLU" "clearline,onsolder"]
 	Text[17700.00mil 1650.00mil 0 166 "BLU" "clearline,onsolder"]

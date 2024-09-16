@@ -163,14 +163,14 @@ const int PIN_R4    = 69;   // row address 4
 #  endif
 # endif
 const int PIN_R3    =19;    // row address 3
-const int PIN_L0    =2;     // discrete LED 0 (top) (white)
-const int PIN_L1    =3;     // discrete LED 1 (blue)
-const int PIN_L2    =4;     // discrete LED 2 (blue)
+const int PIN_L0    =2;     // discrete LED 0 (bottom) (green)
+const int PIN_L1    =3;     // discrete LED 1 (yellow)
+const int PIN_L2    =4;     // discrete LED 2 (yellow)
 const int PIN_L3    =5;     // discrete LED 3 (red)
 const int PIN_L4    =9;     // discrete LED 4 (red)
-const int PIN_L5    =8;     // discrete LED 5 (yellow)
-const int PIN_L6    =7;     // discrete LED 6 (yellow)
-const int PIN_L7    =6;     // discrete LED 7 (green)
+const int PIN_L5    =8;     // discrete LED 5 (blue)
+const int PIN_L6    =7;     // discrete LED 6 (blue)
+const int PIN_L7    =6;     // discrete LED 7 (top) (white)
 const int PIN_DE    =16;    // RS-485 driver enable (1=enabled)
 const int PIN__RE   =17;    // RS-485 ~receiver enable (0=enabled)
 #else

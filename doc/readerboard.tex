@@ -141,14 +141,18 @@ green, and blue \acronym{LED} elements.
 
 As of this writing, the current revision of this board is schematic version 3.2.3 and \acronym{PCB} version 3.2.3.
 The improvement over 3.2.2 is a cut-out to accommodate the connectors on the Arduino board and the addition of R51.
-Otherwise, 3.2.2 boards full function the same as the 3.2.3 revision.
+Otherwise, 3.2.2 boards fully function the same as the 3.2.3 revision.
+
+Note that the discrete status \acronym{LED}s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \acronym{LED}
+on the bottom (canonically green) and L$_7$ is on top (white).
 
 \section{Firmware Implications}
 The boards before \acronym{PCB} revision 3.2.2 are not supported by the firmware. They were prototype ideas
 which were never built, so this shouldn't be a problem. 
 
 There are compile-time switches documented starting on p.~\pageref{config-fw} which adjust the firmware
-image for different microcontrollers (and possibly, in the future, different board revisions).
+image for different microcontrollers, default settings---or the only settings if your hardware does not
+include an \acronym{EEPROM} memory---and possibly, in the future, different board revisions.
 
 \section{Construction}
 Once you have created a printed circuit board (\acronym{PCB}) from the fabrication files included with the
@@ -235,7 +239,7 @@ in the way of connecting subsequent ones. For example:
 	\item \strong{If you are using an Arduino Mega 2560:} Solder the 10$\mu$F capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
 	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
 		Ensure the pins extend down and out the back of the board.
-	\item Solder the 2-pin header J2.
+	\item Solder the 2-pin headers J2 and J3.
 	\item Solder the terminal block J1.
 \end{enumerate}
 
@@ -248,10 +252,10 @@ means the \acronym{LED}s will electrically all be connected to the blue circuit.
 
 Since they won't be used, omit parts U0, U2, U12, U14, C0, C11, Q0--Q15, R0--R7, and R35--R42.
 
-Either tell the readerboard to light up all of its content in the blue color (since that's what
-will be driving your \acronym{LED}s regardless of their actual color), or make a firmware change
-so that the readerboard disregards any color specification except black, lighting up the single-color
-\acronym{LED}s for all other colors.
+Set the firmware value \z{HW\_MODEL} to \z{MODEL\_3xx\_MONOCHROME} and recompile the firmware. This
+changes the behavior of the controller so that it understands it can only drive one color which
+is attached to the blue color plane. Now, all colors (other than ``off'') will turn the \acronym{LED}s
+on.
 
                                                       
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -745,9 +749,9 @@ The remaining commands are used for management of the matrix display. All comman
 	\end{center}
 \end{table}
 
-Although the rev 2 hardware supports the ability to enable the RS-485 transmitter and send data back onto the network,
+Although starting with the revision 2 hardware, the readerboard supports the ability to enable the RS-485 transmitter and send data back onto the network,
 this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
-at all times.
+at all times. {\color{red} This is expected to change with the next revision of the firmware which allows responding over the RS-485 network.}
 
 \section{\z{\%}---Run Full Lamp Test Pattern}
 \begin{center}
@@ -880,12 +884,13 @@ readerboards should pay attention to the start of the command because it might
 target them either as part of a list of specific readerboards or because the
 command is intended for all readerboards at once. This is encoded in the 
 same way as \Var*{ad}.
-If you only have one readerboard or do no wish to assign a global address,
+If you only have one readerboard or do not wish to assign a global address,
 just set \Var*{ad$_G$} to the same value as \Var*{ad}.
 
 This command may only be sent over the \acronym{USB} port.
 
-By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 port disabled.
+By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 port disabled, but these
+defaults may be changed when compiling the firmware for specific devices.
 \begin{table}
 	\begin{center}
 		\begin{tabular}{crl}\toprule
@@ -1231,14 +1236,14 @@ corresponding position in the sequence.
 			\multicolumn{1}{c}{\bfseries Code*}&
 			\multicolumn{1}{c}{\bfseries Light}&
 			\multicolumn{1}{c}{\bfseries Color}\\\midrule
-			\z{W} & L$_0$ & white \\
-			\z{B} & L$_1$ & blue \\
-			\z{b} & L$_2$ & blue \\
-			\z{R} & L$_3$ & red \\
-			\z{r} & L$_4$ & red \\
-			\z{Y} & L$_5$ & yellow \\
-			\z{y} & L$_6$ & yellow \\
-			\z{G} & L$_7$ & green \\
+			\z{W} & L$_7$ & white \\
+			\z{B} & L$_6$ & blue \\
+			\z{b} & L$_5$ & blue \\
+			\z{R} & L$_4$ & red \\
+			\z{r} & L$_3$ & red \\
+			\z{Y} & L$_2$ & yellow \\
+			\z{y} & L$_1$ & yellow \\
+			\z{G} & L$_0$ & green \\
 			\z{\_}& --- & (no \led/off) \\
 			\z0--\z9&L$_0$--L$_9$&\led\ installed at physical position 0--9\\
 			\bottomrule
@@ -1415,6 +1420,25 @@ The \Var*{rgb} value is a value encoded as defined in Table~\ref{tbl:rgbcolors}.
 Note that anything drawn in black simply turns off the corresponding pixels.
 \begin{table}
 	\begin{center}
+		\begin{bytefield}[bitwidth=0.11111\textwidth]{8}
+			\bitbox[]{1}{\scriptsize7}&
+			\bitbox[]{1}{\scriptsize6}&
+			\bitbox[]{1}{\scriptsize5}&
+			\bitbox[]{1}{\scriptsize4}&
+			\bitbox[]{1}{\scriptsize3}&
+			\bitbox[]{1}{\scriptsize2}&
+			\bitbox[]{1}{\scriptsize1}&
+			\bitbox[]{1}{\scriptsize0}\\
+			\bitbox[ltb]{1}{\z0}
+			\bitbox[tb]{1}{\z0}
+			\bitbox[tb]{1}{\z1}
+			\bitbox[rtb]{1}{\z1}
+			\bitbox{1}{\Var*{flash}}
+			\bitbox{1}{\Var*{blue}}
+			\bitbox{1}{\Var*{green}}
+			\bitbox{1}{\Var*{red}}\\
+		\end{bytefield}
+
 	\begin{tabular}{cl}\toprule
 		\bfseries Code & \bfseries Color \\\midrule
 		\z0&black (off)\\
