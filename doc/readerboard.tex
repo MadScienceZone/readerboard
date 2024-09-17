@@ -193,6 +193,7 @@ heat or static electricity discharge.
 		U1,2,14,15&4&&\mc{ULN2803CDWR} octal NPN Darlington array\\
 		U3--10&8&&\mc{STPIC6D595MTR} power 8-bit shift register\\
 		U11&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		X0&1&&\mc{AT24C256} \acronym{EEPROM} module\\
 		&24&&\mc{TO}-220 heat sinks for Q0--23\\
 		&1&&9V 2A DC power supply\\
 		\bottomrule
@@ -1439,25 +1440,17 @@ Note that anything drawn in black simply turns off the corresponding pixels.
 			\bitbox{1}{\Var*{red}}\\
 		\end{bytefield}
 
-	\begin{tabular}{cl}\toprule
-		\bfseries Code & \bfseries Color \\\midrule
-		\z0&black (off)\\
-		\z1&red\\
-		\z2&green\\
-		\z3&yellow\\
-		\z4&blue\\
-		\z5&magenta\\
-		\z6&cyan\\
-		\z7&white\\\midrule
-%		\z8&flashing black\\
-		\z9&flashing red\\
-		\z{:}&flashing green\\
-		\z{;}&flashing yellow\\
-		\z{<}&flashing blue\\
-		\z{=}&flashing magenta\\
-		\z{>}&flashing cyan\\
-		\z{?}&flashing white\\
-		\bottomrule
+	\begin{tabular}{cl|cl}\toprule
+		\multicolumn{1}{c}{\bfseries Code} & \multicolumn{1}{l}{\bfseries Color} &
+		\multicolumn{1}{c}{\bfseries Code} & \multicolumn{1}{l}{\bfseries Color} \\\midrule
+		\z0&off&\z8& off\\
+		\z1&red&\z9&flashing red\\
+		\z2&green&\z:&flashing green\\
+		\z3&yellow&\z;&flashing yellow\\
+		\z4&blue&\z<&flashing blue\\
+		\z5&magenta&\z=&flashing magenta\\
+		\z6&cyan&\z>&flashing cyan\\
+		\z7&white&\z?&flashing white\\\bottomrule
 	\end{tabular}
 	\caption{Color codes for \Var*{rgb} parameters\label{tbl:rgbcolors}}
 	\end{center}
@@ -1533,38 +1526,43 @@ may be queried using the \z? command. The response has the form:
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
 	\bitbox{1}{\Var*{ad$_G$}}&
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{V}} \\
+	\bitbox{1}{\Var*{EE}}&
+	\bitbox{1}{\z{\$}} \\
+	\bitbox{1}{\z{V}} &
 	\bitbox{2}{\Var*{hwversion}}
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{R}} &
 	\bitbox{2}{\Var*{romversion}}&
 	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}& 
-	\bitbox{1}{\Var*{serial}} \\
+	\bitbox{1}{\z{S}}\\ 
+	\bitbox{1}{\Var*{serial}}& 
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} &
 	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
+%	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}\\
-	\bitbox{1}{\z{\$}}&
-	\bitbox[tbl]{2}{\Var*{G coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{2}{\Var*{G coldata$_{63}$}}&
+%	\bitbox[tb]{1}{}\\
+	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}&
 	\bitbox{1}{\z{\$}}\\
-	\bitbox[tbl]{2}{\Var*{B coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
+	\bitbox[tbl]{2}{\Var*{G coldata$_0$}} &
+%	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
+%	\bitbox[tb]{1}{}\\
+	\bitbox[tbr]{2}{\Var*{G coldata$_{63}$}}&
+	\bitbox{1}{\z{\$}}&
+	\bitbox[tbl]{2}{\Var*{B coldata$_0$}} &
+%	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} \\
+%	\bitbox[tb]{1}{}\\
 	\bitbox[tbr]{2}{\Var*{B coldata$_{63}$}}&
+	\bitbox{1}{\z{\$}}&
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
 
 The \Var*{model} field may be ``\z{L}'' for the legacy hardware the author still has
 lying around (but this shouldn't be something anyone else would need to see),
-``\z{M}'' for the current 64$\times$8 matrix display hardware, or
+``\z{M}'' for 64$\times$8 matrix display hardware with monochrome \acronym{LED}s, or
 ``\z{C}'' for 64$\times$8 \acronym{RGB} color display boards.
 
 \Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
@@ -1578,6 +1576,11 @@ compiled. It should be a unique serial number for the device (although that depe
 some effort on the part of the person compiling the firmware to insert that serial number
 each time). Serial numbers 0--299 are reserved for the original author's use. This string is also
 terminated with a dollar sign.
+
+The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acronym{EEPROM} unit,
+``\z{I}'' if using the \acronym{EEPROM} memory on the Arduino controller board, or ``\z{\_}'' if there
+is no \acronym{EEPROM} memory at all (and thus, configuration settings made with the \z= commaand
+are not persistent).
 
 The \Var*{coldata} bytes are sent just as with the \z{I} command, as hexadecimal values indicating
 the \led s lit on the matrix display, with \Var*{coldata$_0$} being the leftmost column of the display
@@ -1612,15 +1615,16 @@ If a dedicated (non-readerboard) busylight device is sent the
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
 	\bitbox{1}{\Var*{ad$_G$}}&
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{V}} \\
+	\bitbox{1}{\z{I}} &
+	\bitbox{1}{\z{\$}} \\
+	\bitbox{1}{\z{V}} &
 	\bitbox{2}{\Var*{hwversion}}
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{R}} &
 	\bitbox{2}{\Var*{romversion}}&
 	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}& 
-	\bitbox{1}{\Var*{serial}} \\
+	\bitbox{1}{\z{S}}\\
+	\bitbox{1}{\Var*{serial}} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
@@ -1963,6 +1967,8 @@ those terminals to terminate the network at that point.
 \end{center}
 }
 
+\chapter{Installing the Readerboard Unit}
+\chapter{Using the Readerboard}
 \chapter{Font Glyphs}\label{chap:fonts}
 \input{../firmware/readerboard/fonts.tex}
 \section{Font Definition Files}
@@ -2161,9 +2167,9 @@ A little further down \z{readerboard.h}, there is a pair of lines like:
 The following page includes the schematics for the current 3.2.1 version of the readerboard \acronym{PCB}
 and the board assembly diagram, showing where the components are placed.
 \newpage
-\noindent\includegraphics[width=\textheight,angle=90]{../hardware/matrix64x8_rgb_300_schematic.png}
-\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_300_assembly-0.png}
-\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_300_assembly-1.png}
+\noindent\includegraphics[width=\textheight,angle=90]{../hardware/matrix64x8_rgb_330_schematic.png}
+\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_330_assembly-0.png}
+\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_330_assembly-1.png}
 \indexintoc
 
 \printindex

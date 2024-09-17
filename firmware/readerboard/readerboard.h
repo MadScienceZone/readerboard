@@ -34,7 +34,9 @@
 #define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
 #define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
 //
-// Default device address (may be any value from 0-63 except the global address).
+#define EE_ADDRESS_DISABLED (0xff) /* interface disabled */
+// Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
+// you won't be using RS-485 at all.)
 #define EE_DEFAULT_ADDRESS (0)
 //
 // Default global device address (may be any value from 0-15).
@@ -63,6 +65,13 @@
 //                                 Serial number
 //
 // END CONFIGURATION SECTION
+
+extern byte USB_baud_rate_code;
+extern byte RS485_baud_rate_code;
+extern byte my_device_address;
+extern byte global_device_address;
+extern int USB_baud_rate;
+extern int RS485_baud_rate;
 
 //extern const int N_ROWS;
 //extern byte image_buffer[];

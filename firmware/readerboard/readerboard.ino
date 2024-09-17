@@ -917,7 +917,7 @@ void strobe_status(void)
 	analogWrite(PIN_STATUS_LED, status_value);
 }
 
-void default_eeprom_settings(void) 
+void setup_eeprom(void) 
 {
 #if HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"
@@ -926,7 +926,12 @@ void default_eeprom_settings(void)
 #  if HAS_I2C_EEPROM
 #   error "Support for Due w/external EEPROM not implemented"
 #  else
-    /* nothing to do */
+#   warning "Arduino Due without external EEPROM module selected; cannot configure any system parameters!"
+#   warning "*** Configure desired parameters into this firmware image as the 'default' values ***"
+    USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
+    RS485_baud_rate_code = EE_DEFAULT_485_SPEED;
+    my_device_address = EE_DEFAULT_ADDRESS;
+    global_device_address = EE_DEFAULT_GLOBAL_ADDRESS
 #  endif
 # else
 #  error "No valid HW_MC configured"
@@ -948,6 +953,8 @@ void default_eeprom_settings(void)
 		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
 	}
   */
+    USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
 }
 
 
@@ -959,7 +966,8 @@ void setup(void)
 {
     setup_pins();
     flag_init();
-	  default_eeprom_settings();
+    setup_eeprom();
+//	default_eeprom_settings();
 
     flasher.stop();
     strober.stop();
@@ -992,29 +1000,30 @@ void setup(void)
 //	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
 }
 
-//
+int parse_baud_rate_code(byte code)
+{
+    switch (code) {
+        case '0': return 300;
+        case '1': return 600;
+        case '2': return 1200;
+        case '3': return 2400;
+        case '4': return 4800;
+        case '5': return 9600;
+        case '6': return 14400;
+        case '7': return 19200;
+        case '8': return 28800;
+        case '9': return 31250;
+        case 'a':
+        case 'A': return 38400;
+        case 'b':
+        case 'B': return 57600;
+        case 'c':
+        case 'C': return 115200;
+    }
+    return 0;
+}
+
 //void start_usb_serial(void) {
-//	int speed = 9600;
-//
-//	switch (EEPROM.read(EE_ADDR_USB_SPEED)) {
-//		case '0': speed =    300; break;
-//		case '1': speed =    600; break;
-//		case '2': speed =   1200; break;
-//		case '3': speed =   2400; break;
-//		case '4': speed =   4800; break;
-//		case '5': speed =   9600; break;
-//		case '6': speed =  14400; break;
-//		case '7': speed =  19200; break;
-//		case '8': speed =  28800; break;
-//		case '9': speed =  31250; break;
-//		case 'a':
-//		case 'A': speed =  38400; break;
-//		case 'b':
-//		case 'B': speed =  57600; break;
-//		case 'c':
-//		case 'C': speed = 115200; break;
-//	}
-//
 //	Serial.begin(speed);
 //	while (!Serial);
 //}
@@ -1071,21 +1080,26 @@ void test_pattern(void)
 	digitalWrite(PIN_D6, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
 	digitalWrite(PIN_D7, LOW);		//   0    0   1   1    1  1  0  0  0    set up to shift "off" bits next
     for (int i=0; i<8; i++) {
-        xx();
+        test_sequence_rows();
         digitalWrite(PIN_SRCLK, HIGH);	//   1    0   1   1    1  1  0  0  0    clock in bit
         digitalWrite(PIN_SRCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
         digitalWrite(PIN_RCLK, HIGH);	//   0    1   1   1    1  1  0  0  0    clock data to output buffer
         digitalWrite(PIN_RCLK, LOW);	//   0    0   1   1    1  1  0  0  0    |
     }
-    xx();
+    test_sequence_rows();
 
     /* test high-speed full-matrix refresh */
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+    test_row(0x04, 0xaa, 0x55);
+    test_row(0x04, 0x55, 0xaa);
+#else
     for (byte color=1; color <=7; color++) {
         test_row(color, 0xaa, 0x55);
     }
     for (byte color=1; color <=7; color++) {
         test_row(color, 0x55, 0xaa);
     }
+#endif
     test_row(7, 0x01, 0x01);
     test_row(7, 0x02, 0x02);
     test_row(7, 0x04, 0x04);
@@ -1125,6 +1139,10 @@ void test_col(byte bit_pattern)
 void test_row(byte color, byte bit_pattern1, byte bit_pattern2) 
 {
     int rep;
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+    rep = 200;
+    color = 4;
+#else
     if (color == 7) {
         rep = 67;
     } else if (color == 1 || color == 2 || color == 4) {
@@ -1132,6 +1150,7 @@ void test_row(byte color, byte bit_pattern1, byte bit_pattern2)
     } else {
         rep = 100;
     }
+#endif
 
     for (int i=0; i<rep; i++) {
         if (color & 1) {
@@ -1168,9 +1187,14 @@ void test_rows(byte bit_pattern1, byte bit_pattern2)
     }
 }
 
-void xx(void) 
+void test_sequence_rows(void) 
 {
-	for (int row=0; row<24; row++) {
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+    for (int row=16; row<24; row++)
+#else
+	for (int row=0; row<24; row++)
+#endif
+    {
 		//												//            _ _____
 		//												// SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
 		digitalWrite(PIN_R0, (row&0x01)==0? LOW:HIGH);  //   0     0  1   1    1  1  0  0  X address row
