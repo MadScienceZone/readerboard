@@ -10,8 +10,10 @@
  * | (_) |__   _>  < (_) |
  *  \___/   |_|/_/\_\___/ 
  *                        
- * Arduino Mega 2560 (or equiv.) firmware to drive
- * 64x7 (my older design) or (current) 64x8 matrix displays.
+ * Arduino Mega 2560/Due (or equiv.) firmware to drive revision 3 readerboards.
+ * Previous versions of this code also supported my older readerboard designs
+ * including 64x7 matrix layouts and 64x8 monochrome revision 1 and 2 boards.
+ * These are no longer supported.
  *
  * Steve Willoughby (c) 2023, 2024
  */
@@ -25,22 +27,29 @@
 
 //
 // EEPROM locations
-// $00 0x4B
-// $01 baud rate code
+// $00 0x4B (sentinel)
+// $01 0x00 (EEPROM layout version)
+// $02 USB baud rate code
+// $03 485 baud rate code
+// $04 device address
+// $05 global address
+// $06 0x4B (sentinel)
 //
-#define EE_ADDR_SENTINEL  (0x00)
-#define EE_ADDR_USB_SPEED (0x01)
+#define EE_VALUE_LAYOUT (0)
 #define EE_VALUE_SENTINEL (0x4b)
 
+#define EE_ADDR_SENTINEL  (0x00)
+#define EE_ADDR_LAYOUT (0x01)
+#define EE_ADDR_USB_SPEED (0x02)
+#define EE_ADDR_485_SPEED (0x03)
+#define EE_ADDR_DEVICE_ADDR (0x04)
+#define EE_ADDR_GLOBAL_ADDR (0x05)
+#define EE_ADDR_SENTINEL2  (0x06)
+
 /* Hardware model selected for this firmware.
- * The interface is similar enough to the older project I put together
- * out of salvaged and spare parts which made a 7-row display that we
- * can support that as well as the newer 8-row display. Set HW_MODEL
- * to the desired hardware. Be sure to use the correct Arduino shield 
- * for the selected hardware model. The two are not compatible.
+ * 2xx logic 
  */
 
-#define HW_CONTROL_LOGIC_2xx (0)
 #define HW_CONTROL_LOGIC_3xx (1)
 
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
@@ -55,6 +64,8 @@
 
 /* I/O port to use for full 8-bit write operations to the sign board */
 /* On the Mega 2560, PORTF<7:0> corresponds to <A7:A0> pins */
+/* On the Due, we just toggle the bits separately. */
+/* TODO consider if using PORTF is even a good idea considering interrupts and such */
 #if HW_MC == HW_MC_MEGA_2560
 # define MATRIX_DATA_PORT    PORTF   
 #endif
@@ -69,7 +80,8 @@
  *                                     10 FPS = 12.50 mS
  *                                      5 FPS = 25.00 mS
  */
-const int REFRESH_MS = 25;
+//const int REFRESH_MS = 25;
+const int ROW_HOLD_TIME_US = 500;   /* how long in microseconds to hold the row on during refresh */
 
 const int PIN_STATUS_LED = 13;
 
@@ -123,25 +135,6 @@ const int PIN_STATUS_LED = 13;
 
 
 #if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
-# if HW_MC == HW_MC_MEGA_2560
-const int PIN_D0    = A7;   // column data bit 0
-const int PIN_D1    = A6;   // column data bit 1
-const int PIN_D2    = A5;   // column data bit 2
-const int PIN_D3    = A4;   // column data bit 3
-const int PIN_D4    = A3;   // column data bit 4
-const int PIN_D5    = A2;   // column data bit 5
-const int PIN_D6    = A1;   // column data bit 6
-const int PIN_D7    = A0;   // column data bit 7
-const int PIN_SRCLK = A8;   // strobe bits into shift reg
-const int PIN__SRCLR= A9;   // ~clear shift register
-const int PIN__G    =A10;   // ~output enable
-const int PIN_RCLK  =A11;   // strobe shift reg to output buffer
-const int PIN_R0    =A12;   // row address 0
-const int PIN_R1    =A13;   // row address 1
-const int PIN_R2    =A14;   // row address 2
-const int PIN_R4    =A15;   // row address 4
-# else
-#  if HW_MC == HW_MC_DUE
 const int PIN_D0    = 61;   // column data bit 0
 const int PIN_D1    = 60;   // column data bit 1
 const int PIN_D2    = 59;   // column data bit 2
@@ -158,26 +151,23 @@ const int PIN_R0    = 66;   // row address 0
 const int PIN_R1    = 67;   // row address 1
 const int PIN_R2    = 68;   // row address 2
 const int PIN_R4    = 69;   // row address 4
-#  else
-#   error "HW_MC not set to supported microcontroller model"
-#  endif
-# endif
-const int PIN_R3    =19;    // row address 3
-const int PIN_L0    =2;     // discrete LED 0 (bottom) (green)
-const int PIN_L1    =3;     // discrete LED 1 (yellow)
-const int PIN_L2    =4;     // discrete LED 2 (yellow)
-const int PIN_L3    =5;     // discrete LED 3 (red)
-const int PIN_L4    =9;     // discrete LED 4 (red)
-const int PIN_L5    =8;     // discrete LED 5 (blue)
-const int PIN_L6    =7;     // discrete LED 6 (blue)
-const int PIN_L7    =6;     // discrete LED 7 (top) (white)
-const int PIN_DE    =16;    // RS-485 driver enable (1=enabled)
-const int PIN__RE   =17;    // RS-485 ~receiver enable (0=enabled)
+const int PIN_R3    = 19;    // row address 3
+const int PIN_L0    =  2;     // discrete LED 0 (bottom) (green)
+const int PIN_L1    =  3;     // discrete LED 1 (yellow)
+const int PIN_L2    =  4;     // discrete LED 2 (yellow)
+const int PIN_L3    =  5;     // discrete LED 3 (red)
+const int PIN_L4    =  9;     // discrete LED 4 (red)
+const int PIN_L5    =  8;     // discrete LED 5 (blue)
+const int PIN_L6    =  7;     // discrete LED 6 (blue)
+const int PIN_L7    =  6;     // discrete LED 7 (top) (white)
+const int PIN_DE    = 16;    // RS-485 driver enable (1=enabled)
+const int PIN__RE   = 17;    // RS-485 ~receiver enable (0=enabled)
 #else
 # error "HW_CONTROL_LOGIC not defined to supported model"
 #endif
 
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
+const byte discrete_led_labels[8] = {'G', 'Y', 'y', 'R', 'r', 'B', 'b', 'W'};
 
 //
 // setup_pins()
@@ -983,7 +973,7 @@ void setup(void)
 //	// TODO If RS-485 is enabled, start that UART too
 //
 	flag_test();
-	delay(500);
+	delay(ROW_HOLD_TIME_US);
     flag_ready();
 //	// TODO display_text(font, string, mS_delay)
 //	// TODO clear_matrix()
@@ -1182,7 +1172,7 @@ void test_rows(byte bit_pattern1, byte bit_pattern2)
         digitalWrite(PIN_R1, (r&0x02)==0?LOW:HIGH);
         digitalWrite(PIN_R2, (r&0x04)==0?LOW:HIGH);
         digitalWrite(PIN__G, LOW);
-        delayMicroseconds(500);
+        delayMicroseconds(ROW_HOLD_TIME_US);
         digitalWrite(PIN__G, HIGH);
     }
 }

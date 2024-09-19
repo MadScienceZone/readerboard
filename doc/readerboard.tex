@@ -61,7 +61,7 @@ materials are suitable for your purpose and function as expected.
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware (\acronym{PCB}) version 3.2.3, schematic version 3.2.3, and firmware version 0.0.0.
+	For readerboard hardware (\acronym{PCB}) version 3.3.0, schematic version 3.3.0, and firmware version 0.0.0.
 \end{center}
 
 \strut\vfill
@@ -102,7 +102,7 @@ for the full set of licensing terms.
 project ``grew in the telling'' as new ideas sprang to mind. As of this writing, there are three
 different models of hardware prototypes which were designed and created.
 
-\section{Version 1.0}
+\section{Version 1}
 The initial prototype (\acronym{PCB} 1.0.1) was a fairly large board, approximately 20\sfrac{5}{8}$\times$6\sfrac{5}{8}$''$
 with an \acronym{LED} pitch of \sfrac{1}{3}$''$.
 
@@ -118,15 +118,15 @@ right of the matrix).
 %to a pinout incompatibility between the two chips, the firmware also needs to be altered. As such, we don't
 %recommend going this route. It would be best to use the newer board with the chips it was designed for.
 
-\section{Version 2.0}
-This version is based on the 1.0 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
-with an \acronym{LED} pitch of \sfrac{1}{4}$''$. It also replaces the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
-It also relocates the ribbon cable which connects the Arduino controller to the \acronym{LED} matrix, moves the
-eight status \acronym{LED}s to a vertical column to the right of the matrix, and switches to resistor arrays
+\section{Version 2}
+This version was based on the 1.0 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
+with an \acronym{LED} pitch of \sfrac{1}{4}$''$. It also replaced the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
+Further, it relocated the ribbon cable which connects the Arduino controller to the \acronym{LED} matrix, moved the
+eight status \acronym{LED}s to a vertical column to the right of the matrix, and switched to resistor arrays
 for the matrix current limiting resistors, instead of the individual discrete resistors used on the 1.0.1 board.
 
-\section{Version 2.1}
-Version 2.1 is a significant change to the 2.0 board in terms of how it interfaces with the Arduino, although it has the same size and physical
+\section{Version 2}
+Version 2.1 was a significant change to the 2.0 board in terms of how it interfaces with the Arduino, although it had the same size and physical
 layout as the 2.0 board.
 
 This one eliminates the need for the ribbon cables and shield board. Instead, the Arduino controller mounts
@@ -134,20 +134,23 @@ directly to the back of the display board. This means that the lower portion of 
 has all of the external connections in one place, including power, \acronym{RS-485} in and out, and the 
 \acronym{USB} connector(s) on the Arduino itself.
 
-\section{Version 3.2}
-The current version of the hardware expands on the version 2.1 design by replacing the single-color \acronym{LED}s with
+\section{Version 3}
+Revision 3.2 of the hardware expands on the version 2.1 design by replacing the single-color \acronym{LED}s with
 \acronym{RGB} \acronym{LED}s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
 green, and blue \acronym{LED} elements.
-
-As of this writing, the current revision of this board is schematic version 3.2.3 and \acronym{PCB} version 3.2.3.
-The improvement over 3.2.2 is a cut-out to accommodate the connectors on the Arduino board and the addition of R51.
-Otherwise, 3.2.2 boards fully function the same as the 3.2.3 revision.
 
 Note that the discrete status \acronym{LED}s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \acronym{LED}
 on the bottom (canonically green) and L$_7$ is on top (white).
 
+\subsection{Version 3.3 (current model)}
+The current version of the hardware (3.3.0) corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
+connectors on the Arduino board and adjusting the mounting holes slightly. It also corrects the mislabeled L$_0$--L$_7$ \acronym{LED}s
+
+It also adds a R51 for Arduino Due reset circuits, J3 to manually reset the Arduino, and J4, R52, R53, and U16 to support the addition of a external
+\acronym{EEPROM} chip for microcontrollers (such as the Due) which don't have one onboard.
+
 \section{Firmware Implications}
-The boards before \acronym{PCB} revision 3.2.2 are not supported by the firmware. They were prototype ideas
+The boards before \acronym{PCB} revision 3.3.0 are not supported by the firmware as currently stored in the project repository. They were prototype ideas
 which were never built, so this shouldn't be a problem. 
 
 There are compile-time switches documented starting on p.~\pageref{config-fw} which adjust the firmware
@@ -180,21 +183,23 @@ heat or static electricity discharge.
 		D519&1&&\acronym{LED}, 5mm, white\\
 		J0&1&&Arduino stacking pin set\\
 		J1&1&&8-position Euro-style terminal block\\
-		J2&1&&2-position jumper header\\
-		P0&1&&2-position jumper shunt\\
+		J2,3&2&&2-position jumper header\\
+		J4&1&&3-position jumper header\\
+		P0--3&3&&2-position jumper shunt\\
 		Q0--23&24&\mouser{942-IRF9530NPBF}&\mc{IRF9530} p-channel \acronym{MOSFET}\\
 		R0--7,35--51&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
 		R8--23&16&&4$\times$360$\Omega$ resistor array, isolated\\
 		R24,29--31&4&\mouser{603-MFR-25FTE52-300R}&300$\Omega$ resistor\\
 		R25--28&4&&360$\Omega$ resistor\\
-		R32--34&3&\mouser{603-MFR-25FRF5210K}&10K resistor\\
-		Rterm&1&&120$\Omega$ resistor\\
+		R32--34,52--53&5&\mouser{603-MFR-25FRF5210K}&10K resistor\\
+		R$_{\text{TERM}}$&1&&120$\Omega$ resistor\\
 		U0,12,13&3&\mouser{595-CD74HCT238PWR}&\mc{CD74HCT238PWR} non-inverting 3-to-8 decoder\\
 		U1,2,14,15&4&&\mc{ULN2803CDWR} octal NPN Darlington array\\
 		U3--10&8&&\mc{STPIC6D595MTR} power 8-bit shift register\\
 		U11&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
-		X0&1&&\mc{AT24C256} \acronym{EEPROM} module\\
-		&24&&\mc{TO}-220 heat sinks for Q0--23\\
+		U16&1&&\mc{AT24C256} \acronym{EEPROM}\\
+		%X0&1&&\mc{AT24C256} \acronym{EEPROM} module\\
+		&24&&\mc{TO}-220 heat sinks for Q0--23 (optional)\\
 		&1&&9V 2A DC power supply\\
 		\bottomrule
 	\end{tabular}
@@ -206,20 +211,22 @@ For best results, solder components in a way that allows best access to the sold
 in the way of connecting subsequent ones. For example:
 
 \begin{enumerate}
-	\item Solder all the surface mount chips first: U0--U15.
+	\item Solder all the surface mount chips first: U0--U15 (and optionally, U16).
 		\begin{itemize}
 			\item U0, U12, U13: CD74HCT238PWR
 			\item U1, U2, U14, U15: ULN2803CDWR (ULN2803A SOP-18 packages may be used if aligned to the top 18 pads, leaving the bottom two empty, if they have otherwise identical pinouts and characteristics)
 			\item U3--U10: STPIC6D595MTR
 			\item U11: THVD1439DR (Note that this chip is oriented 180$^{\circ}$ from the other chips on the board, with pin~1 to the lower right.)
+			\item If needed for your microcontroller (Arduino Due, usually), solder U16: AT24C256 \acronym{EEPROM} chip.
 		\end{itemize}
-	\item Solder the discrete resistors: R0--R7, R24--R50. See below first to ensure the correct values are used
-		for R24--R31.
+	\item Solder the discrete resistors: R0--R7, R24--R50 (and optionally, R52 and R53). See below first to ensure the correct values are used
+		for R24--R31 based on your choice of corresponding \acronym{LED}s.
 		\begin{itemize}
 			\item R0--R7, R35--50: 1K
 			\item R24, R29--R31: 300$\Omega$
 			\item R25--R28: 360$\Omega$
 			\item R32--R34: 10K
+			\item If U16 is installed, solder in R52--R53: 10K
 		\end{itemize}
 	\item Solder the 0.1$\mu$F capacitors: C0--C9, C11--C12.
 	\item Solder the resistor arrays: R8--R23.
@@ -240,7 +247,7 @@ in the way of connecting subsequent ones. For example:
 	\item \strong{If you are using an Arduino Mega 2560:} Solder the 10$\mu$F capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
 	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
 		Ensure the pins extend down and out the back of the board.
-	\item Solder the 2-pin headers J2 and J3.
+	\item Solder the 2-pin headers J2 and J3, and the 3-pin header J4.
 	\item Solder the terminal block J1.
 \end{enumerate}
 
@@ -346,10 +353,11 @@ Every message also has a field called ``\z{a}'' which is a comma-separated list 
 applies.
 
 So, for example, the message containing \z{a=2} would cause the server to transmit the corresponding command to the readerboard with address 2 directly connected to it via \acronym{USB}, or
-would transmit to the \acronym{RS-485} network the command starting with the hex byte \z{92}.
+would transmit to the \acronym{RS-485} network the command starting with the hex byte \z{92}$_{16}$. (Why that byte value is sent will make sense after you read the protocol
+description that follows.)
 
-If multiple devices are targeted, say with a message containing the field \z{a=2,5,37} with address 15 (e.g., \z{F}$_{16}$) configured as the global address \Var{ad$_G$},
-it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF 03 02 05 25}.
+If multiple devices are targeted, e.g., with a message containing the field \z{a=2,5,37} with address 15 (i.e., \z{0F}$_{16}$) configured as the global address \Var{ad$_G$},
+it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF}$_{16}$ \z{03}$_{16}$ \z{02}$_{16}$ \z{05}$_{16}$ \z{25}$_{16}$.
 \section{USB vs. RS-485}
 The protocol used to send commands to the readerboard is different depending on
 whether the host is sending directly to a single readerboard over a \acronym{USB}
@@ -379,7 +387,7 @@ Commands which contain arbitrary-size data fields, such as text strings or lists
 \acronym{LED}s to light in sequence, end such fields with a terminator byte. In most cases
 this may be
 either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagrams below
 simply as ``\z{\$}''. In cases where a dollar-sign could be part of the data, then
 only an escape character may be used to terminate the field, in which case the protocol
 description will show the terminator as ``\z{ESC}''.
@@ -830,7 +838,7 @@ repeatedly scrolls across the screen in an endless loop.
 The text is rendered in the current font and may contain any 8-bit bytes except as otherwise
 noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
 future control codes which may be added to the protocol). The string is terminated by an
-escape character (hex byte \z{1B}), indicated in the protocol description as \z{ESC}.
+escape character (hex byte \z{1B}$_{16}$), indicated in the protocol description as \z{ESC}.
 
 The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 \begin{table}
@@ -872,8 +880,8 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 This command sets a few operational parameters for the sign. Once set, these will be persistent across
 power cycles and reboots.
 
-If the \Var*{ad} parameter is ``\z{\_}'' then the RS-485 interface is disabled entirely. Otherwise it is a
-value from 0--15 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
+If the \Var*{ad} parameter is ``\z{.}'' then the RS-485 interface is disabled entirely. Otherwise it is a
+value from 0--63 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
 this sign's address to \Var*{ad}.
 
 The baud rate for the \acronym{USB} and RS-485 interfaces is set by the \Var*{uspd} and \Var*{rspd} values
@@ -945,10 +953,10 @@ what the discrete \led s are currently showing. This response has the form:
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} \\
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{F}} &
-	\bitbox{7}{flasher status (see below)} \\
-	\bitbox{1}{\z{\$}} &
+	\bitbox{6}{flasher status (see below)} &
+	\bitbox{1}{\z{\$}} \\
 	\bitbox{1}{\z{S}} &
-	\bitbox{7}{strober status (see below)} \\
+	\bitbox{6}{strober status (see below)} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
@@ -1012,6 +1020,20 @@ The status message sent to the host is terminated by a newline character (hex by
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 \begin{table}
 	\begin{center}
+		\begin{bytefield}[endianness=big,bitwidth=0.11111\textwidth]{8}
+			\bitheader{0-7}\\
+			\bitbox{1}{\z0} &
+			\bitbox{1}{\z0} &
+			\bitbox{1}{\z1} &
+			\bitbox{1}{\z1} &
+			\bitbox{4}{\Var*{n} \quad($n<16$)} \\
+			\bitbox{1}{\z0} &
+			\bitbox{1}{\z1} &
+			\bitbox{6}{\Var*{n}--16 \quad($n\ge16$)}
+		\end{bytefield}
+
+		\medskip
+
 		\begin{tabular}{cc|cc}\toprule
 			\multicolumn{1}{c}{\bfseries Value} &
 			\multicolumn{1}{c}{\bfseries Code} &
@@ -1264,7 +1286,7 @@ Setting an empty
 sequence (no codes at all) stops the flasher's operation.
 
 The sequence is terminated by either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}), indicated in the protocol diagram above
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
 simply as ``\z{\$}''.
 			
 This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
@@ -1315,7 +1337,7 @@ stacked up from the bottom row (a value of 0 results in no lights, up to 8 which
 column of eight lights; a value of 9 is treated as if it were 8). All existing matrix data
 are scrolled left one column.
 
-In the second form, it takes eight \Var*{rgb} values (q.v.) which give the color to light up
+In the second form, it takes eight \Var*{rgb} values (see Table~\ref{tbl:rgbcolors}) which give the color to light up
 each row in the bar-graph column.
 
 %In \acronym{JSON}, the values of \Var*{n} and \Var*{rgb$_n$} are sent as integer values.
@@ -1361,7 +1383,7 @@ least-significant bit representing the top row of the matrix.
 %(In \acronym{JSON}, these are simply plain decimal integer values.)
 
 The column data values are terminated by either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}), indicated in the protocol diagram above
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
 simply as ``\z{\$}''. 
 
 The first set of column data provide the bits for the red color plane. After the terminating
@@ -1574,10 +1596,10 @@ thus those strings may not contain dollar signs).
 The \Var*{serial} field is a variable-width alphanumeric string which was set when the firm\-ware was
 compiled. It should be a unique serial number for the device (although that depends on
 some effort on the part of the person compiling the firmware to insert that serial number
-each time). Serial numbers 0--299 are reserved for the original author's use. This string is also
+each time). Serial numbers \z{RB000}--\z{RB299} are reserved for the original author's use. This string is also
 terminated with a dollar sign.
 
-The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acronym{EEPROM} unit,
+The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acronym{EEPROM} chip or module,
 ``\z{I}'' if using the \acronym{EEPROM} memory on the Arduino controller board, or ``\z{\_}'' if there
 is no \acronym{EEPROM} memory at all (and thus, configuration settings made with the \z= commaand
 are not persistent).
@@ -1587,10 +1609,10 @@ the \led s lit on the matrix display, with \Var*{coldata$_0$} being the leftmost
 and \Var*{coldata$_{63}$} being the rightmost. In each column, the least significant bit indicates
 the \led\ on the top row.
 
-The \Var*{ad}, \Var*{uspd}, and \Var*{rspd} values are as last set by the \z= command (or the factory
+The \Var*{ad}, \Var*{ad$_G$}, \Var*{uspd}, and \Var*{rspd} values are as last set by the \z= command (or the factory
 defaults if they were never changed).
 
-The status message sent to the host is terminated by a newline character (hex byte \z{0A}),
+The status message sent to the host is terminated by a newline character (hex byte \z{0A}$_{16}$),
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 
 \subsection{Busylight Device Query Response}
@@ -1629,6 +1651,8 @@ If a dedicated (non-readerboard) busylight device is sent the
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
+
+For Busylight devices, serial numbers \z{B000}--\z{B299} are reserved for use by the original author.
 
 \section{\z{S}---Light Single \led}
 \begin{center}
@@ -1714,9 +1738,10 @@ This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 \chapter{Server-Only Commands}
 \epigraph{The enjoyment of one’s tools is an essential ingredient of successful work.}{---Donald E. Knuth}
 \LJversal{F}{or the most part} the server exists as a way to host readerboards and busylights from a central machine
-while allowing users on other networked machines to post messages to them. One shortcoming of this approach is that
-although \emph{access} to the devices is made widely available, \emph{coordination} between the users wishing to
-place content on display is not provided. Each update totally changes the state of the target devices.
+while allowing users on other networked machines to post messages to them. It also provides a solution to the lack
+of an ability for signs to coordinate content with each other. If you use the server's \acronym{API} to tell a
+set of target signs to change their display contents, that will change whatever the sign was doing to what you
+are now telling it to do, even if other users had put their own messages on it.
 
 This chapter describes server-side coordination between users in a network environment by providing a set of
 commands which clients can post to the server to request information to be displayed for them alongside other
@@ -1808,7 +1833,7 @@ on which pins. Note that this begins with the current hardware revision, which i
 to know about. Following that are the connector descriptions for older, legacy versions of the hardware. Be careful to
 know which version you need to refer to.
 
-\section{Connectors for Version 3.2 Boards}
+\section{Connectors for Version 3.3 Boards}
 \subsection{Arduino Bus Connectors [J0]}
 Two parallel rows of stacking pins, for a total of 50 pins, extend out of the back of the readerboard \acronym{PCB}.
 An Arduino Mega 2560 or Due microcontroller board is connected to these pins.
@@ -1819,7 +1844,7 @@ devices in use, it may be preferable to switch to the \acronym{RS-485} network a
 device.)
 
 \subsection{Power / RS-485 (8-pin terminal) [J1]}
-The single external connector on version 3.2.3 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
+The single external connector on version 3.3.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
 and ground on pins 8 and 7 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
 communications will be used, the incoming signal is received on pins 1, 2, and 6 while the outgoing signal is on
 pins 3, 4, and 5. (In actuality, the ``input'' and ``output'' sense is arbitrary and either set of A and B signals
@@ -2164,7 +2189,7 @@ A little further down \z{readerboard.h}, there is a pair of lines like:
 %is set on the color code, to allow arbitrary parts of the matrix to flash.
 
 \chapter{Schematics and Diagrams}
-The following page includes the schematics for the current 3.2.1 version of the readerboard \acronym{PCB}
+The following pages include the schematics for the current 3.3.0 version of the readerboard \acronym{PCB}
 and the board assembly diagram, showing where the components are placed.
 \newpage
 \noindent\includegraphics[width=\textheight,angle=90]{../hardware/matrix64x8_rgb_330_schematic.png}

@@ -37,7 +37,7 @@
 #define EE_ADDRESS_DISABLED (0xff) /* interface disabled */
 // Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
 // you won't be using RS-485 at all.)
-#define EE_DEFAULT_ADDRESS (0)
+#define EE_DEFAULT_ADDRESS (EE_ADDRESS_DISABLED)
 //
 // Default global device address (may be any value from 0-15).
 #define EE_DEFAULT_GLOBAL_ADDRESS (15)
