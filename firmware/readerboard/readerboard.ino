@@ -24,6 +24,13 @@
 //#include "commands.h"
 #include "readerboard.h"
 
+byte USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
+byte RS485_baud_rate_code = EE_DEFAULT_485_SPEED;
+byte my_device_address = EE_DEFAULT_ADDRESS;
+byte global_device_address =  EE_DEFAULT_GLOBAL_ADDRESS;
+int USB_baud_rate = 0;
+int RS485_baud_rate = 0;
+
 
 //
 // EEPROM locations
@@ -168,6 +175,7 @@ const int PIN__RE   = 17;    // RS-485 ~receiver enable (0=enabled)
 
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
 const byte discrete_led_labels[8] = {'G', 'Y', 'y', 'R', 'r', 'B', 'b', 'W'};
+const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5, PIN_D6, PIN_D7};
 
 //
 // setup_pins()
@@ -921,28 +929,12 @@ void setup_eeprom(void)
     USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
     RS485_baud_rate_code = EE_DEFAULT_485_SPEED;
     my_device_address = EE_DEFAULT_ADDRESS;
-    global_device_address = EE_DEFAULT_GLOBAL_ADDRESS
+    global_device_address = EE_DEFAULT_GLOBAL_ADDRESS;
 #  endif
 # else
 #  error "No valid HW_MC configured"
 # endif
 #endif
-  /*
-	if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL) {
-		// apparently unset; set to "factory defaults"
-		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
-		EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
-		return;
-	}
-
-	int speed = EEPROM.read(EE_ADDR_USB_SPEED);
-	if (!((speed >= '0' && speed <= '9') 
-	|| (speed >= 'a' && speed <= 'c') 
-	|| (speed >= 'A' && speed <= 'C'))) {
-		// baud rate setting invalid; return to default
-		EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_SPEED);
-	}
-  */
     USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
     RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
 }
@@ -957,7 +949,6 @@ void setup(void)
     setup_pins();
     flag_init();
     setup_eeprom();
-//	default_eeprom_settings();
 
     flasher.stop();
     strober.stop();
@@ -1098,6 +1089,57 @@ void test_pattern(void)
     test_row(7, 0x20, 0x20);
     test_row(7, 0x40, 0x40);
     test_row(7, 0x80, 0x80);
+	test_sweep();
+}
+
+void test_sweep()
+{
+	// Run a single column right and then left
+	for (int block=0; block<8; block++) {
+		digitalWrite(column_block_set[block], LOW);
+	}
+	for (int block=0; block<8; block++) {
+		for (int col=0; col<8; col++) {
+			//                                  //            _ _____
+			//                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+			digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
+			digitalWrite(PIN__SRCLR, HIGH);	    //   X    X   1   1    X  X  X  X  X    |
+			digitalWrite(column_block_set[block], col==0 ? HIGH : LOW);
+			//                                  //            _ _____
+			//									// SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+			digitalWrite(PIN_SRCLK, HIGH);		//   1    0   1   1    X  X  X  X  X    clock in bit
+			digitalWrite(PIN_SRCLK, LOW);		//   0    0   1   1    X  X  X  X  X    |
+			//                                  //            _ _____
+			//                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+			digitalWrite(PIN_RCLK, HIGH);   	//   0    1   1   1    X  X  X  X  X    clock data to output buffer
+			digitalWrite(PIN_RCLK, LOW);    	//   0    0   1   1    X  X  X  X  X    |
+
+			for (int i=0; i<50; i++) {
+				digitalWrite(PIN__G, HIGH);
+				digitalWrite(PIN_R4, LOW); // red
+				digitalWrite(PIN_R3, LOW);
+				digitalWrite(PIN__G, LOW);
+				delayMicroseconds(ROW_HOLD_TIME_US);
+			}
+			for (int i=0; i<50; i++) {
+				digitalWrite(PIN__G, HIGH);
+				digitalWrite(PIN_R4, LOW); // green
+				digitalWrite(PIN_R3, HIGH);
+				digitalWrite(PIN__G, LOW);
+				delayMicroseconds(ROW_HOLD_TIME_US);
+			}
+			for (int i=0; i<50; i++) {
+				digitalWrite(PIN__G, HIGH);
+				digitalWrite(PIN_R4, HIGH); // blue
+				digitalWrite(PIN_R3, LOW);
+				digitalWrite(PIN__G, LOW);
+				delayMicroseconds(ROW_HOLD_TIME_US);
+			}
+			digitalWrite(PIN__G, HIGH);
+		}
+	}
+	digitalWrite(PIN_R4, HIGH); // off
+	digitalWrite(PIN_R3, HIGH);
 }
 
 void test_col(byte bit_pattern) 

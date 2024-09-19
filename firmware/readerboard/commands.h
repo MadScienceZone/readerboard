@@ -1,4 +1,4 @@
-/*
+  /*
  * Readerboard firmware
  *
  * Commands to control the readerboard via USB serial connection.
