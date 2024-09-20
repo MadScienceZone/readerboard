@@ -463,6 +463,35 @@ range 0--63 may be used.
 %where \Var*{ad$_G$} is the ``global'' device address which signals readerboards
 %generally (see the \z= command below).
 
+\subsubsection{Response Headers}
+For commands which send a response back to the computer, the RS-485 data stream begins with the header
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z1}&
+		\bitbox[tbl]{1}{\z1}&
+		\bitbox[tb]{1}{\z0}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad}}
+	\end{bytefield}
+\end{center}
+where \Var*{ad} is the device address of the responding unit if \Var*{ad} $<$ 16. For devices with
+higher-numbered addresses, the following extended format is used instead:
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z1}&
+		\bitbox[tbl]{1}{\z1}&
+		\bitbox[tb]{1}{\z1}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad}$_G$}\\
+		\bitbox{1}{\z0}&
+		\bitbox{7}{1}\\
+		\bitbox{1}{\z0}&
+		\bitbox{1}{\z0}&
+		\bitbox{6}{\Var*{ad}}
+	\end{bytefield}
+\end{center}
 \subsubsection{All Off}
 As a special case, the single byte
 \begin{center}
@@ -777,6 +806,8 @@ at all times. {\color{red} This is expected to change with the next revision of 
 
 Displays various test patterns on the display to show that each element of each \acronym{LED} is working correctly
 individually and in concert with others.
+
+While running the test pattern set, the device is not responsive to other inputs or background operations.
 
 \section{\z{*}---Strobe Lights in Sequence}
 \begin{center}

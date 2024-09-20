@@ -20,8 +20,8 @@
 
 #include <TimerEvent.h>
 //#include <EEPROM.h>
-//#include "fonts.h"
-//#include "commands.h"
+#include "fonts.h"
+#include "commands.h"
 #include "readerboard.h"
 
 byte USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
@@ -174,7 +174,16 @@ const int PIN__RE   = 17;    // RS-485 ~receiver enable (0=enabled)
 #endif
 
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
-const byte discrete_led_labels[8] = {'G', 'Y', 'y', 'R', 'r', 'B', 'b', 'W'};
+const byte discrete_led_labels[8] = {
+    STATUS_LED_COLOR_L0,
+    STATUS_LED_COLOR_L1,
+    STATUS_LED_COLOR_L2,
+    STATUS_LED_COLOR_L3,
+    STATUS_LED_COLOR_L4,
+    STATUS_LED_COLOR_L5,
+    STATUS_LED_COLOR_L6,
+    STATUS_LED_COLOR_L7,
+};
 const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5, PIN_D6, PIN_D7};
 
 //
@@ -238,10 +247,11 @@ void setup_pins(void)
     digitalWrite(PIN_L7, LOW);
 }
 
-//
-//byte image_buffer[8 * N_ROWS];      // image to render onto
-//byte hw_buffer[8 * N_ROWS];         // image to refresh onto hardware
-//
+
+byte image_buffer[N_ROWS][N_COLS];              // one pixel per element, value = <frgb> bit-encoded
+byte hw_buffer[N_COLORS][N_ROWS][N_COLBYTES];   // pixels arranged by color plane as convenient for display refresh
+byte hw_active_color_planes = 0;                // which color planes are currently needing to be included in refresh?
+
 //// Row addressing
 //// R4 R3 R2 R1 R0
 ////  0  0  0  0  0 RED row 0
@@ -270,30 +280,43 @@ void setup_pins(void)
 ////  1  0  1  1  1 BLU row 7  /
 ////  1  1  x  x  x all rows off
 //
-////
-//// setup_buffers()
-////   Initialize buffers to zero.
-////
-//void setup_buffers(void)
-//{
-//    for (int row=0; row<N_ROWS; row++) {
-//        for (int col=0; col<8; col++) {
-//            image_buffer[row*8 + col] = hw_buffer[row*8 + col] = 0;
-//        }
-//    }
-//}
 //
-////
-//// clear_buffer(buf)
-////   Resets all bits in buf to zero.
-////
-//void clear_buffer(byte *buf)
-//{
-//    for (int i=0; i<N_ROWS*8; i++)
-//        buf[i] = 0;
-//}
+// setup_buffers()
+//   Initialize buffers to zero.
 //
-////
+void setup_buffers(void)
+{
+    clear_all_buffers();
+}
+
+void clear_all_buffers(void)
+{
+    clear_image_buffer();
+    clear_hw_buffer();
+}
+
+void clear_image_buffer(void)
+{
+    for (int row=0; row<N_ROWS; row++) {
+        for (int col=0; col<N_COLS; col++) {
+            image_buffer[row][col] = 0;
+        }
+    }
+}
+
+void clear_hw_buffer(void)
+{
+    for (int plane=0; plane<N_COLORS; plane++) {
+        for (int row=0; row<N_ROWS; row++) {
+            for (int col=0; col<N_COLBYTES; col++) {
+                hw_buffer[plane][row][col] = 0;
+            }
+        }
+    }
+    hw_active_color_planes = 0;
+}
+
+//
 //// LED_row_off()
 ////   During sign refresh cycle, this turns off the displayed row after the
 ////   required length of time has elapsed.
@@ -567,52 +590,54 @@ void setup_pins(void)
 //         | ((s[COL_BLK_7] & 0x80) >> 7);
 //}
 //
-////
-//// draw_character(col, font, codepoint, buffer, mergep=false) -> col'
-////   Given a codepoint in a font, set the bits in the buffer for the pixels
-////   of that character glyph, and return the starting column position for
-////   the next character. 
-////
-////   If there is no such font or codepoint, nothing is done.
-////
-//int draw_character(byte col, byte font, unsigned int codepoint, byte *buffer, bool mergep=false)
-//{
-//    byte l, s;
-//    unsigned int o;
 //
-//    if (!get_font_metric_data(font, codepoint, &l, &s, &o)) {
-//        return col;
-//    }
-//    for (byte i=0; i<l; i++) {
-//        if (col+i < 64) {
-//            draw_column(col+i, get_font_bitmap_data(o+i), mergep, buffer);
-//        }
-//    }
-//    return col+s;
-//}
+// draw_character(col, font, codepoint, buffer, color, mergep=false) -> col'
+//   Given a codepoint in a font, set the bits in the buffer for the pixels
+//   of that character glyph, and return the starting column position for
+//   the next character. 
 //
-////
-//// draw_column(col, bits, mergep, buffer)
-////   Draw bits (LSB=top) onto the specified buffer column. If mergep is true,
-////   merge with existing pixels instead of overwriting them.
-////
-//void draw_column(byte col, byte bits, bool mergep, byte *buffer)
-//{
-//    if (col < 64) {
-//        byte bufcol = col / 8;
-//        byte mask = 1 << (7 - (col % 8));
+//   If there is no such font or codepoint, nothing is done.
 //
-//        for (byte row=0; row<N_ROWS; row++) {
-//            if (bits & (1 << row)) {
-//                buffer[row*8+bufcol] |= mask;
-//            }
-//            else if (!mergep) {
-//                buffer[row*8+bufcol] &= ~mask;
-//            }
-//        }
-//    }
-//}
+byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep)
+{
+    byte l, s;
+    unsigned int o;
+
+    if (col >= N_COLS) {
+        return col;
+    }
+
+    if (!get_font_metric_data(font, codepoint, &l, &s, &o)) {
+        return col;
+    }
+    for (byte i=0; i<l; i++) {
+        if (col+i < N_COLS) {
+            draw_column(col+i, get_font_bitmap_data(o+i), color, mergep, buffer);
+        }
+    }
+    return col+s;
+    return 0;
+}
+
 //
+// draw_column(col, bits, mergep, buffer)
+//   Draw bits (LSB=top) onto the specified buffer column. If mergep is true,
+//   merge with existing pixels instead of overwriting them.
+//
+void draw_column(byte col, byte bits, byte color, bool mergep, byte buffer[N_ROWS][N_COLS])
+{
+    if (col < N_COLS) {
+        for (byte row=0; row<N_ROWS; row++) {
+            if (bits & (1 << row)) {
+                buffer[row][col] = color;
+            }
+            else if (!mergep) {
+                buffer[row][col] = 0;
+            }
+        }
+    }
+}
+
 //void shift_left(byte *buffer)
 //{
 //    for (byte row=0; row<N_ROWS; row++) {
@@ -790,16 +815,16 @@ LightBlinker strober(50, 2000, strobe_lights);
 //	transitions.next();
 //}
 //
-////
-//// display_buffer(src, transition)
-////   Copies the contents of the image buffer src to the hardware buffer, so that
-////   is now what will be displayed on the LEDs.
-////
-////   If a transition effect is specified, the update to the hardware buffer will
-////   be performed gradually to produce the desired visual effect.
-////
-//void display_buffer(byte *src, TransitionEffect transition)
-//{
+//
+// display_buffer(src, transition)
+//   Copies the contents of the image buffer src to the hardware buffer, so that
+//   is now what will be displayed on the LEDs.
+//
+//   If a transition effect is specified, the update to the hardware buffer will
+//   be performed gradually to produce the desired visual effect.
+//
+void display_buffer(byte *src, TransitionEffect transition)
+{
 //	if (transition == NoTransition) {
 //		transitions.stop();
 //		copy_all_rows(src, hw_buffer);
@@ -807,7 +832,7 @@ LightBlinker strober(50, 2000, strobe_lights);
 //	else {
 //		transitions.start_transition(src, transition, 100);
 //	}
-//}
+}
 
 void discrete_all_off(bool stop_blinkers)
 {
@@ -939,6 +964,162 @@ void setup_eeprom(void)
     RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
 }
 
+//
+// display_text(font, string, mS_delay)
+// Replace the displayed image with the given text and delay (blocking) for a time.
+// This is used when the sign isn't in normal operational mode (e.g., startup)
+// and doesn't rely on any background tasks (including the refresh) to be running.
+// 
+void display_text(byte font, char *string, byte color, int mS_delay)
+{
+    if (string == NULL) {
+        return;
+    }
+
+    clear_image_buffer();
+    /* draw characters onto the image buffer */
+    byte pos = 0;
+    for (; *string != '\0'; string++) {
+        pos = draw_character(pos, font, *string, image_buffer, color);
+    }
+
+    /* transfer to the hardware buffer */
+    commit_image_buffer(image_buffer);
+    
+    /* display the hardware buffer for the delay time */
+    show_hw_buffer(mS_delay);
+}
+
+//
+// show_hw_buffer(int milliseconds)
+// directly show the hardware buffer on the display. Uses no background routines
+// and so should never be used when the hardware is in normal operating mode.
+//
+void show_hw_buffer(int duration_mS)
+{
+    unsigned long deadline = millis() + duration_mS;
+
+    while (millis() < deadline) {
+        //                                  //            _ _____
+        //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN__G, HIGH);         //   X     X  1   X    X  X  X  X  X  disable column drains
+        digitalWrite(PIN__SRCLR, LOW);      //   X     X  1   0    X  X  X  X  X  reset shift registers
+        digitalWrite(PIN__SRCLR, HIGH);     //   X     X  1   1    X  X  X  X  X  |
+        for (int plane = 0; plane < N_COLORS; plane++) {
+            int planebit = 1 << plane;
+            if (plane == N_FLASHING_PLANE)
+                continue;
+
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+            //                                  //            _ _____
+            //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+            digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set blue plane
+            digitalWrite(PIN_R3, LOW);          //   X     X  1   1    1  0  X  X  X  |
+#else
+# if HW_MODEL == MODEL_3xx_RGB
+            if (!(hw_active_color_planes & (1 << plane))) {
+                continue;
+            }
+            if (planebit == BIT_RGB_RED) {
+                //                                  //            _ _____
+                //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+                digitalWrite(PIN_R4, LOW);          //   X     X  1   1    0  X  X  X  X  set red plane
+                digitalWrite(PIN_R3, LOW);          //   X     X  1   1    0  0  X  X  X  |
+            } else if (planebit == BIT_RGB_GREEN) {
+                //                                  //            _ _____
+                //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+                digitalWrite(PIN_R4, LOW);          //   X     X  1   1    0  X  X  X  X  set green plane
+                digitalWrite(PIN_R3, HIGH);         //   X     X  1   1    0  1  X  X  X  |
+            } else if (planebit == BIT_RGB_BLUE) {
+                //                                  //            _ _____
+                //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+                digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set blue plane
+                digitalWrite(PIN_R3, LOW);          //   X     X  1   1    1  0  X  X  X  |
+            } else {
+                //                                  //            _ _____
+                //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+                digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set NO plane
+                digitalWrite(PIN_R3, HIGH);         //   X     X  1   1    1  1  X  X  X  |
+            }
+# else
+#  error "hw model not set"
+# endif
+#endif
+
+            /* now push out the column data */
+            for (int row=0; row < N_ROWS; row++) {
+                for (int col=0; col < N_COLBYTES; col++) {
+                    digitalWrite(PIN_D0, (hw_buffer[plane][row][col] & 0x01) ? HIGH : LOW);
+                    digitalWrite(PIN_D1, (hw_buffer[plane][row][col] & 0x02) ? HIGH : LOW);
+                    digitalWrite(PIN_D2, (hw_buffer[plane][row][col] & 0x04) ? HIGH : LOW);
+                    digitalWrite(PIN_D3, (hw_buffer[plane][row][col] & 0x08) ? HIGH : LOW);
+                    digitalWrite(PIN_D4, (hw_buffer[plane][row][col] & 0x10) ? HIGH : LOW);
+                    digitalWrite(PIN_D5, (hw_buffer[plane][row][col] & 0x20) ? HIGH : LOW);
+                    digitalWrite(PIN_D6, (hw_buffer[plane][row][col] & 0x40) ? HIGH : LOW);
+                    digitalWrite(PIN_D7, (hw_buffer[plane][row][col] & 0x80) ? HIGH : LOW);
+                    //                                  //            _ _____
+                    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+                    digitalWrite(PIN_SRCLK, HIGH);      //   1     X  1   1    p  p  X  X  X  shift data into shift registers
+                    digitalWrite(PIN_SRCLK, LOW);       //   0     X  1   1    p  p  X  X  X  shift data into shift registers
+                }
+
+                /* light up the row */
+                //                                  //            _ _____
+                //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+                digitalWrite(PIN_RCLK, HIGH);       //   0     1  1   1    p  p  X  X  X  latch shift register outputs
+                digitalWrite(PIN_RCLK, LOW);        //   0     0  1   1    p  p  X  X  X  |
+                digitalWrite(PIN_R2, (row & 0x04)?HIGH:LOW);  //  1   1    p  p  r  X  X  turn on anode supply for row
+                digitalWrite(PIN_R1, (row & 0x02)?HIGH:LOW);  //  1   1    p  p  r  r  X  |
+                digitalWrite(PIN_R0, (row & 0x01)?HIGH:LOW);  //  1   1    p  p  r  r  r  |
+                digitalWrite(PIN__G, LOW);          //   0     1  0   1    p  p  r  r  r  enable column sinks
+                delayMicroseconds(ROW_HOLD_TIME_US);
+                digitalWrite(PIN__G, HIGH);         //   0     1  1   1    p  p  r  r  r  disable column sinks
+            }
+        }
+    }
+}
+
+//
+// commit_image_buffer(src_buf)
+// Writes contents of the image buffer into the hardware buffer that's being refreshed onto the display.
+// 
+void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
+{
+    clear_hw_buffer();
+    for (int row=0; row < N_ROWS; row++) {
+        for (int col=0; col < N_COLS; col++) {
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+# if N_COLORS < 2
+#  error "invalid assumption that monochrome displays have 2 bit planes"
+# endif
+            if (buffer[row][col] & (BIT_RGB_RED | BIT_RGB_GREEN | BIT_RGB_BLUE)) {
+                hw_buffer[0][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+            }
+            if (buffer[row][col] & BIT_RGB_FLASHING) {
+                hw_buffer[1][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+            }
+#else
+# if HW_MODEL == MODEL_3xx_RGB
+            for (int plane=0; plane<N_COLORS; plane++) {
+                byte planebit = 1 << plane;
+                if (plane == N_FLASHING_PLANE) {
+                    if (buffer[row][col] & BIT_RGB_FLASHING) {
+                        hw_active_color_planes |= BIT_RGB_FLASHING;
+                        hw_buffer[plane][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+                    }
+                } else if (buffer[row][col] & planebit) {
+                    hw_active_color_planes |= planebit;
+                    hw_buffer[plane][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+                }
+            }
+# else
+# error "hw model not set"
+# endif
+#endif
+        }
+    }
+}
+
 
 //
 // setup()
@@ -949,36 +1130,33 @@ void setup(void)
     setup_pins();
     flag_init();
     setup_eeprom();
-
     flasher.stop();
     strober.stop();
-//    setup_commands();
-//    setup_buffers();
+    setup_commands();
+    setup_buffers();
 	status_timer.set(0, strobe_status);
 	status_timer.reset();
 	status_timer.setPeriod(10);
 	status_timer.enable();
 
-//	start_usb_serial();
+	start_usb_serial();
 //
 //	// TODO If RS-485 is enabled, start that UART too
 //
 	flag_test();
-	delay(ROW_HOLD_TIME_US);
-    flag_ready();
-//	// TODO display_text(font, string, mS_delay)
-//	// TODO clear_matrix()
-//	display_text(0, BANNER_HARDWARE_VERS,  500);
-//	display_text(0, BANNER_FIRMWARE_VERS,  500);
-//	display_text(0, BANNER_SERIAL_NUMBER, 1000);
-//	display_text(0, "ADDRESS XX", 1000);	// 00-15 or --
-//	display_text(0, "GLOBAL  XX", 1000);	// 00-15 or --
-//	display_text(0, "USB XXXXXX", 1000);	// speed
-//	display_text(0, "485 XXXXXX", 1000);	// speed or OFF
-//	display_text(0, "MadScience",  500);
-//	display_text(0, "Zone \xa92023",  500);
+	display_text(0, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 9000);
+	display_text(0, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 9000);
+	display_text(0, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 9000);
+	display_text(0, "ADDRESS XX", BIT_RGB_RED, 9000);	// 00-15 or --
+	display_text(0, "GLOBAL  XX", BIT_RGB_RED, 9000);	// 00-15 or --
+	display_text(0, "USB XXXXXX", BIT_RGB_RED, 9000);	// speed
+	display_text(0, "485 XXXXXX", BIT_RGB_RED, 9000);	// speed or OFF
+	display_text(0, "MadScience", BIT_RGB_GREEN,  9000);
+	display_text(0, "Zone \xa92023",  BIT_RGB_GREEN, 9000);
 //	clear_matrix();
 //	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
+    clear_all_buffers();
+    flag_ready();
 }
 
 int parse_baud_rate_code(byte code)
@@ -1004,12 +1182,12 @@ int parse_baud_rate_code(byte code)
     return 0;
 }
 
-//void start_usb_serial(void) {
-//	Serial.begin(speed);
-//	while (!Serial);
-//}
-//
-//
+void start_usb_serial(void) {
+	Serial.begin(USB_baud_rate);
+	while (!Serial);
+}
+
+
 // loop()
 //   Main loop of the firmware
 //
@@ -1098,12 +1276,14 @@ void test_sweep()
 	for (int block=0; block<8; block++) {
 		digitalWrite(column_block_set[block], LOW);
 	}
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
+    digitalWrite(PIN__SRCLR, HIGH);	    //   X    X   1   1    X  X  X  X  X    |
 	for (int block=0; block<8; block++) {
 		for (int col=0; col<8; col++) {
 			//                                  //            _ _____
 			//                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
-			digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
-			digitalWrite(PIN__SRCLR, HIGH);	    //   X    X   1   1    X  X  X  X  X    |
 			digitalWrite(column_block_set[block], col==0 ? HIGH : LOW);
 			//                                  //            _ _____
 			//									// SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -1114,32 +1294,38 @@ void test_sweep()
 			digitalWrite(PIN_RCLK, HIGH);   	//   0    1   1   1    X  X  X  X  X    clock data to output buffer
 			digitalWrite(PIN_RCLK, LOW);    	//   0    0   1   1    X  X  X  X  X    |
 
-			for (int i=0; i<50; i++) {
-				digitalWrite(PIN__G, HIGH);
-				digitalWrite(PIN_R4, LOW); // red
-				digitalWrite(PIN_R3, LOW);
-				digitalWrite(PIN__G, LOW);
-				delayMicroseconds(ROW_HOLD_TIME_US);
-			}
-			for (int i=0; i<50; i++) {
-				digitalWrite(PIN__G, HIGH);
-				digitalWrite(PIN_R4, LOW); // green
-				digitalWrite(PIN_R3, HIGH);
-				digitalWrite(PIN__G, LOW);
-				delayMicroseconds(ROW_HOLD_TIME_US);
-			}
-			for (int i=0; i<50; i++) {
-				digitalWrite(PIN__G, HIGH);
-				digitalWrite(PIN_R4, HIGH); // blue
-				digitalWrite(PIN_R3, LOW);
-				digitalWrite(PIN__G, LOW);
-				delayMicroseconds(ROW_HOLD_TIME_US);
-			}
-			digitalWrite(PIN__G, HIGH);
+            for (int i=0; i<10; i++) {
+#if HW_MODEL == MODEL_3xx_RGB
+                test_sweep_col(LOW, LOW);
+                test_sweep_col(LOW, HIGH);
+                test_sweep_col(HIGH, LOW);
+#else
+# if HW_MODEL == MODEL_3xx_MONOCHROME
+                test_sweep_col(HIGH, LOW);
+# else
+#  error "hw model not set"
+# endif
+#endif
+            }
 		}
 	}
 	digitalWrite(PIN_R4, HIGH); // off
 	digitalWrite(PIN_R3, HIGH);
+}
+
+void test_sweep_col(int r4, int r3)
+{
+    digitalWrite(PIN__G, HIGH);
+    digitalWrite(PIN_R4, r4);
+    digitalWrite(PIN_R3, r3);
+    for (int r=0; r<8; r++) {
+        digitalWrite(PIN_R2, (r&0x04)?HIGH:LOW);
+        digitalWrite(PIN_R1, (r&0x02)?HIGH:LOW);
+        digitalWrite(PIN_R0, (r&0x01)?HIGH:LOW);
+        digitalWrite(PIN__G, LOW);
+        delayMicroseconds(ROW_HOLD_TIME_US);
+        digitalWrite(PIN__G, HIGH);
+    }
 }
 
 void test_col(byte bit_pattern) 
@@ -1270,3 +1456,17 @@ void test_sequence_rows(void)
 //
 //	/* TODO receive commands via RS-485 port */
 //}
+//
+
+byte encode_int6(byte n)
+{
+    return (n & 0x3f) + '0';
+}
+
+byte encode_hex_nybble(byte n)
+{
+    if (n < 10) {
+        return n + '0';
+    }
+    return (n-10) + 'a';
+}

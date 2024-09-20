@@ -78,6 +78,20 @@ Libraries Required:
 //
 // END CONFIGURATION SECTION
 
+typedef enum { 
+		NoTransition,
+		TransScrollLeft,
+		TransScrollRight,
+		TransScrollUp,
+		TransScrollDown,
+		TransWipeLeft,
+		TransWipeRight,
+		TransWipeUp,
+		TransWipeDown,
+		TransWipeLeftRight,
+		TransWipeUpDown,
+} TransitionEffect;
+
 extern byte USB_baud_rate_code;
 extern byte RS485_baud_rate_code;
 extern byte my_device_address;
@@ -85,34 +99,39 @@ extern byte global_device_address;
 extern int USB_baud_rate;
 extern int RS485_baud_rate;
 
-//extern const int N_ROWS;
-//extern byte image_buffer[];
-//
-//extern void clear_buffer(byte *buffer);
-//extern void display_buffer(byte *src);
-//extern int  draw_character(byte col, byte font, unsigned int codepoint, byte *buffer);
-//extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
-//extern void shift_left(byte *buffer);
-//extern void setup_buffers(void);
-//
-//#if HW_MODEL == MODEL_3xx_RGB
+const int N_COLS = 64;              // number of physical columns
+const int N_COLBYTES = 8;           // number of byte-size column blocks
+const int N_ROWS = 8;               // number of physical rows
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+const int N_COLORS = 2;
+const int N_FLASHING_PLANE = 1;
+#else
+# if HW_MODEL == MODEL_3xx_RGB
+const int N_COLORS = 4;             // number of color planes
+const int N_FLASHING_PLANE = 3;
+# else
+#  error "hw model not set"
+# endif
+#endif
+const byte BIT_RGB_FLASHING = 0x08;
+const byte BIT_RGB_BLUE = 0x04;
+const byte BIT_RGB_GREEN = 0x02;
+const byte BIT_RGB_RED = 0x01;
+extern byte image_buffer[N_ROWS][N_COLS];
+
+extern void clear_image_buffer();
+extern void clear_display_buffer();
+extern void display_buffer(byte *src, TransitionEffect transition);
+extern byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep=false);
+extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
+extern void shift_left(byte *buffer);
+extern void setup_buffers(void);
 extern void discrete_all_off(bool stop_blinkers);
 extern bool discrete_query(byte lightno);
 extern void discrete_set(byte lightno, bool value);
-//#endif
-//
-//typedef enum { 
-//		NoTransition,
-//		TransScrollLeft,
-//		TransScrollRight,
-//		TransScrollUp,
-//		TransScrollDown,
-//		TransWipeLeft,
-//		TransWipeRight,
-//		TransWipeUp,
-//		TransWipeDown,
-//		TransWipeLeftRight,
-//		TransWipeUpDown,
-//} TransitionEffect;
-//
+extern byte encode_int6(byte n);
+extern byte encode_hex_nybble(byte n);
+extern int parse_baud_rate_code(byte code);
+
+
 #endif

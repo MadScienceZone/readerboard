@@ -1,4 +1,3 @@
-#if 0
 #include "readerboard.h"
 #include "commands.h"
 
@@ -41,9 +40,8 @@
 //
 //     The recognized start bytes are: (a=Ad or Ag)
 //         $8a      turn off all lights (no command follows; this single byte suffices)
-//         $9a      start of normal command addressed to unit a (TODO: accept Ag and remove $Dg?)
+//         $9a      start of normal command addressed to unit a
 //         $Ba      start of command addressed to explicit list of addresses
-//         $Dg      start of normal command addressed to all units
 //
 // State Machine
 //     -> ERR       signal error condition and go to ERROR state
@@ -53,7 +51,7 @@
 //          $8a/$8g (485) _      $Bg (485)        _________  N    ____________|_   | Ad[0]-Ad[N-2]
 //                       | |  +----------------->|Collect N|---->|CollectAddress|<-+
 //        MSB=1 (485)+   | |  |                  |_________|     |______________|
-//  _____  ^D (USB)     _|_V__|_   $9a/$Dg (485)  _____             |Ad[N-1]
+//  _____  ^D (USB)     _|_V__|_   $9a/$9g (485)  _____             |Ad[N-1]
 // |ERROR|----------->||Idle    ||-------------->|Start|<-----------+
 // |_____|<-----------||________||               |_____|
 //   ^ |       *            |                        |
@@ -79,8 +77,16 @@
 //    | Addr                |      |_____|----------> END
 //    V                     |  H    ________  n
 //   END                    +----->|BarGraph|-------> END
-//                          |      |________|                                                          ____
-//                          |  I    __________ merge   ________ pos     _______________ trans  _______|_   |nybble
+//                          |      |________|                                                         
+//                          |           |K
+//                          |           |<------+
+//                          |       ____V___    |rgb0-rgb6
+//                          |      |BarColor|___+    
+//                          |      |        |------------------> END
+//                          |      |________|     rgb7
+//                          |
+//                          |                                                                          ____
+//                          |  I    __________ merge   ________ pos     _______________ trans  _______|_   |nybble (x3)
 //                          +----->|ImageMerge|------>|ImageCol|------>|ImageTransition|----->|ImageData|<-+    $
 //                          |      |__________|       |________|       |_______________|      |_________|---------> END
 //                          |             ____
@@ -95,79 +101,79 @@
 //                          |      |_________|      |_________|       |______________|       |________|------------> END
 //                          |  X
 //                          +-----> END
+//                          |
+//                          |  %
+//                          +-----> END
+//                          |
+//                          |  K    ________  rgb
+//                          +----->|SetColor|--------> END
+//                                 |________|
 //
 // Recognized commands:
-//     <align> ::= '.' | '<' | '|' | '>' (.=none, <=left, |=center, >=right)
+//     <addr>         ::= <eint>          (device address)
+//     <align>        ::= '.' | '<' | '|' | '>' (.=none, <=left, |=center, >=right)
 //     <alphanumeric> ::= <digit> | 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
-//     <col> ::= <hexbyte>              (LSB=top)
-//     <digit> ::= '0' | '1' | ... | '9'
-//     <light> ::= '0' | '1' | '2' | ... '7'
-//     <loop> ::= '.' | 'L'             (.=once, L=loop)
-//     <merge> ::= '.' | 'M'            (.=clear, M=merge)
-//     <model> ::= 'L' | 'M'            (L=legacy, M=matrix64x8)
-//     <onoff> ::= '0' | '1'            (0=off, 1=on)
-//     <pos> ::= '~' | numeric value 0-63 encoded as '0'=0, '1'=1, ... 'o'=63 by ASCII sequence (~=current cursor position) [1]
-//     <romversion> ::= <semver>
-//     <running> ::= '0' | '1'
-//     <sequence> ::= 'X' | <pos> '@' <light>*          [2]
-//     <serial> ::= <alphanumeric>+
-//     <semver> ::= version string conforming to semver.org specification 2.0.0
-//     <status> ::= <running> <sequence>
-//     <string> ::= any sequence of characters except ^D or ESCAPE, with the following special sequences recognized:
-//                  '^C' <pos>      move cursor to absolute column number
-//                  '^D'            never allowed in commands (this is a command terminator)
-//                  '^F' <digit>    switch font
-//                  '^H' <pos>      move cursor back a number of columns
-//                  '^L' <pos>      move cursor forward a number of columns
-//                  '^['            (aka ESCAPE) not allowed in string (it terminates the string value itself).
-//     <trans> ::= '.'                  (.=none)
-//     <hwversion> ::= <semver>
-//     <l> ::= '0' | '1' | ... | '7'    (discrete light ID)
-//     $ ::= '$' | ESCAPE
+//     <baud>         ::= <digit> | 'A' | 'B' | 'C'
+//     <col>          ::= <hexdigit> <hexdigit>      (LSB=top pixel)
+//     <colorstatus>  ::= <signstatus> 'M' <col>* $ <col>* $ <col>* $ <col>* $
+//     <digit>        ::= '0' | '1' | ... | '9'
+//     <eeprom>       ::= '_' | 'I' | 'X'
+//     <eint>         ::= '0' | ... | 'o' (binary numeric value in range 0-63 + 48 as ASCII character)
+//     <flashstat>    ::= <isrunning> <sequence>
+//     <hexdigit>     ::= <digit> | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
+//     <isrunning>    ::= 'S' | 'R'
+//     <glob>         ::= <eint>          (global address)
+//     <l>            ::= <alphanumeric>   (status LED position digit or defined color code letter)
+//     <loop>         ::= '.' | 'L'             (.=once, L=loop)
+//     <merge>        ::= '.' | 'M'
+//     <monostatus>   ::= <signstatus> 'M' <col>* $ <col>* $
+//     <pos>          ::= <eint> | '~'
+//     <qreply>       ::= 'Q' ('M' <monostatus> | 'C' <colorstatus>) '\n'
+//     <rgb>          ::= 0011fbgr        (encoded byte f=flashing, b=blue, g=green, r=red)
+//     <rspd>         ::= <baud>          (RS-485 speed)
+//     <sequence>     ::= '_' | <eint> '@' <l>*
+//     <signstatus>   ::= '=' <addr> <uspd> <rspd> <glob> <eeprom> $ 'V' <string> $ 'R' <string> $ 'S' <string> $
+//     <statusreply>  ::= 'L' <l>* '$' 'F' <flashstat> '$' 'S' <strobestat> '$' '\n'
+//     <string>       ::= any sequence of characters except ^D or ESCAPE, with the following special sequences recognized:
+//                        '^C' <pos>      move cursor to absolute column number
+//                        '^D'            never allowed in commands (this is a command terminator)
+//                        '^F' <digit>    switch font
+//                        '^H' <pos>      move cursor back a number of columns
+//                        '^L' <pos>      move cursor forward a number of columns
+//                        '^['            (aka ESCAPE) not allowed in string (it terminates the string value itself).
+//     <strobestat>   ::= <isrunning> <sequence>
+//     <trans>        ::= '.' | '>' | '<' | '^' | 'v' | 'L' | 'R' | 'U' | 'D' | '|' | '-' | '?'
+//     <uspd>         ::= <baud>          (usb speed)
+//     $              ::= '$' | ESCAPE
 //
-//   Busylight Compatibility (terminating ^D recommended but not required)
+//   Busylight Compatibility
 //     'F' <l>* $                   Flash one or more lights in sequence
 //     'S' <l>                      Turn on one LED steady; stop flasher
 //     '*' <l>* $                   Strobe one or more lights in sequence
 //     'X'                          Turn off all LEDs
-//     '?'                          Report state of discrete LEDs (returns 'L' <onoff>* 'F' <status (flasher)> 'S' <status (strober)> '\n') [2]
+//     '?'                          Report state of discrete LEDs (replies with <statusreply>)
 //
 //   New Discrete LED Commands
 //     'L' <l>* $                   Turn on multiple LEDs steady
 //
 //   Matrix Display Commands
 //     'C'                          Clear matrix display
-//     'H' <digit>                  Draw bar graph data point
-//     'I' <merge> <pos> <trans> <col>* $
+//     'H' (<digit> | 'K' <rgb>*8)  Draw bar graph data point
+//     'I' <merge> <pos> <trans> <col>* $ <col>* $ <col>* $
 //                                  Draw bitmap image starting at <pos>
-//     'Q'                          Query status (returns 'Q' <model> 'V' <hwversion> 'R' <romversion> 'S' <serial> 'M' <matrixcols> '\n')
-//::   '<' <loop> <string>* ESCAPE  Scroll <string> across display, optionally looping repeatedly.
+//::   'K' <rgb>                    Change current color
+//     'Q'                          Query status (replies with <qreply>)
+//::   '<' <loop> <string> ESCAPE   Scroll <string> across display, optionally looping repeatedly.
 //::   'T' <merge> <align> <trans> <string>* ESCAPE 
 //::                                Print string in current font from current cursor position
 //::   '@' <pos>                    Move cursor to specified column number
 //::   'A' <digit>                  Select font
-//     '^D'                         Mark end of command(s). Not strictly needed after every command, but if a parser error is encountered,
-//                                  the readerboard will ignore all further input until the next ^D character is received, so at least place ^D after
-//                                  each logcal set of commands that together represent a sign update. A ^D also aborts any incomplete command in
-//                                  progress.
+//     '%'                          Run test pattern set
+//     '=' <addr> <uspd> <rspd> <glob>
 //
-// NOTES
-// [1] Numeric encoding used:
-//      00 '0' | 10 ':' | 20 'D' | 30 'N' | 40 'X' | 50 'b' | 60 'l'
-//      01 '1' | 11 ';' | 21 'E' | 31 'O' | 41 'Y' | 51 'c' | 61 'm'
-//      02 '2' | 12 '<' | 22 'F' | 32 'P' | 42 'Z' | 52 'd' | 62 'n'
-//      03 '3' | 13 '=' | 23 'G' | 33 'Q' | 43 '[' | 53 'e' | 63 'o'
-//      04 '4' | 14 '>' | 24 'H' | 34 'R' | 44 '\' | 54 'f' | current cursor position '~'
-//      05 '5' | 15 '?' | 25 'I' | 35 'S' | 45 ']' | 55 'g'
-//      06 '6' | 16 '@' | 26 'J' | 36 'T' | 46 '^' | 56 'h'
-//      07 '7' | 17 'A' | 27 'K' | 37 'U' | 47 '_' | 57 'i'
-//      08 '8' | 18 'B' | 28 'L' | 38 'V' | 48 '`' | 58 'j'
-//      09 '9' | 19 'C' | 29 'M' | 39 'W' | 49 'a' | 59 'k'
-//
-// [2] Care must be taken when parsing the discrete LED status query response. In the flasher
-//     and strober status data, a leading 'X' means there is no defined sequence
-//     ONLY if the next character is not '@'. However, if the start of the status field
-//     is 'X@', then the 'X' is the <pos> value 40 in the sequence.
+//     '^D'                         Mark end of command(s). 
+//                                  The readerboard will ignore all further input until the next ^D character is received.
+//                                  A ^D also aborts any incomplete command in progress.
 //
 const int CSM_BUFSIZE = 64;
 class CommandStateMachine {
@@ -175,16 +181,33 @@ private:
     enum StateCode { 
         IdleState, 
         ErrorState,
-        BarGraphState,
+//        CollectNState,
+//        CollectAddressState,
+//        StartState,
+//        SetState,
+//        SetUspdState,
+//        SetRspdState,
+//        SetDgState,
+//        ScrollState,
+//        ScrollTextState,
+//        SetColState,
+//        SelectFontState,
+//        BarColorState,
+//        TextMergeState,
+//        TextAlignState,
+//        TextTransitionState,
+//        TextDataState,
+//        SetColorState,
+        StrobeState, 
+		EndState,
         FlashState, 
+        BarGraphState,
         ImageStateCol,
         ImageStateData,
         ImageStateMerge,
         ImageStateTransition,
         LightOnState, 
         LightSetState,
-        StrobeState, 
-		EndState,
     } state;
     byte LEDset;
     byte command_in_progress;
@@ -332,8 +355,8 @@ void CommandStateMachine::accept(int inputchar)
             break;
 
         case 'C':
-            clear_buffer(image_buffer);
-            display_buffer(image_buffer, NoTransition);
+            clear_image_buffer();
+            clear_display_buffer();
             break;
 
         case 'H':
@@ -346,25 +369,52 @@ void CommandStateMachine::accept(int inputchar)
 
         case 'Q':
             Serial.write('Q');
-#if HW_MODEL == MODEL_LEGACY_64x7
-            Serial.write('L');
-#else
-# if HW_MODEL == MODEL_CURRENT_64x8 || MODEL_CURRENT_64x8_INTEGRATED
+#if HW_MODEL == MODEL_3xx_MONOCHROME
             Serial.write('M');
+#else
+# if HW_MODEL == MODEL_3xx_RGB
+            Serial.write('C');
 # else
 #  error "hardware model not supported"
 # endif
 #endif
+            Serial.write('=');
+            Serial.write(encode_int6(my_device_address));
+            Serial.write(USB_baud_rate_code);
+            Serial.write(RS485_baud_rate_code);
+            Serial.write(encode_int6(my_device_address));
+#if HAS_I2C_EEPROM
+            Serial.write('X');
+#else
+# if HW_MC == HW_MC_DUE
+            Serial.write('_');
+# else
+            Serial.write('I');
+# endif
+#endif
+            Serial.write('$');
             Serial.write(SERIAL_VERSION_STAMP);
 			Serial.write('M');
-			for (int i=0; i<64; i++) {
-				Serial.print(image_buffer[i], HEX);
-			}
+            for (int plane=0; plane<N_COLORS; plane++) {
+                byte planebit = 1 << plane;
+                for (int col=0; col<N_COLS; col++) {
+                    Serial.write(encode_hex_nybble(
+                                  ((image_buffer[4][col] & planebit)? 0x01:0) |
+                                  ((image_buffer[5][col] & planebit)? 0x02:0) |
+                                  ((image_buffer[6][col] & planebit)? 0x04:0) |
+                                  ((image_buffer[7][col] & planebit)? 0x08:0)));
+                    Serial.write(encode_hex_nybble(
+                                  ((image_buffer[0][col] & planebit)? 0x01:0) |
+                                  ((image_buffer[1][col] & planebit)? 0x02:0) |
+                                  ((image_buffer[2][col] & planebit)? 0x04:0) |
+                                  ((image_buffer[3][col] & planebit)? 0x08:0)));
+                }
+                Serial.write('$');
+            }
             Serial.write('\n');
             end_cmd();
             break;
 
-#if HW_MODEL == MODEL_CURRENT_64x8 || MODEL_CURRENT_64x8_INTEGRATED
         case 'F':
         case 'f':
             state = FlashState;
@@ -394,7 +444,6 @@ void CommandStateMachine::accept(int inputchar)
         case '?':
             report_state();
             break;
-#endif /* MODEL_CURRENT_64x8 */
 
         default:
             error();
@@ -402,7 +451,6 @@ void CommandStateMachine::accept(int inputchar)
         break;
 
     // Collecting LED numbers to form a flash or strobe sequence
-#if HW_MODEL == MODEL_CURRENT_64x8 || MODEL_CURRENT_64x8_INTEGRATED
     case FlashState:
     case StrobeState:
         switch (inputchar) {
@@ -484,7 +532,6 @@ void CommandStateMachine::accept(int inputchar)
         }
         reset();
         break;
-#endif /* MODEL_CURRENT_64x8 */
 
     case BarGraphState:
         if (inputchar >= '0' && inputchar <= '9') {
@@ -630,9 +677,9 @@ void CommandStateMachine::set_lights(byte bits)
 void CommandStateMachine::commit_image_data(void)
 {
     for (byte c=0; c < buffer_idx; c++) {
-        draw_column(c+column, buffer[c], merge, image_buffer);
+        //TODO draw_column(c+column, buffer[c], merge, image_buffer);
     }
-    display_buffer(image_buffer, transition);
+    //TODO display_buffer(image_buffer, transition);
     column = min(column + buffer_idx, 63);
 }
 
@@ -646,7 +693,7 @@ void CommandStateMachine::commit_graph_datapoint(int value)
 {
     byte bits = 0;
 
-    shift_left(image_buffer);
+    //TODO shift_left(image_buffer);
     switch (value) {
 	case 0: bits = 0x00; break;
     case 1: bits = 0x80; break;
@@ -663,11 +710,8 @@ void CommandStateMachine::commit_graph_datapoint(int value)
     default:
         bits = 0xaa;
     }
-#if HW_MODEL == MODEL_LEGACY_64x7
-    bits >>= 1;
-#endif
-    draw_column(63, bits, false, image_buffer);
-    display_buffer(image_buffer, NoTransition);
+    //TODO draw_column(63, bits, false, image_buffer);
+    //TODO display_buffer(image_buffer, NoTransition);
 }
 
 CommandStateMachine cmd;
@@ -692,4 +736,3 @@ void receive_serial_data(void)
         cmd.accept(Serial.read());
     }
 }
-#endif
