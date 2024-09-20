@@ -223,7 +223,7 @@ if len(glyph_lengths) != len(glyph_spaces) or len(glyph_spaces) != len(glyph_off
     raise ValueError('inconsistent glyph array lengths! BUG!!')
 
 for font_id, fgl in enumerate(glyph_lengths):
-    print(f'const PROGMEM byte GlyphMetricDataFont{font_id}Lengths[{len(fgl)}] = {{')
+    print(f'const PROGMEM unsigned char GlyphMetricDataFont{font_id}Lengths[{len(fgl)}] = {{')
     for li, l in enumerate(fgl):
         if li > 0 and li % 20 == 0:
             print()
@@ -231,7 +231,7 @@ for font_id, fgl in enumerate(glyph_lengths):
     print('};')
 
 for font_id, fgs in enumerate(glyph_spaces):
-    print(f'const PROGMEM byte GlyphMetricDataFont{font_id}Spaces[{len(fgs)}] = {{')
+    print(f'const PROGMEM unsigned char GlyphMetricDataFont{font_id}Spaces[{len(fgs)}] = {{')
     for li, l in enumerate(fgs):
         if li > 0 and li % 20 == 0:
             print()
@@ -239,7 +239,7 @@ for font_id, fgs in enumerate(glyph_spaces):
     print('};')
 
 for font_id, fgo in enumerate(glyph_offsets):
-    print(f'const PROGMEM word GlyphMetricDataFont{font_id}Offsets[{len(fgo)}] = {{')
+    print(f'const PROGMEM unsigned short GlyphMetricDataFont{font_id}Offsets[{len(fgo)}] = {{')
     for li, l in enumerate(fgo):
         if li > 0 and li % 10 == 0:
             print()
@@ -247,9 +247,9 @@ for font_id, fgo in enumerate(glyph_offsets):
     print('};')
 
 #print(f'const PROGMEM FontMetrics * const GlyphMetricData[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}" for i in range(len(font_data))])}}};')
-print(f'const byte * const GlyphMetricDataLengths[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Lengths" for i in range(len(font_data))])}}};')
-print(f'const byte * const GlyphMetricDataSpaces[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Spaces" for i in range(len(font_data))])}}};')
-print(f'const word * const GlyphMetricDataOffsets[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Offsets" for i in range(len(font_data))])}}};')
+print(f'const unsigned char * const GlyphMetricDataLengths[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Lengths" for i in range(len(font_data))])}}};')
+print(f'const unsigned char * const GlyphMetricDataSpaces[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Spaces" for i in range(len(font_data))])}}};')
+print(f'const unsigned short * const GlyphMetricDataOffsets[{len(font_data)}] = {{{", ".join([f"GlyphMetricDataFont{i}Offsets" for i in range(len(font_data))])}}};')
 
 if default_glyph is not None and default_glyph.offset != 0:
     char_breaks.append(default_glyph.offset)
@@ -273,23 +273,23 @@ for break_pos in sorted(char_breaks):
 print('};')
 print(f'''
 
-bool get_font_metric_data(byte font, byte codepoint, byte *leng, byte *space, unsigned int *offset)
+bool get_font_metric_data(byte font, byte codepoint, unsigned char *leng, unsigned char *space, unsigned short *offset)
 {{
     if (font >= N_FONTS || codepoint > FontMaxCodepoint[font] || leng == NULL || space == NULL || offset == NULL)
         return false;
 
-    *leng = pgm_read_byte_far(GlyphMetricDataLengths[font] + codepoint);
-    *space = pgm_read_byte_far(GlyphMetricDataSpaces[font]  + codepoint);
-    *offset = (unsigned int) pgm_read_word_far(GlyphMetricDataOffsets[font] + codepoint);
+    *leng = pgm_read_byte(GlyphMetricDataLengths[font] + codepoint);
+    *space = pgm_read_byte(GlyphMetricDataSpaces[font]  + codepoint);
+    *offset = pgm_read_word(GlyphMetricDataOffsets[font] + codepoint);
 
     return true;
 }} 
 
-byte get_font_bitmap_data(unsigned int offset) 
+byte get_font_bitmap_data(unsigned short offset) 
 {{
     if (offset < 0 || offset >= {len(bitmap_data)})
         return 0;
-    return pgm_read_byte_far(CharacterBitmap + offset);
+    return pgm_read_byte(CharacterBitmap + offset);
 }}
 ''')
 
@@ -316,7 +316,8 @@ def write_LaTeX_glyph(tex, codepoint, name, f, n=0, start=True):
 
 with open("fonts.tex", "w") as tex:
     for font_id, font in enumerate(font_data):
-        tex.write(f'\\section{{Font \\#{font_id} \\z{{{font_names[font_id].replace("_","\\_")}}}}}\n')
+        fn = font_names[font_id].replace('_', '\\_')
+        tex.write(f'\\section{{Font \\#{font_id} \\z{{{fn}}}}}\n')
         n=0
         start=True
         for codepoint in sorted(font.keys()):

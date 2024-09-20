@@ -12,7 +12,7 @@ const int N_FONTS = 3;
 const word FontMaxCodepoint[N_FONTS] = {255, 255, 168};
 
 
-const PROGMEM byte GlyphMetricDataFont0Lengths[256] = {
+const PROGMEM unsigned char GlyphMetricDataFont0Lengths[256] = {
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  0,  3,  4,  5,  5,  5,  5,  3, 
  5,  3,  5,  5,  2,  5,  2,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  2,  2, 
@@ -26,7 +26,7 @@ const PROGMEM byte GlyphMetricDataFont0Lengths[256] = {
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  4,  4,  4,  4, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, };
-const PROGMEM byte GlyphMetricDataFont1Lengths[256] = {
+const PROGMEM unsigned char GlyphMetricDataFont1Lengths[256] = {
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  0,  1,  4,  5,  5,  5,  5,  3, 
  3,  3,  5,  5,  2,  5,  2,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  2,  2, 
@@ -40,7 +40,7 @@ const PROGMEM byte GlyphMetricDataFont1Lengths[256] = {
  5,  5,  5,  5,  3,  3,  3,  3,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  3,  3,  3,  3, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, };
-const PROGMEM byte GlyphMetricDataFont2Lengths[169] = {
+const PROGMEM unsigned char GlyphMetricDataFont2Lengths[169] = {
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  0,  3,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  2,  5,  2,  2,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  5,  5, 
@@ -50,7 +50,7 @@ const PROGMEM byte GlyphMetricDataFont2Lengths[169] = {
  8,  4,  4,  5,  5,  5,  7,  7,  5,  5,  5,  5,  6,  5,  5,  5,  5,  5,  7,  7, 
  5,  8,  7,  5, 10, 10,  8,  8,  5,  5,  5,  5,  8,  8,  8,  8,  8,  8,  8,  8, 
  0,  0,  0,  0,  0,  0,  0,  0,  0, };
-const PROGMEM byte GlyphMetricDataFont0Spaces[256] = {
+const PROGMEM unsigned char GlyphMetricDataFont0Spaces[256] = {
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
@@ -64,7 +64,7 @@ const PROGMEM byte GlyphMetricDataFont0Spaces[256] = {
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, };
-const PROGMEM byte GlyphMetricDataFont1Spaces[256] = {
+const PROGMEM unsigned char GlyphMetricDataFont1Spaces[256] = {
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  2,  6,  6,  6,  6,  6,  4, 
  4,  4,  6,  6,  3,  6,  3,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  3,  3, 
@@ -78,7 +78,7 @@ const PROGMEM byte GlyphMetricDataFont1Spaces[256] = {
  6,  6,  6,  6,  4,  4,  4,  4,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  4,  4,  4,  4, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, };
-const PROGMEM byte GlyphMetricDataFont2Spaces[169] = {
+const PROGMEM unsigned char GlyphMetricDataFont2Spaces[169] = {
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  5,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  4,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  6,  6, 
@@ -88,7 +88,7 @@ const PROGMEM byte GlyphMetricDataFont2Spaces[169] = {
  8,  6,  6,  6,  6,  5,  8,  8,  6,  6,  6,  6,  7,  6,  6,  6,  6,  6,  9,  9, 
  6, 10,  7,  6, 11, 11,  9,  9,  6,  6,  6,  6,  9,  9,  9,  9,  9,  9,  9,  9, 
  6,  1,  2,  3,  4,  5,  6,  7,  8, };
-const PROGMEM word GlyphMetricDataFont0Offsets[256] = {
+const PROGMEM unsigned short GlyphMetricDataFont0Offsets[256] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
@@ -115,7 +115,7 @@ const PROGMEM word GlyphMetricDataFont0Offsets[256] = {
   907,   912,   917,   922,   927,   932,   937,   941,   945,   949, 
   953,   958,   963,   968,   973,   978,   983,   988,   993,   998, 
  1003,  1008,  1013,  1018,  1023,  1028, };
-const PROGMEM word GlyphMetricDataFont1Offsets[256] = {
+const PROGMEM unsigned short GlyphMetricDataFont1Offsets[256] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
@@ -142,7 +142,7 @@ const PROGMEM word GlyphMetricDataFont1Offsets[256] = {
   907,   912,   917,   922,   927,   932,  1131,  1134,  1137,  1140, 
   953,   958,   963,   968,   973,   978,   983,   988,   993,   998, 
  1003,  1008,  1013,  1018,  1023,  1028, };
-const PROGMEM word GlyphMetricDataFont2Offsets[169] = {
+const PROGMEM unsigned short GlyphMetricDataFont2Offsets[169] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
@@ -160,9 +160,9 @@ const PROGMEM word GlyphMetricDataFont2Offsets[169] = {
  1755,  1760,  1768,     0,  1600,  1610,  1620,  1628,     0,     0, 
     0,     0,  1636,  1644,  1652,  1660,  1668,  1676,  1684,  1692, 
     0,     0,     0,     0,     0,     0,     0,     0,     0, };
-const byte * const GlyphMetricDataLengths[3] = {GlyphMetricDataFont0Lengths, GlyphMetricDataFont1Lengths, GlyphMetricDataFont2Lengths};
-const byte * const GlyphMetricDataSpaces[3] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces};
-const word * const GlyphMetricDataOffsets[3] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets};
+const unsigned char * const GlyphMetricDataLengths[3] = {GlyphMetricDataFont0Lengths, GlyphMetricDataFont1Lengths, GlyphMetricDataFont2Lengths};
+const unsigned char * const GlyphMetricDataSpaces[3] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces};
+const unsigned short * const GlyphMetricDataOffsets[3] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets};
 /* font bitmap data */
 const PROGMEM byte CharacterBitmap[1775] = {
  0x3E, 0x22, 0x22, 0x22, 0x3E,
@@ -3688,22 +3688,22 @@ const PROGMEM byte CharacterBitmap[1775] = {
 };
 
 
-bool get_font_metric_data(byte font, byte codepoint, byte *leng, byte *space, unsigned int *offset)
+bool get_font_metric_data(byte font, byte codepoint, unsigned char *leng, unsigned char *space, unsigned short *offset)
 {
     if (font >= N_FONTS || codepoint > FontMaxCodepoint[font] || leng == NULL || space == NULL || offset == NULL)
         return false;
 
-    *leng = pgm_read_byte_far(GlyphMetricDataLengths[font] + codepoint);
-    *space = pgm_read_byte_far(GlyphMetricDataSpaces[font]  + codepoint);
-    *offset = (unsigned int) pgm_read_word_far(GlyphMetricDataOffsets[font] + codepoint);
+    *leng = pgm_read_byte(GlyphMetricDataLengths[font] + codepoint);
+    *space = pgm_read_byte(GlyphMetricDataSpaces[font]  + codepoint);
+    *offset = pgm_read_word(GlyphMetricDataOffsets[font] + codepoint);
 
     return true;
 } 
 
-byte get_font_bitmap_data(unsigned int offset) 
+byte get_font_bitmap_data(unsigned short offset) 
 {
     if (offset < 0 || offset >= 1775)
         return 0;
-    return pgm_read_byte_far(CharacterBitmap + offset);
+    return pgm_read_byte(CharacterBitmap + offset);
 }
 

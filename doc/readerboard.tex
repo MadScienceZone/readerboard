@@ -98,7 +98,7 @@ for the full set of licensing terms.
 %
 \chapter{Hardware}
 \epigraph{People who are really serious about software should make their own hardware.}{---Alan Kay}
-\LJversal{A}{s a hobby project,} the design of the hardware and software for the readerboard
+\LJversal{A}{s a hobby project,} the design of the hardware and software for the read\-erboard
 project ``grew in the telling'' as new ideas sprang to mind. As of this writing, there are three
 different models of hardware prototypes which were designed and created.
 
@@ -2134,58 +2134,33 @@ After updating the code from the repository if necessary, perform the following 
 prepare the firmware image:
 
 {\bfseries Step 1: Configuration.}\label{config-fw}
-Edit the first few lines of \z{readerboard.h}:
+Edit a few lines near the top of \z{readerboard.h}:
 \begin{SourceCode}
-#define BANNER_HARDWARE_VERS "HW 3.2.3  "
-#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
-#define BANNER_SERIAL_NUMBER "S/N XXXXXX"
-#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$SXXXXX$"
-//                             \___/  \___/  \___/
-//                               |      |      |
-//                  Hardware version    |      |
-//                         Firmware version    |
-//                                 Serial number
-\end{SourceCode}
-
-The \z{BANNER\_FIRMWARE\_VERS} value should match the version of the firm\-ware source code you are compiling.
-
-Set the \z{BANNER\_SERIAL\_NUMBER} value to the serial number for your specific device. Serial numbers under 300 are
-reserved for the project author's use. If building your own device, assign a serial number that makes sense to you.
-It will help you manage your collection of devices best if you give them unique serial numbers since those can be
-queried by software.
-
-Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous three values while still preserving
-the format ``\z{V}\dots\z{\$R}\dots\z{\$S}\dots\z{\$}''. This string will be sent verbatim as part
-of the device's response to being queried for its configuration and status.
-
-An example of a properly configured file looks like this:
-\begin{SourceCode}
-#define BANNER_HARDWARE_VERS "HW 3.2.3  "
-#define BANNER_FIRMWARE_VERS "FW 1.2.0  "
-#define BANNER_SERIAL_NUMBER "S/N R1024 "
-#define SERIAL_VERSION_STAMP "V3.2.3$R1.2.0$SR1024$"
-//                             \___/  \___/  \___/
-//                               |      |      |
-//                  Hardware version    |      |
-//                         Firmware version    |
-//                                 Serial number
-\end{SourceCode}
-
-{\bfseries Step 2: Set Hardware Model}.
-A little further down \z{readerboard.h}, there is a pair of lines like:
-\begin{SourceCode}
+// BEGIN CONFIGURATION SECTION
+// TODO: Set these before compiling for a particular hardware 
+//       configuration
 #define HW_MODEL (MODEL_3xx_RGB)
 #define HW_MC (HW_MC_DUE)
+#define HAS_I2C_EEPROM (false)
 \end{SourceCode}
-		This should come already set up for the latest hardware model (in this example,
-		the revision 3 \acronym{RGB} models which incorporate the Arduino directly onto
-		the main circuit board). If your hardware uses a different design, such as one
-		of the older legacy boards, \z{HW\_MODEL} needs to be changed to another hardware
-		name, provided that name is actually supported (and supported correctly) in the rest
-		of the firmware. 
 
-		The supported values for these two configuration settings are listed in
-		Table~\ref{tab:hwmodel}.
+These values should come already set up for the latest hardware model (in this example,
+the revision 3 \acronym{RGB} models which incorporate the Arduino directly onto
+the main circuit board). If your hardware uses a different design, such as one
+of the older legacy boards, \z{HW\_MODEL} needs to be changed to another hardware
+name, provided that name is actually supported (and supported correctly) in the rest
+of the firmware. 
+
+Also, \z{HW\_MC} needs to be set to the model of Arduino microcontroller you will be
+using to control this unit.
+
+If using an \acronym{EEPROM} chip or module external to the Arduino via the I$^2$C bus, such as 
+chip U16 which is recommended for use with the Arduino Due, then set
+\z{HAS\_I2C\_EEPROM} to \z{true}. If using no \acronym{EEPROM} or the one built-in to the
+Arduino, leave this set to \z{false}.
+
+The supported values for these two configuration settings are listed in
+Table~\ref{tab:hwmodel}.
 \begin{table}
 	\begin{center}
 		\begin{tabular}{lp{3in}}\toprule
@@ -2202,15 +2177,117 @@ A little further down \z{readerboard.h}, there is a pair of lines like:
 	\end{center}
 \end{table}
 
+\begin{SourceCode}
+// TODO: Set these default settings (this will be the "factory
+//	 default settings"). On Due-based systems without 
+//	 external EEPROM, this is the only way to make these
+//       settings at all. On every other model, this is just
+//       the default that can be overridden by configuring the
+//       unit since the new configuration values can be saved 
+//       in EEPROM.
+//
+// Default baud rate. Allowed values are '0'=300, '1'=600, 
+// '2'=1200, '3'=2400, '4'=4800, '5'=9600, '6'=14400,
+// '7'=19200, '8'=28800, '9'=31250, 'A'=38400, 'B'=57600,
+// 'C'=115200.
+#define EE_DEFAULT_USB_SPEED  ('5')
+#define EE_DEFAULT_485_SPEED ('5')
+\end{SourceCode}
+These values determine the default baud rate to use for the \acronym{USB} direct
+connection and \acronym{RS-485} network. Note that the value is a character literal.
 
-{\bfseries Step 3: Make.}
+\begin{SourceCode}
+// Default device address (may be any value from 0-63 except
+// the global address, or EE_ADDRESS_DISABLED if you won't be 
+// using RS-485 at all.)
+#define EE_DEFAULT_ADDRESS (EE_ADDRESS_DISABLED)
+//
+// Default global device address (may be any value from 0-15).
+#define EE_DEFAULT_GLOBAL_ADDRESS (15)
+\end{SourceCode}
+With \z{EE\_DEFAULT\_ADDRESS} set to \z{EE\_ADDRESS\_DISABLED},
+the \acronym{RS-485} interface will be disabled. Otherwise the value
+set for this symbol is an integer in the range 0--63 which will be
+the device address recognized in commands received over the
+\acronym{RS-485} network.
+
+Set \z{EE\_DEFAULT\_GLOBAL\_ADDRESS} to the default global device address you
+wish the unit to recognize. This must be in the range 0--15.
+
+\begin{SourceCode}
+//
+// TODO: Adjust these for the colors of discrete status LEDs on
+//       this unit. These can be used for color values in
+//       commands sent to the device.
+#define STATUS_LED_COLOR_L0 ('G')
+#define STATUS_LED_COLOR_L1 ('y')
+#define STATUS_LED_COLOR_L2 ('Y')
+#define STATUS_LED_COLOR_L3 ('r')
+#define STATUS_LED_COLOR_L4 ('R')
+#define STATUS_LED_COLOR_L5 ('b')
+#define STATUS_LED_COLOR_L6 ('B')
+#define STATUS_LED_COLOR_L7 ('W')
+\end{SourceCode}
+These are set for the standard color assignments for the discrete status \acronym{LED}s, allowing for
+the use of these single-letter color codes to refer to the status \acronym{LED}s. If you build a
+unit with different colors, you may assign appropriate color codes here.
+
+\begin{SourceCode}
+#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
+#define BANNER_SERIAL_NUMBER "S/N RBXXXX"
+#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$SRBXXXX$"
+//                             \___/  \___/  \____/
+//                               |      |       |
+//                  Hardware version    |       |
+//                         Firmware version     |
+//                                  Serial number
+\end{SourceCode}
+
+The \z{BANNER\_FIRMWARE\_VERS} value should match the version of the firm\-ware source code you are compiling.
+
+Likewise, \z{BANNER\_HARDWARE\_VERS} gives the revision of the \acronym{PCB} in use.
+
+Set the \z{BANNER\_SERIAL\_NUMBER} value to the serial number for your specific device. Serial numbers under 300 are
+reserved for the project author's use. If building your own device, assign a serial number that makes sense to you.
+It will help you manage your collection of devices best if you give them unique serial numbers since those can be
+queried by software.
+
+These should be 10-character text strings. They will be displayed briefly when the sign is booted.
+
+Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous three values while still preserving
+the format ``\z{V}\dots\z{\$R}\dots\z{\$S}\dots\z{\$}''. This string will be sent verbatim as part
+of the device's response to being queried for its configuration and status.
+
+%An example of a properly configured file looks like this:
+%\begin{SourceCode}
+%#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+%#define BANNER_FIRMWARE_VERS "FW 1.2.0  "
+%#define BANNER_SERIAL_NUMBER "S/N R1024 "
+%#define SERIAL_VERSION_STAMP "V3.2.3$R1.2.0$SR1024$"
+%//                             \___/  \___/  \___/
+%//                               |      |      |
+%//                  Hardware version    |      |
+%//                         Firmware version    |
+%//                                 Serial number
+%\end{SourceCode}
+%
+%{\bfseries Step 2: Set Hardware Model}.
+%A little further down \z{readerboard.h}, there is a pair of lines like:
+%\begin{SourceCode}
+%#define HW_MODEL (MODEL_3xx_RGB)
+%#define HW_MC (HW_MC_DUE)
+%\end{SourceCode}
+
+
+{\bfseries Step 2: Make.}
 		Run the \z{make} program. This will build the font tables from the various
 		\z{*.font} files into the firmware code so the target device will be able to
 		generate characters from those fonts.
 
 		Customizing and extending the fonts is described in Chapter~\ref{chap:fonts}.
 
-{\bfseries Step 4: Compile.}
+{\bfseries Step 3: Compile.}
 		Using your Arduino compiler tools, compile the \z{readerboard.ino} file and upload it
 		to your readerboard hardware. This step assumes you have set up your own Arduino
 		development environment and is beyond the scope of this document to help you with.

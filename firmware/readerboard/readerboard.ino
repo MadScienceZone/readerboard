@@ -600,8 +600,8 @@ void clear_hw_buffer(void)
 //
 byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep)
 {
-    byte l, s;
-    unsigned int o;
+    unsigned char l, s;
+    unsigned short o;
 
     if (col >= N_COLS) {
         return col;
@@ -616,19 +616,18 @@ byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_C
         }
     }
     return col+s;
-    return 0;
 }
 
 //
 // draw_column(col, bits, mergep, buffer)
-//   Draw bits (LSB=top) onto the specified buffer column. If mergep is true,
+//   Draw bits (LSB=bottom) onto the specified buffer column. If mergep is true,
 //   merge with existing pixels instead of overwriting them.
 //
 void draw_column(byte col, byte bits, byte color, bool mergep, byte buffer[N_ROWS][N_COLS])
 {
     if (col < N_COLS) {
         for (byte row=0; row<N_ROWS; row++) {
-            if (bits & (1 << row)) {
+            if (bits & (1 << (7-row))) {
                 buffer[row][col] = color;
             }
             else if (!mergep) {
@@ -970,7 +969,7 @@ void setup_eeprom(void)
 // This is used when the sign isn't in normal operational mode (e.g., startup)
 // and doesn't rely on any background tasks (including the refresh) to be running.
 // 
-void display_text(byte font, char *string, byte color, int mS_delay)
+void display_text(byte font, const char *string, byte color, int mS_delay)
 {
     if (string == NULL) {
         return;
@@ -1017,7 +1016,7 @@ void show_hw_buffer(int duration_mS)
             digitalWrite(PIN_R3, LOW);          //   X     X  1   1    1  0  X  X  X  |
 #else
 # if HW_MODEL == MODEL_3xx_RGB
-            if (!(hw_active_color_planes & (1 << plane))) {
+            if (!(hw_active_color_planes & planebit)) {
                 continue;
             }
             if (planebit == BIT_RGB_RED) {
@@ -1152,7 +1151,7 @@ void setup(void)
 	display_text(0, "USB XXXXXX", BIT_RGB_RED, 9000);	// speed
 	display_text(0, "485 XXXXXX", BIT_RGB_RED, 9000);	// speed or OFF
 	display_text(0, "MadScience", BIT_RGB_GREEN,  9000);
-	display_text(0, "Zone \xa92023",  BIT_RGB_GREEN, 9000);
+	display_text(0, "Zone \2512023",  BIT_RGB_GREEN, 9000);
 //	clear_matrix();
 //	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
     clear_all_buffers();
