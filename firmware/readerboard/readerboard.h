@@ -18,11 +18,11 @@ Libraries Required:
 #define MODEL_3xx_MONOCHROME (3)
 #define MODEL_3xx_RGB (4)
 
-/* LEGACY models NO LONGER supported. Do not use these.
+/* LEGACY models NO LONGER supported. Do not use these. */
 #define MODEL_LEGACY_64x7 (0)
 #define MODEL_LEGACY_64x8 (1)
 #define MODEL_LEGACY_64x8_INTEGRATED (2)
----------------------------------------------------------*/
+/* ---------------------------------------------------------*/
 
 // Microcontroller Models for HW_MC
 #define HW_MC_MEGA_2560 (0)

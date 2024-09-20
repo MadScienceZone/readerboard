@@ -31,6 +31,7 @@ byte global_device_address =  EE_DEFAULT_GLOBAL_ADDRESS;
 int USB_baud_rate = 0;
 int RS485_baud_rate = 0;
 
+void debug_image_buffer(byte buf[N_ROWS][N_COLS]);
 
 //
 // EEPROM locations
@@ -620,14 +621,14 @@ byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_C
 
 //
 // draw_column(col, bits, mergep, buffer)
-//   Draw bits (LSB=bottom) onto the specified buffer column. If mergep is true,
+//   Draw bits (LSB=top) onto the specified buffer column. If mergep is true,
 //   merge with existing pixels instead of overwriting them.
 //
 void draw_column(byte col, byte bits, byte color, bool mergep, byte buffer[N_ROWS][N_COLS])
 {
     if (col < N_COLS) {
         for (byte row=0; row<N_ROWS; row++) {
-            if (bits & (1 << (7-row))) {
+            if (bits & (1 << (row))) {
                 buffer[row][col] = color;
             }
             else if (!mergep) {
@@ -1047,15 +1048,15 @@ void show_hw_buffer(int duration_mS)
 
             /* now push out the column data */
             for (int row=0; row < N_ROWS; row++) {
-                for (int col=0; col < N_COLBYTES; col++) {
-                    digitalWrite(PIN_D0, (hw_buffer[plane][row][col] & 0x01) ? HIGH : LOW);
-                    digitalWrite(PIN_D1, (hw_buffer[plane][row][col] & 0x02) ? HIGH : LOW);
-                    digitalWrite(PIN_D2, (hw_buffer[plane][row][col] & 0x04) ? HIGH : LOW);
-                    digitalWrite(PIN_D3, (hw_buffer[plane][row][col] & 0x08) ? HIGH : LOW);
-                    digitalWrite(PIN_D4, (hw_buffer[plane][row][col] & 0x10) ? HIGH : LOW);
-                    digitalWrite(PIN_D5, (hw_buffer[plane][row][col] & 0x20) ? HIGH : LOW);
-                    digitalWrite(PIN_D6, (hw_buffer[plane][row][col] & 0x40) ? HIGH : LOW);
-                    digitalWrite(PIN_D7, (hw_buffer[plane][row][col] & 0x80) ? HIGH : LOW);
+                for (int cblk=0; cblk < N_COLBYTES; cblk++) {
+                    digitalWrite(PIN_D0, (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW);
+                    digitalWrite(PIN_D1, (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW);
+                    digitalWrite(PIN_D2, (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW);
+                    digitalWrite(PIN_D3, (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW);
+                    digitalWrite(PIN_D4, (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW);
+                    digitalWrite(PIN_D5, (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW);
+                    digitalWrite(PIN_D6, (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW);
+                    digitalWrite(PIN_D7, (hw_buffer[plane][row][cblk] & 0x70) ? HIGH : LOW);
                     //                                  //            _ _____
                     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
                     digitalWrite(PIN_SRCLK, HIGH);      //   1     X  1   1    p  p  X  X  X  shift data into shift registers
@@ -1092,10 +1093,10 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
 #  error "invalid assumption that monochrome displays have 2 bit planes"
 # endif
             if (buffer[row][col] & (BIT_RGB_RED | BIT_RGB_GREEN | BIT_RGB_BLUE)) {
-                hw_buffer[0][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+                hw_buffer[0][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
             }
             if (buffer[row][col] & BIT_RGB_FLASHING) {
-                hw_buffer[1][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+                hw_buffer[1][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
             }
 #else
 # if HW_MODEL == MODEL_3xx_RGB
@@ -1104,11 +1105,11 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
                 if (plane == N_FLASHING_PLANE) {
                     if (buffer[row][col] & BIT_RGB_FLASHING) {
                         hw_active_color_planes |= BIT_RGB_FLASHING;
-                        hw_buffer[plane][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+                        hw_buffer[plane][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
                     }
                 } else if (buffer[row][col] & planebit) {
                     hw_active_color_planes |= planebit;
-                    hw_buffer[plane][row][col & 0x07] |= 1 << ((col >> 3) & 0x07);
+                    hw_buffer[plane][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
                 }
             }
 # else
@@ -1143,15 +1144,24 @@ void setup(void)
 //	// TODO If RS-485 is enabled, start that UART too
 //
 	flag_test();
-	display_text(0, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 9000);
-	display_text(0, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 9000);
-	display_text(0, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 9000);
-	display_text(0, "ADDRESS XX", BIT_RGB_RED, 9000);	// 00-15 or --
-	display_text(0, "GLOBAL  XX", BIT_RGB_RED, 9000);	// 00-15 or --
-	display_text(0, "USB XXXXXX", BIT_RGB_RED, 9000);	// speed
-	display_text(0, "485 XXXXXX", BIT_RGB_RED, 9000);	// speed or OFF
-	display_text(0, "MadScience", BIT_RGB_GREEN,  9000);
-	display_text(0, "Zone \2512023",  BIT_RGB_GREEN, 9000);
+    char rbuf[32];
+	display_text(0, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1000);
+	display_text(0, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1000);
+	display_text(0, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1000);
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        display_text(0, "ADDRESS --", BIT_RGB_RED, 2000);
+    } else {
+        sprintf(rbuf, "ADDRESS %02d", my_device_address);
+        display_text(0, rbuf, BIT_RGB_RED, 2000);
+    }
+    sprintf(rbuf, "GLOBAL  %02d", global_device_address);
+	display_text(0, rbuf, BIT_RGB_RED, 2000);
+    sprintf(rbuf, "USB %6d", USB_baud_rate);
+	display_text(0, rbuf, BIT_RGB_RED, 2000);
+    sprintf(rbuf, "485 %6d", RS485_baud_rate);
+	display_text(0, rbuf, BIT_RGB_RED, 2000);
+	display_text(0, "MadScience", BIT_RGB_GREEN,  1000);
+	display_text(0, "Zone \2512024",  BIT_RGB_GREEN, 1000);
 //	clear_matrix();
 //	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
     clear_all_buffers();
@@ -1468,4 +1478,36 @@ byte encode_hex_nybble(byte n)
         return n + '0';
     }
     return (n-10) + 'a';
+}
+
+void debug_image_buffer(byte buf[N_ROWS][N_COLS])
+{
+    char rbuf[16];
+    Serial.write("image buffer\n");
+    for (int row=0; row<N_ROWS; row++) {
+        sprintf(rbuf, "[%d] ", row);
+        Serial.write(rbuf);
+        for (int col=0; col<N_COLS; col++) {
+            switch (buf[row][col]) {
+                case 0: Serial.write(".");break;
+                case 1: Serial.write("R");break;
+                case 2: Serial.write("G");break;
+                case 3: Serial.write("Y");break;
+                case 4: Serial.write("B");break;
+                case 5: Serial.write("M");break;
+                case 6: Serial.write("C");break;
+                case 7: Serial.write("W");break;
+                case 8: Serial.write("f");break;
+                case 9: Serial.write("r");break;
+                case 10: Serial.write("g");break;
+                case 11: Serial.write("y");break;
+                case 12: Serial.write("b");break;
+                case 13: Serial.write("m");break;
+                case 14: Serial.write("c");break;
+                case 15: Serial.write("w");break;
+                default: Serial.write("?");break;
+            }
+        }
+        Serial.write('\n');
+    }
 }
