@@ -44,7 +44,7 @@ Libraries Required:
 //                    '4'=4800, '5'=9600, '6'=14400, '7'=19200, '8'=28800,
 //                    '9'=31250, 'A'=38400, 'B'=57600, 'C'=115200.
 #define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
-#define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
+#define EE_DEFAULT_485_SPEED ('C')  /* RS-485 connections 9600 baud */
 //
 #define EE_ADDRESS_DISABLED (0xff) /* interface disabled */
 // Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
@@ -67,9 +67,9 @@ Libraries Required:
 //
 // TODO: Adjust these for your version and serial number
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
-#define BANNER_SERIAL_NUMBER "S/N RB____"
-#define SERIAL_VERSION_STAMP "V3.2.2$R0.0.0$SRB____$"
+#define BANNER_FIRMWARE_VERS "FW 0.0.1  "
+#define BANNER_SERIAL_NUMBER "S/N RB0000"
+#define SERIAL_VERSION_STAMP "V3.2.2$R0.0.0$SRB0000$"
 //                             \___/  \___/  \____/
 //                               |      |      |
 //                  Hardware version    |      |
@@ -133,5 +133,7 @@ extern byte encode_int6(byte n);
 extern byte encode_hex_nybble(byte n);
 extern int parse_baud_rate_code(byte code);
 
+// #define SERIAL_DEBUG
+// #define START_TEST_PATTERN
 
 #endif

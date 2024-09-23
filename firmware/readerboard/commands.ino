@@ -222,7 +222,8 @@ private:
 public:
     void accept(int inputchar);
     bool accept_hex_nybble(int inputchar);
-    bool accept_encoded_int63(int inputchar);
+    bool accept_encoded_int6(int inputchar);    // 6-bit unsigned integer
+    bool accept_encoded_pos(int inputchar);     // 6-bit position or ~ for current
     void begin(void);
     void commit_graph_datapoint(int value);
     void commit_image_data(void);
@@ -241,19 +242,25 @@ void CommandStateMachine::begin(void)
 }
 
 //
-// (CSM) accept_encoded_int63(inputchar)
+// (CSM) accept_encoded_pos(inputchar)
 //   Reads the input character as an ASCII-encoded value in the range [0,63] as described
 //   above. If successful, the decoded value is placed in bytebuf and true is returned.
 //
 //   In case of error, the state machine is reset with an error condition, and false is returned.
 //
-bool CommandStateMachine::accept_encoded_int63(int inputchar)
+bool CommandStateMachine::accept_encoded_pos(int inputchar)
 {
     nybble = false;
     if (inputchar == '~') {
         bytebuf = min(column, 63);
         return true;
     }
+    return accept_encoded_pos(inputchar);
+}
+
+bool CommandStateMachine::accept_encoded_int6(int inputchar)
+{
+    nybble = false;
     if (inputchar >= '0' && inputchar <= 'o') {
         bytebuf = inputchar - '0';
         return true;
@@ -261,6 +268,8 @@ bool CommandStateMachine::accept_encoded_int63(int inputchar)
     error();
     return false;
 }
+
+
 
 //
 // (CSM) accept_hex_nybble(inputchar)
@@ -554,7 +563,7 @@ void CommandStateMachine::accept(int inputchar)
         break;
 
     case ImageStateCol:
-        if (accept_encoded_int63(inputchar)) {
+        if (accept_encoded_pos(inputchar)) {
             column = bytebuf;
             state = ImageStateTransition;
         }
@@ -629,13 +638,16 @@ void CommandStateMachine::report_state(void)
 {
     int i = 0;
     Serial.write('L');
-    for (i = 0; i < 8; i++) {
-        Serial.write(discrete_query(i) ? '1' : '0');
+    for (i = 0; i < LENGTH_OF(discrete_led_set); i++) {
+        Serial.write(discrete_query(i) ? encode_led(i) : '_');
     }
+    Serial.write('$');
     Serial.write('F');
     flasher.report_state();
+    Serial.write('$');
     Serial.write('S');
     strober.report_state();
+    Serial.write('$');
     Serial.write('\n');
 }
 

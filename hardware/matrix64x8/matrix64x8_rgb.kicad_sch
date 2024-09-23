@@ -6364,6 +6364,12 @@
 		(uuid "4edab5c5-5ae8-461e-b4c8-e9e0763ded49")
 	)
 	(junction
+		(at 266.7 226.06)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "4f18e9fc-2762-42c7-8954-84bb41d18f7f")
+	)
+	(junction
 		(at 277.495 132.08)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -8249,7 +8255,7 @@
 	)
 	(wire
 		(pts
-			(xy 271.526 226.06) (xy 271.526 239.014)
+			(xy 266.7 226.06) (xy 266.7 239.014)
 		)
 		(stroke
 			(width 0)
@@ -8446,6 +8452,16 @@
 			(type default)
 		)
 		(uuid "7a09d683-52cc-493b-9070-1d9e344d97a3")
+	)
+	(wire
+		(pts
+			(xy 266.7 226.06) (xy 282.956 226.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7a211997-5a4c-4160-b6d2-a8f438afb590")
 	)
 	(wire
 		(pts
@@ -9049,6 +9065,16 @@
 	)
 	(wire
 		(pts
+			(xy 266.7 220.98) (xy 266.7 226.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a5f564db-fe14-44fe-9031-bc9cc840d993")
+	)
+	(wire
+		(pts
 			(xy 282.956 210.82) (xy 277.368 210.82)
 		)
 		(stroke
@@ -9296,16 +9322,6 @@
 			(type default)
 		)
 		(uuid "b6f35383-e960-43fa-abb2-0b64562ed531")
-	)
-	(wire
-		(pts
-			(xy 282.956 226.06) (xy 271.526 226.06)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b8a5ac2f-0f76-4c46-a77b-f3799610415d")
 	)
 	(wire
 		(pts
@@ -9879,7 +9895,7 @@
 	)
 	(wire
 		(pts
-			(xy 162.56 239.014) (xy 271.526 239.014)
+			(xy 162.56 239.014) (xy 266.7 239.014)
 		)
 		(stroke
 			(width 0)
@@ -18047,6 +18063,72 @@
 			(project "matrix64x8_rgb"
 				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
 					(reference "R31")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+5V")
+		(at 266.7 220.98 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "d0a7c6ab-f3c5-4ab1-b593-862922f16395")
+		(property "Reference" "#PWR026"
+			(at 266.7 224.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+9V"
+			(at 266.7 215.9 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 266.7 220.98 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 266.7 220.98 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 266.7 220.98 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "f060034d-dc01-4f55-a84f-b75e5f75fbe3")
+		)
+		(instances
+			(project "matrix64x8_rgb"
+				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
+					(reference "#PWR026")
 					(unit 1)
 				)
 			)

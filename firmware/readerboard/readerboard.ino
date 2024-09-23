@@ -32,6 +32,7 @@ int USB_baud_rate = 0;
 int RS485_baud_rate = 0;
 
 void debug_image_buffer(byte buf[N_ROWS][N_COLS]);
+void debug_hw_buffer(void);
 
 //
 // EEPROM locations
@@ -88,11 +89,9 @@ void debug_image_buffer(byte buf[N_ROWS][N_COLS]);
  *                                     10 FPS = 12.50 mS
  *                                      5 FPS = 25.00 mS
  */
-//const int REFRESH_MS = 25;
 const int ROW_HOLD_TIME_US = 500;   /* how long in microseconds to hold the row on during refresh */
 
 const int PIN_STATUS_LED = 13;
-
 
 // Hardware notes
 // DUE    MEGA                 READERBOARD              DUE    MEGA
@@ -707,18 +706,16 @@ void LightBlinker::append(byte v)
 
 void LightBlinker::report_state(void)
 {
-/*    int i = 0;
-    Serial.write(cur_state ? '1' : '0');
+    Serial.write(cur_state ? 'R' : 'S');
     if (sequence_length > 0) {
-        Serial.write(cur_index + '0');
+        Serial.write(encode_int6(cur_index));
         Serial.write('@');
-        for (i = 0; i < sequence_length; i++) {
-            Serial.write(sequence[i] + '0');
+        for (int i = 0; i < sequence_length; i++) {
+            Serial.write(encode_led(i));
         }
+    } else {
+        Serial.write('_');
     }
-    else {
-        Serial.write('X');
-    }*/
 }
 
 void discrete_set(byte l, bool value)
@@ -980,15 +977,49 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
     /* draw characters onto the image buffer */
     byte pos = 0;
     for (; *string != '\0'; string++) {
-        pos = draw_character(pos, font, *string, image_buffer, color);
+        if (*string == '\003') {
+            if (*++string == '\0')
+                break;
+            pos = decode_pos(*string, pos);
+        }
+        else if (*string == '\006') {
+            if (*++string == '\0')
+                break;
+            font = decode_int6(*string);
+        }
+        else if (*string == '\010') {
+            if (*++string == '\0')
+                break;
+            pos -= decode_int6(*string);
+        }
+        else if (*string == '\013') {
+            if (*++string == '\0')
+                break;
+            color = decode_rgb(*string);
+        }
+        else if (*string == '\014') {
+            if (*++string == '\0')
+                break;
+            pos += decode_int6(*string);
+        }
+        else {
+            pos = draw_character(pos, font, *string, image_buffer, color);
+        }
     }
 
     /* transfer to the hardware buffer */
+#ifdef SERIAL_DEBUG
+    debug_image_buffer(image_buffer);
+#endif
     commit_image_buffer(image_buffer);
+#ifdef SERIAL_DEBUG
+    debug_hw_buffer();
+#endif
     
     /* display the hardware buffer for the delay time */
     show_hw_buffer(mS_delay);
 }
+
 
 //
 // show_hw_buffer(int milliseconds)
@@ -1056,7 +1087,7 @@ void show_hw_buffer(int duration_mS)
                     digitalWrite(PIN_D4, (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW);
                     digitalWrite(PIN_D5, (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW);
                     digitalWrite(PIN_D6, (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW);
-                    digitalWrite(PIN_D7, (hw_buffer[plane][row][cblk] & 0x70) ? HIGH : LOW);
+                    digitalWrite(PIN_D7, (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW);
                     //                                  //            _ _____
                     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
                     digitalWrite(PIN_SRCLK, HIGH);      //   1     X  1   1    p  p  X  X  X  shift data into shift registers
@@ -1077,6 +1108,97 @@ void show_hw_buffer(int duration_mS)
             }
         }
     }
+}
+
+//
+// refresh_hw_buffer()
+// Call this when you want to display the next row on the display, from a background timer
+// or other mechanism. When called, the next hardware row is pushed out and held.
+//
+void refresh_hw_buffer(void)
+{
+    static int plane = 0;
+    static int planebit = 1;
+    static int row = 0;
+
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN__G, HIGH);         //   X     X  1   X    X  X  X  X  X  disable column drains
+    digitalWrite(PIN__SRCLR, LOW);      //   X     X  1   0    X  X  X  X  X  reset shift registers
+    digitalWrite(PIN__SRCLR, HIGH);     //   X     X  1   1    X  X  X  X  X  |
+
+    if (hw_active_color_planes == 0)
+        return;
+
+    if (++row >= N_ROWS) {
+        do {
+            if (++plane >= N_COLORS) {
+                plane = 0;
+            }
+            planebit = 1 << plane;
+        } while (plane == N_FLASHING_PLANE || !(hw_active_color_planes & planebit));
+        row = 0;
+    }
+
+#if HW_MODEL == MODEL_3xx_MONOCHROME
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set blue plane
+    digitalWrite(PIN_R3, LOW);          //   X     X  1   1    1  0  X  X  X  |
+#else
+# if HW_MODEL == MODEL_3xx_RGB
+    if (planebit == BIT_RGB_RED) {
+        //                                  //            _ _____
+        //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN_R4, LOW);          //   X     X  1   1    0  X  X  X  X  set red plane
+        digitalWrite(PIN_R3, LOW);          //   X     X  1   1    0  0  X  X  X  |
+    } else if (planebit == BIT_RGB_GREEN) {
+        //                                  //            _ _____
+        //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN_R4, LOW);          //   X     X  1   1    0  X  X  X  X  set green plane
+        digitalWrite(PIN_R3, HIGH);         //   X     X  1   1    0  1  X  X  X  |
+    } else if (planebit == BIT_RGB_BLUE) {
+        //                                  //            _ _____
+        //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set blue plane
+        digitalWrite(PIN_R3, LOW);          //   X     X  1   1    1  0  X  X  X  |
+    } else {
+        //                                  //            _ _____
+        //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set NO plane
+        digitalWrite(PIN_R3, HIGH);         //   X     X  1   1    1  1  X  X  X  |
+    }
+# else
+#  error "hw model not set"
+# endif
+#endif
+    /* now push out the column data */
+    for (int cblk=0; cblk < N_COLBYTES; cblk++) {
+        digitalWrite(PIN_D0, (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW);
+        digitalWrite(PIN_D1, (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW);
+        digitalWrite(PIN_D2, (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW);
+        digitalWrite(PIN_D3, (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW);
+        digitalWrite(PIN_D4, (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW);
+        digitalWrite(PIN_D5, (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW);
+        digitalWrite(PIN_D6, (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW);
+        digitalWrite(PIN_D7, (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW);
+        //                                  //            _ _____
+        //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+        digitalWrite(PIN_SRCLK, HIGH);      //   1     X  1   1    p  p  X  X  X  shift data into shift registers
+        digitalWrite(PIN_SRCLK, LOW);       //   0     X  1   1    p  p  X  X  X  shift data into shift registers
+    }
+
+    /* light up the row */
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN_RCLK, HIGH);       //   0     1  1   1    p  p  X  X  X  latch shift register outputs
+    digitalWrite(PIN_RCLK, LOW);        //   0     0  1   1    p  p  X  X  X  |
+    digitalWrite(PIN_R2, (row & 0x04)?HIGH:LOW);  //  1   1    p  p  r  X  X  turn on anode supply for row
+    digitalWrite(PIN_R1, (row & 0x02)?HIGH:LOW);  //  1   1    p  p  r  r  X  |
+    digitalWrite(PIN_R0, (row & 0x01)?HIGH:LOW);  //  1   1    p  p  r  r  r  |
+    digitalWrite(PIN__G, LOW);          //   0     1  0   1    p  p  r  r  r  enable column sinks
+    delayMicroseconds(ROW_HOLD_TIME_US);
+    digitalWrite(PIN__G, HIGH);         //   0     1  1   1    p  p  r  r  r  disable column sinks
 }
 
 //
@@ -1145,27 +1267,51 @@ void setup(void)
 //
 	flag_test();
     char rbuf[32];
-	display_text(0, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1000);
-	display_text(0, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1000);
-	display_text(0, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1000);
+	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
+	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
+	display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
     if (my_device_address == EE_ADDRESS_DISABLED) {
-        display_text(0, "ADDRESS --", BIT_RGB_RED, 2000);
+        display_text(0, "ADDRESS \0133\234\234", BIT_RGB_RED, 3000);
     } else {
-        sprintf(rbuf, "ADDRESS %02d", my_device_address);
-        display_text(0, rbuf, BIT_RGB_RED, 2000);
+        sprintf(rbuf, "ADDRESS \0137%02d", my_device_address);
+        display_text(0, rbuf, BIT_RGB_RED, 3000);
     }
-    sprintf(rbuf, "GLOBAL  %02d", global_device_address);
-	display_text(0, rbuf, BIT_RGB_RED, 2000);
-    sprintf(rbuf, "USB %6d", USB_baud_rate);
-	display_text(0, rbuf, BIT_RGB_RED, 2000);
-    sprintf(rbuf, "485 %6d", RS485_baud_rate);
-	display_text(0, rbuf, BIT_RGB_RED, 2000);
-	display_text(0, "MadScience", BIT_RGB_GREEN,  1000);
-	display_text(0, "Zone \2512024",  BIT_RGB_GREEN, 1000);
+    sprintf(rbuf, "GLOBAL  \0137%02d", global_device_address);
+	display_text(0, rbuf, BIT_RGB_RED, 3000);
+    sprintf(rbuf, "USB \0137%6d", USB_baud_rate);
+	display_text(0, rbuf, BIT_RGB_RED, 3000);
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        display_text(0, "485    \0133OFF", BIT_RGB_RED, 3000);
+    } else {
+        sprintf(rbuf, "485 \0137%6d", RS485_baud_rate);
+        display_text(0, rbuf, BIT_RGB_RED, 3000);
+    }
+	display_text(1, "MadScience", BIT_RGB_GREEN,  1500);
+	display_text(1, "Zone \0062\100\00612024",  BIT_RGB_GREEN, 1500);
 //	clear_matrix();
 //	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
     clear_all_buffers();
+#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
+    //                              //            _ _____
+    //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN__G, HIGH);     //   X    X   1   X    X  X  X  X  X    disable column drains
+    digitalWrite(PIN__SRCLR, LOW);  //   X    X   1   0    X  X  X  X  X    clear shift registers
+    digitalWrite(PIN__SRCLR, HIGH); //   X    X   1   1    X  X  X  X  X    |
+    digitalWrite(PIN_R4, HIGH);     //   X    X   1   1    1  X  X  X  X    disable row source outputs
+    digitalWrite(PIN_R3, HIGH);     //   X    X   1   1    1  1  X  X  X    |
+    digitalWrite(PIN_R2, LOW);      //   X    X   1   1    1  1  0  X  X	Select row 0
+    digitalWrite(PIN_R1, LOW);      //   X    X   1   1    1  1  0  0  X    |
+    digitalWrite(PIN_R0, LOW);      //   X    X   1   1    1  1  0  0  0    |
+    digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   1    1  1  0  0  0    clock idle
+    digitalWrite(PIN_RCLK, LOW);    //   0    0   1   1    1  1  0  0  0    clock idle
+#else
+# error "hw control logic not set"
+#endif
+#ifdef START_TEST_PATTERN
+    test_pattern();
+#endif
     flag_ready();
+    display_text(2, "XYZZY", BIT_RGB_RED, 0);
 }
 
 int parse_baud_rate_code(byte code)
@@ -1193,7 +1339,7 @@ int parse_baud_rate_code(byte code)
 
 void start_usb_serial(void) {
 	Serial.begin(USB_baud_rate);
-	while (!Serial);
+	//while (!Serial);
 }
 
 
@@ -1202,27 +1348,7 @@ void start_usb_serial(void) {
 //
 void loop(void)
 {
-    flag_init();
-    delay(250);
-    flag_ready();
-    delay(750);
-
-	/* test readerboard columns individually */
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
-    //                              //            _ _____
-    //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
-    digitalWrite(PIN__G, HIGH);     //   X    X   1   X    X  X  X  X  X    disable column drains
-    digitalWrite(PIN__SRCLR, LOW);  //   X    X   1   0    X  X  X  X  X    clear shift registers
-    digitalWrite(PIN__SRCLR, HIGH); //   X    X   1   1    X  X  X  X  X    |
-    digitalWrite(PIN_R4, HIGH);     //   X    X   1   1    1  X  X  X  X    disable row source outputs
-    digitalWrite(PIN_R3, HIGH);     //   X    X   1   1    1  1  X  X  X    |
-    digitalWrite(PIN_R2, LOW);      //   X    X   1   1    1  1  0  X  X	Select row 0
-    digitalWrite(PIN_R1, LOW);      //   X    X   1   1    1  1  0  0  X    |
-    digitalWrite(PIN_R0, LOW);      //   X    X   1   1    1  1  0  0  0    |
-    digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   1    1  1  0  0  0    clock idle
-    digitalWrite(PIN_RCLK, LOW);    //   0    0   1   1    1  1  0  0  0    clock idle
-                                    //
-    test_pattern();
+    refresh_hw_buffer();
 }
 
 void test_pattern(void) 
@@ -1434,9 +1560,6 @@ void test_sequence_rows(void)
 		digitalWrite(PIN__G, HIGH);                     //   0     0  0   1    X  X  X  X  X turn off columns
 	}
 }
-#else
-# error "HW_CONTROL_LOGIC not set to a supported model"
-#endif
 
 
 //    unsigned long last_refresh = 0;
@@ -1467,6 +1590,17 @@ void test_sequence_rows(void)
 //}
 //
 
+byte encode_led(byte n)
+{
+    if (n >= LENGTH_OF(discrete_led_set)) {
+        return '_';
+    }
+    if (n >= LENGTH_OF(discrete_led_labels)) {
+        return encode_int6(n);
+    }
+    return discrete_led_labels[n];
+}
+
 byte encode_int6(byte n)
 {
     return (n & 0x3f) + '0';
@@ -1479,6 +1613,27 @@ byte encode_hex_nybble(byte n)
     }
     return (n-10) + 'a';
 }
+
+byte decode_int6(byte n)
+{
+    if (n > 'o') {
+        return 0;
+    }
+    return n-'0';
+}
+
+byte decode_pos(byte n, byte current)
+{
+    if (n == '~')
+        return current;
+    return decode_int6(n);
+}
+
+byte decode_rgb(byte n)
+{
+    return decode_int6(n) & 0x0f;
+}
+
 
 void debug_image_buffer(byte buf[N_ROWS][N_COLS])
 {
@@ -1509,5 +1664,23 @@ void debug_image_buffer(byte buf[N_ROWS][N_COLS])
             }
         }
         Serial.write('\n');
+    }
+}
+
+void debug_hw_buffer(void)
+{
+    char rbuf[16];
+    Serial.write("hardware buffer\n");
+    for (int plane=0; plane < N_COLORS; plane++) {
+        Serial.write(plane==0? "RED\n":(plane==1? "GREEN\n":(plane==2? "BLUE\n":(plane==3? "FLASHING\n" : "UNKNOWN\n"))));
+        for (int row=0; row < N_ROWS; row++) {
+            sprintf(rbuf, "[%d] ", row);
+            Serial.write(rbuf);
+            for (int cblk=0; cblk < N_COLBYTES; cblk++) {
+                sprintf(rbuf, " %02X", hw_buffer[plane][row][cblk]);
+                Serial.write(rbuf);
+            }
+            Serial.write("\n");
+        }
     }
 }
