@@ -132,6 +132,7 @@ extern void discrete_set(byte lightno, bool value);
 extern byte encode_int6(byte n);
 extern byte encode_hex_nybble(byte n);
 extern int parse_baud_rate_code(byte code);
+extern void render_text(byte pos, byte font, const char *string, byte color, bool mergep=false);
 
 // #define SERIAL_DEBUG
 // #define START_TEST_PATTERN

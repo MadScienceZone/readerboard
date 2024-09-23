@@ -962,12 +962,28 @@ void setup_eeprom(void)
 }
 
 //
-// display_text(font, string, mS_delay)
+// display_text(font, string, color, mS_delay)
 // Replace the displayed image with the given text and delay (blocking) for a time.
 // This is used when the sign isn't in normal operational mode (e.g., startup)
 // and doesn't rely on any background tasks (including the refresh) to be running.
 // 
 void display_text(byte font, const char *string, byte color, int mS_delay)
+{
+	render_text(0, font, string, color);
+    commit_image_buffer(image_buffer);
+#ifdef SERIAL_DEBUG
+    debug_hw_buffer();
+#endif
+    
+    /* display the hardware buffer for the delay time */
+    show_hw_buffer(mS_delay);
+}
+
+//
+// render_text(pos, font, string, color)
+// draw text at the given starting position in the image buffer.
+//
+void render_text(byte pos, byte font, const char *string, byte color, bool mergep)
 {
     if (string == NULL) {
         return;
@@ -975,7 +991,6 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
 
     clear_image_buffer();
     /* draw characters onto the image buffer */
-    byte pos = 0;
     for (; *string != '\0'; string++) {
         if (*string == '\003') {
             if (*++string == '\0')
@@ -1003,7 +1018,7 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
             pos += decode_int6(*string);
         }
         else {
-            pos = draw_character(pos, font, *string, image_buffer, color);
+            pos = draw_character(pos, font, *string, image_buffer, color, mergep);
         }
     }
 
@@ -1011,13 +1026,6 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
 #ifdef SERIAL_DEBUG
     debug_image_buffer(image_buffer);
 #endif
-    commit_image_buffer(image_buffer);
-#ifdef SERIAL_DEBUG
-    debug_hw_buffer();
-#endif
-    
-    /* display the hardware buffer for the delay time */
-    show_hw_buffer(mS_delay);
 }
 
 
@@ -1115,11 +1123,18 @@ void show_hw_buffer(int duration_mS)
 // Call this when you want to display the next row on the display, from a background timer
 // or other mechanism. When called, the next hardware row is pushed out and held.
 //
+#define MATRIX_FLASH_INTERVAL (1000)
 void refresh_hw_buffer(void)
 {
     static int plane = 0;
     static int planebit = 1;
     static int row = 0;
+	static int flash_counter = 0;
+	static bool flash_off = false;
+
+	if ((++flash_counter % MATRIX_FLASH_INTERVAL) == 0) {
+		flash_off = !flash_off;
+	}
 
     //                                  //            _ _____
     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -1174,14 +1189,25 @@ void refresh_hw_buffer(void)
 #endif
     /* now push out the column data */
     for (int cblk=0; cblk < N_COLBYTES; cblk++) {
-        digitalWrite(PIN_D0, (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW);
-        digitalWrite(PIN_D1, (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW);
-        digitalWrite(PIN_D2, (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW);
-        digitalWrite(PIN_D3, (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW);
-        digitalWrite(PIN_D4, (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW);
-        digitalWrite(PIN_D5, (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW);
-        digitalWrite(PIN_D6, (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW);
-        digitalWrite(PIN_D7, (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW);
+		if (flash_off) {
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x01 ? OFF : (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x02 ? OFF : (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x04 ? OFF : (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x08 ? OFF : (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x10 ? OFF : (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x20 ? OFF : (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x40 ? OFF : (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x80 ? OFF : (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW))
+		} else {
+			digitalWrite(PIN_D0, (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW);
+			digitalWrite(PIN_D1, (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW);
+			digitalWrite(PIN_D2, (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW);
+			digitalWrite(PIN_D3, (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW);
+			digitalWrite(PIN_D4, (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW);
+			digitalWrite(PIN_D5, (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW);
+			digitalWrite(PIN_D6, (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW);
+			digitalWrite(PIN_D7, (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW);
+		}
         //                                  //            _ _____
         //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
         digitalWrite(PIN_SRCLK, HIGH);      //   1     X  1   1    p  p  X  X  X  shift data into shift registers
@@ -1311,7 +1337,7 @@ void setup(void)
     test_pattern();
 #endif
     flag_ready();
-    display_text(2, "XYZZY", BIT_RGB_RED, 0);
+    render_text(2, "XYZZY\013:012", BIT_RGB_RED, 0);
 }
 
 int parse_baud_rate_code(byte code)
