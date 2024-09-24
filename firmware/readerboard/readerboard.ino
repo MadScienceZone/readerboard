@@ -1,3 +1,5 @@
+//TODO bounds checking on setting font index
+//TODO eeprom
 /* 
  *  ____  _____    _    ____  _____ ____  ____   ___    _    ____  ____  
  * |  _ \| ____|  / \  |  _ \| ____|  _ \| __ ) / _ \  / \  |  _ \|  _ \
@@ -21,8 +23,8 @@
 #include <TimerEvent.h>
 //#include <EEPROM.h>
 #include "fonts.h"
-#include "commands.h"
 #include "readerboard.h"
+#include "commands.h"
 
 byte USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
 byte RS485_baud_rate_code = EE_DEFAULT_485_SPEED;
@@ -30,6 +32,7 @@ byte my_device_address = EE_DEFAULT_ADDRESS;
 byte global_device_address =  EE_DEFAULT_GLOBAL_ADDRESS;
 int USB_baud_rate = 0;
 int RS485_baud_rate = 0;
+bool RS485_enabled = false;
 
 void debug_image_buffer(byte buf[N_ROWS][N_COLS]);
 void debug_hw_buffer(void);
@@ -158,17 +161,17 @@ const int PIN_R0    = 66;   // row address 0
 const int PIN_R1    = 67;   // row address 1
 const int PIN_R2    = 68;   // row address 2
 const int PIN_R4    = 69;   // row address 4
-const int PIN_R3    = 19;    // row address 3
-const int PIN_L0    =  2;     // discrete LED 0 (bottom) (green)
-const int PIN_L1    =  3;     // discrete LED 1 (yellow)
-const int PIN_L2    =  4;     // discrete LED 2 (yellow)
-const int PIN_L3    =  5;     // discrete LED 3 (red)
-const int PIN_L4    =  9;     // discrete LED 4 (red)
-const int PIN_L5    =  8;     // discrete LED 5 (blue)
-const int PIN_L6    =  7;     // discrete LED 6 (blue)
-const int PIN_L7    =  6;     // discrete LED 7 (top) (white)
-const int PIN_DE    = 16;    // RS-485 driver enable (1=enabled)
-const int PIN__RE   = 17;    // RS-485 ~receiver enable (0=enabled)
+const int PIN_R3    = 19;   // row address 3
+const int PIN_L0    =  2;   // discrete LED 0 (bottom) (green)
+const int PIN_L1    =  3;   // discrete LED 1 (yellow)
+const int PIN_L2    =  4;   // discrete LED 2 (yellow)
+const int PIN_L3    =  5;   // discrete LED 3 (red)
+const int PIN_L4    =  9;   // discrete LED 4 (red)
+const int PIN_L5    =  8;   // discrete LED 5 (blue)
+const int PIN_L6    =  7;   // discrete LED 6 (blue)
+const int PIN_L7    =  6;   // discrete LED 7 (top) (white)
+const int PIN_DE    = 16;   // RS-485 driver enable (1=enabled)
+const int PIN__RE   = 17;   // RS-485 ~receiver enable (0=enabled)
 #else
 # error "HW_CONTROL_LOGIC not defined to supported model"
 #endif
@@ -297,6 +300,7 @@ void clear_all_buffers(void)
 
 void clear_image_buffer(void)
 {
+    transitions.stop();
     for (int row=0; row<N_ROWS; row++) {
         for (int col=0; col<N_COLS; col++) {
             image_buffer[row][col] = 0;
@@ -316,280 +320,260 @@ void clear_hw_buffer(void)
     hw_active_color_planes = 0;
 }
 
+
+void TransitionManager::set_stage(void)
+{
+    for (int row=0; row < N_ROWS; row++) {
+        for (int col=0; col < N_COLS; col++) {
+            stage[row][col] = (*src)[row][col];
+        }
+    }
+}
+
 //
-//// LED_row_off()
-////   During sign refresh cycle, this turns off the displayed row after the
-////   required length of time has elapsed.
-////
-//void LED_row_off(void)
-//{
-//#if HW_MODEL == MODEL_LEGACY_64x7
-//    MATRIX_DATA_PORT = 0;           // PS0 PS1
-//    digitalWrite(PIN_PS0, HIGH);    //  1   X
-//    digitalWrite(PIN_PS1, LOW);     //  1   0   idle
-//    digitalWrite(PIN_PS0, LOW);     //  0   0   gate 0 to turn off rows
-//    digitalWrite(PIN_PS0, HIGH);    //  1   0   idle
-//#else                                   //            _____ _
-//# if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//										// SRCLK RCLK SRCLR G REN
-//    digitalWrite(PIN_RCLK, LOW);        //   X     0    X   X  X
-//    digitalWrite(PIN_SRCLK, LOW);       //   0     0    X   X  X    
-//    digitalWrite(PIN__SRCLR, HIGH);     //   0     0    1   X  X
-//    digitalWrite(PIN__G, HIGH);         //   0     0    1   1  X    disable column output
-//    digitalWrite(PIN_REN, LOW);         //   0     0    1   1  0    disable row output
-//# else
-//#  error "HW_MODEL not set to supported hardware configuration"
-//# endif
-//#endif
-//}
+// Special internal transition effect to scroll a text buffer
+// across the screen
 //
-////
-//// LED_row_on(row, buf)
-////   During sign refresh cycle, this turns on the displayed row by
-////   sending it the column data stored in the hardware refresh buffer
-////   pointed to by buf, with the specified row number (0=top row
-////   and 7=bottom row for the current board. On the legacy board,
-////   there is no row 0 so the rows are numbered 1-7 top to bottom).
-////
-//void LED_row_on(int row, byte *buf)
-//{
-//#if HW_MODEL == MODEL_LEGACY_64x7
-//    /* shift out columns */
-//    if (row > 0) {
-//        for (int i=0; i<8; i++) {
-//            MATRIX_DATA_PORT = buf[row*8+i];
-//            digitalWrite(PIN_PS0, HIGH);            // PS0 PS1
-//            digitalWrite(PIN_PS1, HIGH);            //  1   1   shift data into columns
-//            digitalWrite(PIN_PS1, LOW);             //  1   0   idle
-//        }
-//        /* address row and turn on */
-//        MATRIX_DATA_PORT = ((row+1) << 5) & 0xe0;   // PS0 PS1
-//        digitalWrite(PIN_PS0, LOW);                 //  0   0   show row
-//    }
-//#else
-//# if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//    /* shift out columns */
-//    digitalWrite(PIN__G, HIGH);         // SRCLK RCLK SRCLR G REN
-//    digitalWrite(PIN__SRCLR, LOW);      //   X     X    0   1  X
-//    digitalWrite(PIN_REN, LOW);         //   X     X    0   1  0    reset, all off
-//    digitalWrite(PIN__SRCLR, HIGH);     //   X     X    1   1  0    all off
-//    digitalWrite(PIN_SRCLK, LOW);       //   0     X    1   1  0    all off
-//    digitalWrite(PIN_RCLK, LOW);        //   0     0    1   1  0    all off
-//
-//    for (int i=0; i<8; i++) {
-//        MATRIX_DATA_PORT = buf[row*8+i];
-//        digitalWrite(PIN_SRCLK, HIGH);  //   1     0    1   1  0    shift into columns
-//        digitalWrite(PIN_SRCLK, LOW);   //   0     0    1   1  0    
-//    }
-//    digitalWrite(PIN_SRCLK, HIGH);      //   0     1    1   1  0    latch column outputs
-//    digitalWrite(PIN_SRCLK, LOW);       //   0     0    1   1  0    
-//    digitalWrite(PIN__G, LOW);          //   0     0    1   0  0    enable column output
-//    digitalWrite(PIN_R0, row & 1);      //                          address row
-//    digitalWrite(PIN_R1, row & 2);      //                          address row
-//    digitalWrite(PIN_R2, row & 4);      //                          address row
-//    digitalWrite(PIN_REN, HIGH);        //   0     0    1   0  1    enable row output
-//# else
-//#  error "HW_MODEL not set to supported hardware configuration"
-//# endif
-//#endif
-//}
-//
-////
-//// Transition effect manager. This manages incrementally
-//// copying data from the image buffer to the hardware refresh
-//// buffer in visually interesting patterns.
-////
-//class TransitionManager {
-//	TransitionEffect transition;
-//	TimerEvent       timer;
-//	byte            *src;
-//public:
-//	TransitionManager(void);
-//	void update(void);
-//	void start_transition(byte *, TransitionEffect, int);
-//	void stop(void);
-//	void next(bool reset_column = false);
-//};
-//
+// We keep a pointer to the source text for the current character
+// we're rendering. We start by rendering at the far right column
+// then scroll and render the same character one position to the left
+// until we reach the full character space, at which point we move
+// to the next character and repeat, cycling back to the start of
+// the string if requested.
+void TransitionManager::start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS)
+{
+    scroll_src = text;
+    scroll_repeat = repeat;
+    scroll_pos = 0;
+    scroll_col = N_COLS - 1;
+    scroll_font = font;
+    scroll_color = color;
+    scroll_len = len;
+    transition = _TransScrollText;
+    next(false);
+    timer.reset();
+    timer.setPeriod(delay_mS);
+    timer.enable();
+}
+
 //void next_transition(void);
 //
-//TransitionManager::TransitionManager(void)
-//{
-//	src = image_buffer;
-//	transition = NoTransition;
-//	timer.set(0, next_transition);
-//	timer.disable();
-//}
-//
-//void TransitionManager::update(void)
-//{
-//	timer.update();
-//}
-//
-//void TransitionManager::stop(void)
-//{
-//	timer.disable();
-//}
-//
-//void TransitionManager::start_transition(byte *buffer, TransitionEffect trans, int delay_ms)
-//{
-//	transition = trans;
-//	src = buffer;
-//	if (trans == NoTransition) {
-//		stop();
-//		copy_all_rows(src, hw_buffer);
-//	}
-//	else {
-//		next(true);
-//		timer.reset(); 
-//		timer.setPeriod(delay_ms); 
-//		timer.enable();
-//	}
-//}
-//
-//void TransitionManager::next(bool reset_column)
-//{
-//	static int current_column = 0;
-//
-//	if (reset_column) {
-//		current_column = 0;
-//	}
-//
-//	if (current_column > 63) {
-//		stop();
-//		return;
-//	}
-//
-//	switch (transition) {
-//	case TransWipeLeft:
-//		copy_row_bits(63-(current_column++), src, hw_buffer);
-//		break;
-//
-//	case TransWipeRight:
-//		copy_row_bits(current_column++, src, hw_buffer);
-//		break;
-//
-//	case TransScrollLeft:
-//	case TransScrollRight:
-//	case TransScrollUp:
-//	case TransScrollDown:
-//	case TransWipeUp:
-//	case TransWipeDown:
-//	case TransWipeUpDown:
-//	case TransWipeLeftRight:
-//	default:
-//		stop();
-//		return;
-//	}
-//}
-//
-//
-////
-//// copy_all_rows(src, dst)
-////   Copies all rows of data from the image buffer to the hardware buffer
-////   as described for copy_row_bits()
-////
-//void copy_all_rows(byte *src, byte *dst)
-//{
-//    for (int i = 0; i < N_ROWS; i++) {
-//        copy_row_bits(i, src, dst);
-//    }
-//}
-//
-////
-//// copy_row_bits(row, src, dst)
-////   Copy a single row of matrix data from src to dst.
-////   src is the image buffer we use for rendering what will
-////   be displayed. It is arranged as the matrix is physically viewed:
-////   | byte 0 | byte 1 | ... | byte 7 |
-////   |76543210|76543210| ... |76543210|
-////    ^_leftmost pixel     rightmost_^
-////
-////   dst is the hardware refresh buffer. It is arranged as expected 
-////   by the hardware so that the bytes can be directly output during refresh.
-////
-////   The different hardware models arrange the column bits in a
-////   different order, hence the COL_BLK_x defined symbols which
-////   are hardware-dependent.
-////
-//void copy_row_bits(unsigned int row, byte *src, byte *dst)
-//{
-//    byte *d = dst + row * 8;
-//    byte *s = src + row * 8;
-//
-//    d[0] = ((s[COL_BLK_0] & 0x01) << 7)
-//         | ((s[COL_BLK_1] & 0x01) << 6)
-//         | ((s[COL_BLK_2] & 0x01) << 5)
-//         | ((s[COL_BLK_3] & 0x01) << 4)
-//         | ((s[COL_BLK_4] & 0x01) << 3)
-//         | ((s[COL_BLK_5] & 0x01) << 2)
-//         | ((s[COL_BLK_6] & 0x01) << 1)
-//         | ((s[COL_BLK_7] & 0x01) << 0);
-//
-//    d[1] = ((s[COL_BLK_0] & 0x02) << 6)
-//         | ((s[COL_BLK_1] & 0x02) << 5)
-//         | ((s[COL_BLK_2] & 0x02) << 4)
-//         | ((s[COL_BLK_3] & 0x02) << 3)
-//         | ((s[COL_BLK_4] & 0x02) << 2)
-//         | ((s[COL_BLK_5] & 0x02) << 1)
-//         | ((s[COL_BLK_6] & 0x02) << 0)
-//         | ((s[COL_BLK_7] & 0x02) >> 1);
-//
-//    d[2] = ((s[COL_BLK_0] & 0x04) << 5)
-//         | ((s[COL_BLK_1] & 0x04) << 4)
-//         | ((s[COL_BLK_2] & 0x04) << 3)
-//         | ((s[COL_BLK_3] & 0x04) << 2)
-//         | ((s[COL_BLK_4] & 0x04) << 1)
-//         | ((s[COL_BLK_5] & 0x04) << 0)
-//         | ((s[COL_BLK_6] & 0x04) >> 1)
-//         | ((s[COL_BLK_7] & 0x04) >> 2);
-//
-//    d[3] = ((s[COL_BLK_0] & 0x08) << 4)
-//         | ((s[COL_BLK_1] & 0x08) << 3)
-//         | ((s[COL_BLK_2] & 0x08) << 2)
-//         | ((s[COL_BLK_3] & 0x08) << 1)
-//         | ((s[COL_BLK_4] & 0x08) << 0)
-//         | ((s[COL_BLK_5] & 0x08) >> 1)
-//         | ((s[COL_BLK_6] & 0x08) >> 2)
-//         | ((s[COL_BLK_7] & 0x08) >> 3);
-//
-//    d[4] = ((s[COL_BLK_0] & 0x10) << 3)
-//         | ((s[COL_BLK_1] & 0x10) << 2)
-//         | ((s[COL_BLK_2] & 0x10) << 1)
-//         | ((s[COL_BLK_3] & 0x10) << 0)
-//         | ((s[COL_BLK_4] & 0x10) >> 1)
-//         | ((s[COL_BLK_5] & 0x10) >> 2)
-//         | ((s[COL_BLK_6] & 0x10) >> 3)
-//         | ((s[COL_BLK_7] & 0x10) >> 4);
-//
-//    d[5] = ((s[COL_BLK_0] & 0x20) << 2)
-//         | ((s[COL_BLK_1] & 0x20) << 1)
-//         | ((s[COL_BLK_2] & 0x20) << 0)
-//         | ((s[COL_BLK_3] & 0x20) >> 1)
-//         | ((s[COL_BLK_4] & 0x20) >> 2)
-//         | ((s[COL_BLK_5] & 0x20) >> 3)
-//         | ((s[COL_BLK_6] & 0x20) >> 4)
-//         | ((s[COL_BLK_7] & 0x20) >> 5);
-//
-//    d[6] = ((s[COL_BLK_0] & 0x40) << 1)
-//         | ((s[COL_BLK_1] & 0x40) << 0)
-//         | ((s[COL_BLK_2] & 0x40) >> 1)
-//         | ((s[COL_BLK_3] & 0x40) >> 2)
-//         | ((s[COL_BLK_4] & 0x40) >> 3)
-//         | ((s[COL_BLK_5] & 0x40) >> 4)
-//         | ((s[COL_BLK_6] & 0x40) >> 5)
-//         | ((s[COL_BLK_7] & 0x40) >> 6);
-//
-//    d[7] = ((s[COL_BLK_0] & 0x80) << 0)
-//         | ((s[COL_BLK_1] & 0x80) >> 1)
-//         | ((s[COL_BLK_2] & 0x80) >> 2)
-//         | ((s[COL_BLK_3] & 0x80) >> 3)
-//         | ((s[COL_BLK_4] & 0x80) >> 4)
-//         | ((s[COL_BLK_5] & 0x80) >> 5)
-//         | ((s[COL_BLK_6] & 0x80) >> 6)
-//         | ((s[COL_BLK_7] & 0x80) >> 7);
-//}
-//
+TransitionManager::TransitionManager(void)
+{
+	src = &image_buffer;
+	transition = NoTransition;
+	timer.set(0, next_transition);
+	timer.disable();
+}
+
+void TransitionManager::update(void)
+{
+	timer.update();
+}
+
+void TransitionManager::stop(void)
+{
+	timer.disable();
+}
+
+void TransitionManager::start_transition(TransitionEffect trans, int delay_ms)
+{
+	transition = trans;
+	if (trans == NoTransition) {
+		stop();
+        commit_image_buffer(*src);
+	}
+	else {
+		next(true);
+		timer.reset(); 
+		timer.setPeriod(delay_ms); 
+		timer.enable();
+	}
+}
+
+void TransitionManager::next(bool reset_column)
+{
+    if (transition == _TransScrollText) {
+        if (scroll_pos >= scroll_len) {
+            scroll_pos = 0;
+            scroll_col = N_COLS - 1;
+            if (!scroll_repeat) {
+                stop();
+                return;
+            }
+        }
+        while (scroll_pos < scroll_len) {
+            switch (scroll_src[scroll_pos]) {
+                case 0x03:
+                case 0x08:
+                case 0x0c:
+                    if (scroll_pos += 2 >= scroll_len)
+                        return;
+                    break;
+
+                case 0x06:
+                    if (++scroll_pos >= scroll_len)
+                        return;
+                    scroll_font = min(decode_int6(scroll_src[scroll_pos++]), N_FONTS-1);
+                    break;
+
+                case 0x0b:
+                    if (++scroll_pos >= scroll_len)
+                        return;
+                    scroll_color = decode_rgb(scroll_src[scroll_pos++]);
+                    break;
+
+                default:
+                    unsigned char l, s;
+                    unsigned short o;
+
+                    if (!get_font_metric_data(scroll_font, scroll_src[scroll_pos], &l, &s, &o)) {
+                        ++scroll_pos;
+                        scroll_col = N_COLS - 1;
+                        return;
+                    }
+                    if (scroll_col + s < N_COLS) {
+                        scroll_col = N_COLS - 1;
+                        if (++scroll_pos >= scroll_len) {
+                            scroll_pos = 0;
+                            if (!scroll_repeat) {
+                                stop();
+                                return;
+                            }
+                        }
+                        continue;   // re-evaluate the next byte in case it's a control sequence
+                    }
+
+                    shift_left(*src);
+                    draw_character(scroll_col, scroll_font, scroll_src[scroll_pos], *src, scroll_color);
+                    commit_image_buffer(*src);
+                    --scroll_col;
+                    return;
+            }
+        }
+        return;
+    }
+
+    // We call this current_column because for most transitions, it's the column being moved
+    // in the transition effect. In some, though, it is actually the row being moved.
+	static int current_column = 0;
+
+	if (reset_column) {
+		current_column = 0;
+	} else {
+        ++current_column;
+    }
+
+
+	if (current_column >= N_COLS) {
+		stop();
+		return;
+	}
+
+	switch (transition) {
+	case TransWipeLeft:
+        for (int row=0; row<N_ROWS; row++) {
+            stage[row][current_column] = (*src)[row][current_column];
+        }
+        break;
+
+    case TransWipeRight:
+        for (int row=0; row<N_ROWS; row++) {
+            stage[row][N_COLS-1-current_column] = (*src)[row][N_COLS-1-current_column];
+        }
+        break;
+
+	case TransWipeLeftRight:
+        {
+            int mid = N_COLS/2;
+            if (mid+current_column >= N_COLS) {
+                stop();
+                return;
+            }
+            for (int row=0; row<N_ROWS; row++) {
+                stage[row][mid+current_column] = (*src)[row][mid+current_column];
+                stage[row][mid-1-current_column] = (*src)[row][mid-1-current_column];
+            }
+        }
+        break;
+
+    case TransWipeDown:
+        if (current_column >= N_ROWS) {
+            stop();
+            return;
+        }
+        for (int col=0; col<N_COLS; col++) {
+            stage[current_column][col] = (*src)[current_column][col];
+        }
+        break;
+
+    case TransWipeUp:
+        if (current_column >= N_ROWS) {
+            stop();
+            return;
+        }
+        for (int col=0; col<N_COLS; col++) {
+            stage[N_ROWS-1-current_column][col] = (*src)[N_ROWS-1-current_column][col];
+        }
+        break;
+
+    case TransWipeUpDown:
+        {
+            int mid = N_ROWS/2;
+            if (mid+current_column >= N_ROWS) {
+                stop();
+                return;
+            }
+            for (int col=0; col < N_COLS; col++) {
+                stage[mid+current_column][col] = (*src)[mid+current_column][col];
+                stage[mid-1-current_column][col] = (*src)[mid-1-current_column][col];
+            }
+        }
+        break;
+
+	case TransScrollLeft:
+        shift_left(stage);
+        for (int row=0; row<N_ROWS; row++) {
+            stage[row][N_COLS-1] = (*src)[row][current_column];
+        }
+        break;
+
+	case TransScrollRight:
+        shift_right(stage);
+        for (int row=0; row<N_ROWS; row++) {
+            stage[row][0] = (*src)[row][N_COLS-1-current_column];
+        }
+        break;
+
+	case TransScrollUp:
+        if (current_column >= N_ROWS) {
+            stop();
+            return;
+        }
+        shift_up(stage);
+        for (int col=0; col<N_COLS; col++) {
+            stage[N_ROWS-1][col] = (*src)[current_column][col];
+        }
+        break;
+
+	case TransScrollDown:
+        if (current_column >= N_ROWS) {
+            stop();
+            return;
+        }
+        shift_down(stage);
+        for (int col=0; col<N_COLS; col++) {
+            stage[0][col] = (*src)[N_ROWS-1-current_column][col];
+        }
+        break;
+
+	default:
+		stop();
+		return;
+	}
+    commit_image_buffer(stage);
+}
+
 //
 // draw_character(col, font, codepoint, buffer, color, mergep=false) -> col'
 //   Given a codepoint in a font, set the bits in the buffer for the pixels
@@ -637,24 +621,6 @@ void draw_column(byte col, byte bits, byte color, bool mergep, byte buffer[N_ROW
     }
 }
 
-//void shift_left(byte *buffer)
-//{
-//    for (byte row=0; row<N_ROWS; row++) {
-//        for (byte col=0; col<8; col++) {
-//            buffer[row*8+col] <<= 1;
-//            if (col<7) {
-//                if (buffer[row*8+col+1] & 0x80) {
-//                    buffer[row*8+col] |= 0x01;
-//                }
-//                else {
-//                    buffer[row*8+col] &= ~0x01;
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//
 //
 // The following LightBlinker support was adapted from the
 // author's busylight project, which this project is intended
@@ -678,7 +644,7 @@ public:
     int  length(void);
     void advance(void);
     void start(void);
-    void report_state(void);
+    void report_state(void (*sendfunc)(byte));
 };
 
 LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
@@ -704,17 +670,17 @@ void LightBlinker::append(byte v)
     }
 }
 
-void LightBlinker::report_state(void)
+void LightBlinker::report_state(void (*sendfunc)(byte))
 {
-    Serial.write(cur_state ? 'R' : 'S');
+    (*sendfunc)(cur_state ? 'R' : 'S');
     if (sequence_length > 0) {
-        Serial.write(encode_int6(cur_index));
-        Serial.write('@');
+        (*sendfunc)(encode_int6(cur_index));
+        (*sendfunc)('@');
         for (int i = 0; i < sequence_length; i++) {
-            Serial.write(encode_led(i));
+            (*sendfunc)(encode_led(sequence[i]));
         }
     } else {
-        Serial.write('_');
+        (*sendfunc)('_');
     }
 }
 
@@ -805,13 +771,14 @@ void flash_lights(void);
 void strobe_lights(void);
 LightBlinker flasher(200,   0, flash_lights);
 LightBlinker strober(50, 2000, strobe_lights);
-//TransitionManager transitions;
-//
-//void next_transition(void)
-//{
-//	transitions.next();
-//}
-//
+TransitionManager transitions;
+
+void next_transition(void)
+{
+	transitions.next();
+}
+
+
 //
 // display_buffer(src, transition)
 //   Copies the contents of the image buffer src to the hardware buffer, so that
@@ -820,15 +787,15 @@ LightBlinker strober(50, 2000, strobe_lights);
 //   If a transition effect is specified, the update to the hardware buffer will
 //   be performed gradually to produce the desired visual effect.
 //
-void display_buffer(byte *src, TransitionEffect transition)
+void display_buffer(byte src[N_ROWS][N_COLS], TransitionEffect transition)
 {
-//	if (transition == NoTransition) {
-//		transitions.stop();
-//		copy_all_rows(src, hw_buffer);
-//	}
-//	else {
-//		transitions.start_transition(src, transition, 100);
-//	}
+	if (transition == NoTransition) {
+        transitions.stop();
+        commit_image_buffer(src);
+	}
+	else {
+		transitions.start_transition(transition, 100);
+	}
 }
 
 void discrete_all_off(bool stop_blinkers)
@@ -852,8 +819,6 @@ void strobe_lights(void)
     strober.advance();
 }
 
-//#endif /* MODEL_CURRENT_64x8 */
-//
 //
 // flag_init()
 // flag_ready()
@@ -969,7 +934,8 @@ void setup_eeprom(void)
 // 
 void display_text(byte font, const char *string, byte color, int mS_delay)
 {
-	render_text(0, font, string, color);
+    clear_image_buffer();
+	render_text(image_buffer, 0, font, string, color);
     commit_image_buffer(image_buffer);
 #ifdef SERIAL_DEBUG
     debug_hw_buffer();
@@ -980,16 +946,15 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
 }
 
 //
-// render_text(pos, font, string, color)
+// render_text(buffer, pos, font, string, color)
 // draw text at the given starting position in the image buffer.
 //
-void render_text(byte pos, byte font, const char *string, byte color, bool mergep)
+byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep)
 {
     if (string == NULL) {
-        return;
+        return pos;
     }
 
-    clear_image_buffer();
     /* draw characters onto the image buffer */
     for (; *string != '\0'; string++) {
         if (*string == '\003') {
@@ -1018,14 +983,15 @@ void render_text(byte pos, byte font, const char *string, byte color, bool merge
             pos += decode_int6(*string);
         }
         else {
-            pos = draw_character(pos, font, *string, image_buffer, color, mergep);
+            pos = draw_character(pos, font, *string, buffer, color, mergep);
         }
     }
 
     /* transfer to the hardware buffer */
 #ifdef SERIAL_DEBUG
-    debug_image_buffer(image_buffer);
+    debug_image_buffer(buffer);
 #endif
+    return pos;
 }
 
 
@@ -1190,14 +1156,14 @@ void refresh_hw_buffer(void)
     /* now push out the column data */
     for (int cblk=0; cblk < N_COLBYTES; cblk++) {
 		if (flash_off) {
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x01 ? OFF : (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x02 ? OFF : (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x04 ? OFF : (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x08 ? OFF : (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x10 ? OFF : (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x20 ? OFF : (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x40 ? OFF : (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW))
-			digitalWrite(PIN_D0, (hw_buffer[N_FLASH_PLANE][row][cblk] & 0x80 ? OFF : (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW))
+			digitalWrite(PIN_D0, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x01 ? LOW : (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW));
+			digitalWrite(PIN_D1, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x02 ? LOW : (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW));
+			digitalWrite(PIN_D2, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x04 ? LOW : (hw_buffer[plane][row][cblk] & 0x04) ? HIGH : LOW));
+			digitalWrite(PIN_D3, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x08 ? LOW : (hw_buffer[plane][row][cblk] & 0x08) ? HIGH : LOW));
+			digitalWrite(PIN_D4, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x10 ? LOW : (hw_buffer[plane][row][cblk] & 0x10) ? HIGH : LOW));
+			digitalWrite(PIN_D5, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x20 ? LOW : (hw_buffer[plane][row][cblk] & 0x20) ? HIGH : LOW));
+			digitalWrite(PIN_D6, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x40 ? LOW : (hw_buffer[plane][row][cblk] & 0x40) ? HIGH : LOW));
+			digitalWrite(PIN_D7, (hw_buffer[N_FLASHING_PLANE][row][cblk] & 0x80 ? LOW : (hw_buffer[plane][row][cblk] & 0x80) ? HIGH : LOW));
 		} else {
 			digitalWrite(PIN_D0, (hw_buffer[plane][row][cblk] & 0x01) ? HIGH : LOW);
 			digitalWrite(PIN_D1, (hw_buffer[plane][row][cblk] & 0x02) ? HIGH : LOW);
@@ -1276,7 +1242,6 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
 void setup(void)
 {
     setup_pins();
-    flag_init();
     setup_eeprom();
     flasher.stop();
     strober.stop();
@@ -1288,10 +1253,10 @@ void setup(void)
 	status_timer.enable();
 
 	start_usb_serial();
-//
-//	// TODO If RS-485 is enabled, start that UART too
-//
+    setup_485_serial();
+
 	flag_test();
+    flag_init();
     char rbuf[32];
 	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
 	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
@@ -1335,9 +1300,14 @@ void setup(void)
 #endif
 #ifdef START_TEST_PATTERN
     test_pattern();
+    render_text(image_buffer, 0, 2, "XYZZY\013:012", BIT_RGB_RED);
+    commit_image_buffer(image_buffer);
+    flasher.append(1);
+    flasher.append(2);
+    flasher.start();
 #endif
     flag_ready();
-    render_text(2, "XYZZY\013:012", BIT_RGB_RED, 0);
+    flasher.stop();
 }
 
 int parse_baud_rate_code(byte code)
@@ -1363,11 +1333,35 @@ int parse_baud_rate_code(byte code)
     return 0;
 }
 
+//
+// Initialize the USB serial port so we can receive commands from there.
+// This should be safe to call again if the baud rate is changed.
+//
 void start_usb_serial(void) {
 	Serial.begin(USB_baud_rate);
-	//while (!Serial);
 }
 
+//
+// Setup the RS-485 serial port (we don't call it "start" because this
+// function will start OR stop the port depending on the current configuration
+// of the device. Call this whenever the address is updated so the port
+// will follow that setting.
+//
+void setup_485_serial(void) {
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        digitalWrite(PIN_DE, LOW);      // disable driver
+        digitalWrite(PIN__RE, HIGH);    // disable receiver
+        if (RS485_enabled) {
+            Serial3.end();                  // disable USART
+        }
+        RS485_enabled = false;
+    } else {
+        Serial3.begin(RS485_baud_rate);
+        digitalWrite(PIN_DE, LOW);      // disable driver
+        digitalWrite(PIN__RE, LOW);     // enable receiver
+        RS485_enabled = true;
+    }
+}
 
 // loop()
 //   Main loop of the firmware
@@ -1375,10 +1369,85 @@ void start_usb_serial(void) {
 void loop(void)
 {
     refresh_hw_buffer();
+    /* flash/strobe discrete LEDs as needed */
+    flasher.update();
+    strober.update();
+	status_timer.update();
+	transitions.update();
+
+    /* receive commands via serial port */
+    if (Serial.available() > 0) {
+        receive_serial_data(FROM_USB);
+    }
+    if (RS485_enabled && Serial3.available() > 0) {
+        receive_serial_data(FROM_485);
+    }
+//
+//
+//          MEGA    DUE
+// Serial   RX/TX   RX/TX       USB Direct
+// Serial1  Rx1/Tx1 Rx1/Tx1
+// Serial2  Rx2/Tx2 Rx2/Tx2
+// Serial3  Rx3/Tx3 Rx3/Tx3     RS-485
+// Serial4  --
+}
+
+void start_485_reply(void)
+{
+    if (!RS485_enabled)
+        return;
+    
+    digitalWrite(PIN_DE, HIGH); // enable driver
+    if (my_device_address >= 16) {
+        Serial3.write(0xf0 | global_device_address);
+        Serial3.write(0x01);
+        Serial3.write(my_device_address & 0x3f);
+    }
+    else {
+        Serial3.write(0xd0 | my_device_address);
+    }
+}
+
+void send_485_byte(byte x)
+{
+    if (!RS485_enabled)
+        return;
+
+    if (x == 0x7f || x == 0x7e) {
+        Serial3.write(0x7f);
+        Serial3.write(x);
+    }
+    else if ((x & 0x80) == 0) {
+        Serial3.write(x);
+    }
+    else {
+        Serial3.write(0x7e);
+        Serial3.write(x & 0x7f);
+    }
+}
+
+void end_485_reply(void)
+{
+    digitalWrite(PIN_DE, LOW); // disable driver
+}
+
+void start_usb_reply(void)
+{
+}
+
+void send_usb_byte(byte x)
+{
+    Serial.write(x);
+}
+
+void end_usb_reply(void)
+{
+    Serial.write('\004');
 }
 
 void test_pattern(void) 
 {
+    clear_all_buffers();
 	digitalWrite(PIN_D0, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
 	digitalWrite(PIN_D1, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
 	digitalWrite(PIN_D2, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
@@ -1587,35 +1656,6 @@ void test_sequence_rows(void)
 	}
 }
 
-
-//    unsigned long last_refresh = 0;
-//    int cur_row = 0;
-//
-//    /* update the display every REFRESH_MS milliseconds */
-//    if (millis() - last_refresh >= REFRESH_MS) {
-//        LED_row_off();
-//        LED_row_on(cur_row, hw_buffer);
-//        cur_row = (cur_row + 1) % N_ROWS;
-//        last_refresh = millis();
-//    }
-//
-//#if HW_MODEL == MODEL_CURRENT_64x8 || HW_MODEL == MODEL_CURRENT_64x8_INTEGRATED
-//    /* flash/strobe discrete LEDs as needed */
-//    flasher.update();
-//    strober.update();
-//#endif
-//	status_timer.update();
-//	transitions.update();
-//
-//    /* receive commands via serial port */
-//    if (Serial.available() > 0) {
-//        receive_serial_data();
-//    }
-//
-//	/* TODO receive commands via RS-485 port */
-//}
-//
-
 byte encode_led(byte n)
 {
     if (n >= LENGTH_OF(discrete_led_set)) {
@@ -1625,6 +1665,24 @@ byte encode_led(byte n)
         return encode_int6(n);
     }
     return discrete_led_labels[n];
+}
+
+byte parse_led_name(byte ch)
+{
+    int i;
+
+    if (ch == '_') {
+        return STATUS_LED_OFF;
+    }
+    for (i = 0; i < LENGTH_OF(discrete_led_labels); i++) {
+        if (ch == discrete_led_labels[i]) {
+            return i;
+        }
+    }
+    if ((i = decode_int6(ch)) >= LENGTH_OF(discrete_led_set)) {
+        return STATUS_LED_OFF;
+    }
+    return i;
 }
 
 byte encode_int6(byte n)
@@ -1708,5 +1766,53 @@ void debug_hw_buffer(void)
             }
             Serial.write("\n");
         }
+    }
+}
+
+void shift_left(byte buffer[N_ROWS][N_COLS])
+{
+    for (int col=0; col < N_COLS - 1; col++) {
+        for (int row=0; row < N_ROWS; row++) {
+            buffer[row][col] = buffer[row][col+1];
+        }
+    }
+    for (int row=0; row < N_ROWS; row++) {
+        buffer[row][N_COLS-1] = 0;
+    }
+}
+
+void shift_right(byte buffer[N_ROWS][N_COLS])
+{
+    for (int col=N_COLS-1; col > 0; col--) {
+        for (int row=0; row < N_ROWS; row++) {
+            buffer[row][col] = buffer[row][col-1];
+        }
+    }
+    for (int row=0; row < N_ROWS; row++) {
+        buffer[row][0] = 0;
+    }
+}
+
+void shift_up(byte buffer[N_ROWS][N_COLS])
+{
+    for (int row=0; row < N_ROWS-1; row++) {
+        for (int col=0; col < N_COLS; col++) {
+            buffer[row][col] = buffer[row+1][col];
+        }
+    }
+    for (int col=0; col < N_COLS; col++) {
+        buffer[N_ROWS-1][col] = 0;
+    }
+}
+
+void shift_down(byte buffer[N_ROWS][N_COLS])
+{
+    for (int row=N_ROWS-1; row > 0; row--) {
+        for (int col=0; col < N_COLS; col++) {
+            buffer[row][col] = buffer[row-1][col];
+        }
+    }
+    for (int col=0; col < N_COLS; col++) {
+        buffer[0][col] = 0;
     }
 }

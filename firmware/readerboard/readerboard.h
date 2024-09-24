@@ -44,7 +44,7 @@ Libraries Required:
 //                    '4'=4800, '5'=9600, '6'=14400, '7'=19200, '8'=28800,
 //                    '9'=31250, 'A'=38400, 'B'=57600, 'C'=115200.
 #define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
-#define EE_DEFAULT_485_SPEED ('C')  /* RS-485 connections 9600 baud */
+#define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
 //
 #define EE_ADDRESS_DISABLED (0xff) /* interface disabled */
 // Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
@@ -67,9 +67,9 @@ Libraries Required:
 //
 // TODO: Adjust these for your version and serial number
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 0.0.1  "
+#define BANNER_FIRMWARE_VERS "FW 0.2.0  "
 #define BANNER_SERIAL_NUMBER "S/N RB0000"
-#define SERIAL_VERSION_STAMP "V3.2.2$R0.0.0$SRB0000$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R0.2.0$SRB0000$"
 //                             \___/  \___/  \____/
 //                               |      |      |
 //                  Hardware version    |      |
@@ -77,27 +77,6 @@ Libraries Required:
 //                                 Serial number
 //
 // END CONFIGURATION SECTION
-
-typedef enum { 
-		NoTransition,
-		TransScrollLeft,
-		TransScrollRight,
-		TransScrollUp,
-		TransScrollDown,
-		TransWipeLeft,
-		TransWipeRight,
-		TransWipeUp,
-		TransWipeDown,
-		TransWipeLeftRight,
-		TransWipeUpDown,
-} TransitionEffect;
-
-extern byte USB_baud_rate_code;
-extern byte RS485_baud_rate_code;
-extern byte my_device_address;
-extern byte global_device_address;
-extern int USB_baud_rate;
-extern int RS485_baud_rate;
 
 const int N_COLS = 64;              // number of physical columns
 const int N_COLBYTES = 8;           // number of byte-size column blocks
@@ -117,14 +96,66 @@ const byte BIT_RGB_FLASHING = 0x08;
 const byte BIT_RGB_BLUE = 0x04;
 const byte BIT_RGB_GREEN = 0x02;
 const byte BIT_RGB_RED = 0x01;
+
+typedef enum { 
+		NoTransition,
+		TransScrollLeft,
+		TransScrollRight,
+		TransScrollUp,
+		TransScrollDown,
+		TransWipeLeft,
+		TransWipeRight,
+		TransWipeUp,
+		TransWipeDown,
+		TransWipeLeftRight,
+		TransWipeUpDown,
+		_TransScrollText,
+} TransitionEffect;
+
+//
+// Transition effect manager. This manages incrementally
+// copying data from the image buffer to the hardware refresh
+// buffer in visually interesting patterns.
+//
+class TransitionManager {
+	TransitionEffect transition;
+	TimerEvent       timer;
+	byte           (*src)[N_ROWS][N_COLS];
+	byte            stage[N_ROWS][N_COLS];
+    const char     *scroll_src;
+	int             scroll_pos;
+	bool    	    scroll_repeat;
+	byte    	    scroll_col;
+	byte    	    scroll_font;
+	byte    	    scroll_color;
+	int             scroll_len;
+public:
+	TransitionManager(void);
+	void update(void);
+	void set_stage(void);
+	void start_transition(TransitionEffect, int);
+	void stop(void);
+	void next(bool reset_column = false);
+    void start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS=100);
+};
+extern TransitionManager transitions;
+extern byte USB_baud_rate_code;
+extern byte RS485_baud_rate_code;
+extern byte my_device_address;
+extern byte global_device_address;
+extern int USB_baud_rate;
+extern int RS485_baud_rate;
+
 extern byte image_buffer[N_ROWS][N_COLS];
+
+typedef enum {FROM_USB, FROM_485} serial_source_t;
 
 extern void clear_image_buffer();
 extern void clear_display_buffer();
-extern void display_buffer(byte *src, TransitionEffect transition);
+extern void display_buffer(byte buffer[N_ROWS][N_COLS], TransitionEffect transition=NoTransition);
 extern byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep=false);
 extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
-extern void shift_left(byte *buffer);
+extern void shift_left(byte buffer[N_ROWS][N_COLS]);
 extern void setup_buffers(void);
 extern void discrete_all_off(bool stop_blinkers);
 extern bool discrete_query(byte lightno);
@@ -132,7 +163,20 @@ extern void discrete_set(byte lightno, bool value);
 extern byte encode_int6(byte n);
 extern byte encode_hex_nybble(byte n);
 extern int parse_baud_rate_code(byte code);
-extern void render_text(byte pos, byte font, const char *string, byte color, bool mergep=false);
+extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false);
+extern void send_485_byte(byte x);
+extern void start_485_reply(void);
+extern void end_485_reply(void);
+extern void send_usb_byte(byte x);
+extern void start_usb_reply(void);
+extern void end_usb_reply(void);
+//extern void start_reply(Stream *);
+//extern void end_reply(Stream *);
+//extern void send_byte(Stream *, byte x);
+//extern void send_string(Stream *, const char *string);
+extern void test_pattern(void);
+extern byte parse_led_name(byte ch);
+const byte STATUS_LED_OFF = 0xff;
 
 // #define SERIAL_DEBUG
 // #define START_TEST_PATTERN

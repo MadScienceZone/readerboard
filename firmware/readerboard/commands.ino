@@ -51,9 +51,9 @@
 //          $8a/$8g (485) _      $Bg (485)        _________  N    ____________|_   | Ad[0]-Ad[N-2]
 //                       | |  +----------------->|Collect N|---->|CollectAddress|<-+
 //        MSB=1 (485)+   | |  |                  |_________|     |______________|
-//  _____  ^D (USB)     _|_V__|_   $9a/$9g (485)  _____             |Ad[N-1]
-// |ERROR|----------->||Idle    ||-------------->|Start|<-----------+
-// |_____|<-----------||________||               |_____|
+//  _____  ^D (USB)     _|_V__|_   $9a/$9g (485)  _____             |Ad[N-1]             
+// |ERROR|----------->||Idle    ||-------------->|Start|<-----------+-------------------> END
+// |_____|<-----------||________||               |_____|                                 
 //   ^ |       *            |                        |
 //   |_|*                   |<-----------------------+     _ 
 //          ?/Q (USB)       |            ____             | |*  MSB=1 (485)+
@@ -91,11 +91,12 @@
 //                          |      |__________|       |________|       |_______________|      |_________|---------> END
 //                          |             ____
 //                          |  L    _____|_   |led
-//                          +----->|LightOn|<-+     $
-//                          |      |_______|-----------> END
-//                          |  S    ________ led
-//                          +----->|LightSet|----------> END
-//                          |      |________|                                                        ____
+//                          +----->|LightSet|<-+     $
+//                          |      |________|-----------> END
+//                          |  S    ________ 
+//                          +----->|LightOn |----------> END
+//                          |      |________|
+//                          |    
 //                          |  T    _________ merge  _________ align   ______________ trans   ______|_   |char
 //                          +----->|TextMerge|----->|TextAlign|------>|TextTransition|------>|TextData|<-+     ESC
 //                          |      |_________|      |_________|       |______________|       |________|------------> END
@@ -175,29 +176,29 @@
 //                                  The readerboard will ignore all further input until the next ^D character is received.
 //                                  A ^D also aborts any incomplete command in progress.
 //
-const int CSM_BUFSIZE = 64;
+const int CSM_BUFSIZE = 1024;
 class CommandStateMachine {
 private:
     enum StateCode { 
         IdleState, 
         ErrorState,
-//        CollectNState,
-//        CollectAddressState,
-//        StartState,
-//        SetState,
-//        SetUspdState,
-//        SetRspdState,
-//        SetDgState,
-//        ScrollState,
-//        ScrollTextState,
-//        SetColState,
-//        SelectFontState,
-//        BarColorState,
-//        TextMergeState,
-//        TextAlignState,
-//        TextTransitionState,
-//        TextDataState,
-//        SetColorState,
+        CollectNState,
+        CollectAddressState,
+        StartState,
+        SetState,
+        SetUspdState,
+        SetRspdState,
+        SetDgState,
+        ScrollState,
+        ScrollTextState,
+        SetColState,
+        SelectFontState,
+        BarColorState,
+        TextMergeState,
+        TextAlignState,
+        TextTransitionState,
+        TextDataState,
+        SetColorState,
         StrobeState, 
 		EndState,
         FlashState, 
@@ -214,30 +215,44 @@ private:
     bool merge;
     TransitionEffect transition;
     byte buffer[CSM_BUFSIZE];
+    byte scrolling_buffer[CSM_BUFSIZE];
     byte buffer_idx;
     bool nybble;
     byte bytebuf;
     byte column;
+    byte font;
+    byte color;
+    bool esc_literal;
+    bool esc_msb;
+    bool repeat;
+    int  k;
+    serial_source_t cmd_source;
 
 public:
-    void accept(int inputchar);
+    void accept(serial_source_t source, int inputchar);
     bool accept_hex_nybble(int inputchar);
     bool accept_encoded_int6(int inputchar);    // 6-bit unsigned integer
     bool accept_encoded_pos(int inputchar);     // 6-bit position or ~ for current
+    bool accept_encoded_rgb(int inputchar);     // 4-bit color code
+    bool accept_encoded_transition(int inputchar);
     void begin(void);
     void commit_graph_datapoint(int value);
-    void commit_image_data(void);
+    void commit_graph_datacolors(void);
     void report_state(void);
     void reset(void);
 	void end_cmd(void);
     void set_lights(byte lights);
     void set_light_sequence(byte which);
     void error(void);
+    void append_bytebuf(void);
+    void append_byte(byte n);
 };
 
 void CommandStateMachine::begin(void)
 {
     column = 0;
+    font = 0;
+    color = 1;
     reset();
 }
 
@@ -255,7 +270,7 @@ bool CommandStateMachine::accept_encoded_pos(int inputchar)
         bytebuf = min(column, 63);
         return true;
     }
-    return accept_encoded_pos(inputchar);
+    return accept_encoded_int6(inputchar);
 }
 
 bool CommandStateMachine::accept_encoded_int6(int inputchar)
@@ -269,6 +284,63 @@ bool CommandStateMachine::accept_encoded_int6(int inputchar)
     return false;
 }
 
+bool CommandStateMachine::accept_encoded_rgb(int inputchar)
+{
+    if (!accept_encoded_int6(inputchar))
+        return false;
+    if (bytebuf > 16)
+        return false;
+    return true;
+}
+
+bool CommandStateMachine::accept_encoded_transition(int inputchar)
+{
+    switch (inputchar) {
+	case '.': transition = NoTransition; break;
+    case '<': transition = TransScrollLeft; break;
+    case '>': transition = TransScrollRight; break;
+    case '^': transition = TransScrollUp; break;
+    case 'v': transition = TransScrollDown; break;
+    case 'L': transition = TransWipeLeft; break;
+    case 'R': transition = TransWipeRight; break;
+    case 'U': transition = TransWipeUp; break;
+    case 'D': transition = TransWipeDown; break;
+    case '|': transition = TransWipeLeftRight; break;
+    case '-': transition = TransWipeUpDown; break;
+    case '?': 
+        // random transition pattern
+        switch (millis() % 10) {
+        case 0: transition = TransScrollLeft; break;
+        case 1: transition = TransScrollRight; break;
+        case 2: transition = TransScrollUp; break;
+        case 3: transition = TransScrollDown; break;
+        case 4: transition = TransWipeLeft; break;
+        case 5: transition = TransWipeRight; break;
+        case 6: transition = TransWipeUp; break;
+        case 7: transition = TransWipeDown; break;
+        case 8: transition = TransWipeLeftRight; break;
+        case 9: transition = TransWipeUpDown; break;
+        default: transition = NoTransition; break;
+        }
+        break;
+    default:
+        return false;
+    }
+    return true;
+}
+
+void CommandStateMachine::append_bytebuf(void)
+{
+    append_byte(bytebuf);
+    bytebuf = 0;
+}
+
+void CommandStateMachine::append_byte(byte n)
+{
+    if (buffer_idx < CSM_BUFSIZE) {
+        buffer[buffer_idx++] = n;
+    }
+}
 
 
 //
@@ -331,6 +403,10 @@ void CommandStateMachine::reset(void)
     LEDset = 0;
     nybble = false;
     bytebuf = 0;
+    esc_literal = false;
+    esc_msb = false;
+    repeat = false;
+    cmd_source = FROM_USB;
     for (int i=0; i<CSM_BUFSIZE; i++)
         buffer[i] = 0;
 }
@@ -341,31 +417,148 @@ void CommandStateMachine::reset(void)
 //   as it parses the incoming commands, eventually executing them when a complete
 //   command has been received.
 //
-void CommandStateMachine::accept(int inputchar)
+void CommandStateMachine::accept(serial_source_t source, int inputchar)
 {
     if (inputchar < 0) {
         return;
     }
 
+    // If we are already receiving from RS-485 and receive a byte with its MSB set,
+    // that means we are abandoning the current command and starting a new one.
+    if (cmd_source == FROM_485 && source == FROM_485 && (inputchar & 0x80) && state != EndState) {
+        error();
+        reset();
+    }
+
+    // Same if we were in the middle of an RS-485 command and something showed up on USB.
+    if (cmd_source == FROM_485 && source == FROM_USB && state != EndState) {
+        error();
+        reset();
+    }
+
+    cmd_source = source;
+    if (cmd_source == FROM_485) {
+        if (inputchar & 0x80) {
+            // start of command. is it ours?
+            if ((inputchar & 0x0f) != my_device_address && (inputchar & 0x0f) != global_device_address) {
+                // no, just ignore everything else until start of next command.
+                end_cmd();
+                return;
+            }
+
+            switch (inputchar & 0xf0) {
+                case 0x80:
+                    clear_all_buffers();
+                    discrete_all_off(true);
+                    end_cmd();
+                    return;
+
+                case 0xd0:
+                case 0xf0:
+                    // someone else's response; ignore
+                    end_cmd();
+                    return;
+
+                case 0x90:
+                    // start of command
+                    state = StartState;
+                    break;
+
+                case 0xb0:
+                    // start of target address block
+                    state = CollectNState;
+                    return;
+
+                default:
+                    error();
+                    return;
+            }
+        } else {
+            // subsequent bytes
+            if (esc_literal) {
+                esc_literal = false;
+            } else if (esc_msb) {
+                esc_msb = false;
+                inputchar |= 0x80;
+            } else if (inputchar == 0x7e) {
+                esc_msb = true;
+                return;
+            } else if (inputchar == 0x7f) {
+                esc_literal = true;
+                return;
+            }
+        }
+    } 
+
     switch (state) {
     // stuck in error state until end of command
 	case EndState:
     case ErrorState:
-        if (inputchar == '\x04') {
+        if (source == FROM_USB && inputchar == '\x04') {
             reset();
         }
         break;
 
-    // start of command
+    // parsing RS-485 headers
+    case CollectNState:
+        if (accept_encoded_int6(inputchar) && bytebuf > 0) {
+            append_bytebuf();
+            state = CollectAddressState;
+            break;
+        }
+        error();
+        break;
+
+    case CollectAddressState:
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+            if (buffer_idx > buffer[0]) {
+                state = StartState;
+            }
+            return;
+        }
+        error();
+        break;
+
     case IdleState:
+        if (source == FROM_USB) {
+            if (inputchar == '\x04') {
+                reset();
+                break;
+            }
+            state = StartState;
+            /* fallthrough */
+        } else {
+            break;
+        }
+
+    // start of command
+    case StartState:
         switch (inputchar) {
-        case '\x04':
-            reset();
+        case '*':
+            state = StrobeState;
+            strober.stop();
             break;
 
         case 'C':
-            clear_image_buffer();
-            clear_display_buffer();
+            clear_all_buffers();
+            end_cmd();
+            break;
+
+        case '=':
+            state = SetState;
+            break;
+
+        case '<':
+          state = ScrollState;
+          break;
+
+        case '@':
+            state = SetColState;
+            break;
+
+        case 'A':
+            state = SelectFontState;
             break;
 
         case 'H':
@@ -377,50 +570,68 @@ void CommandStateMachine::accept(int inputchar)
             break;
 
         case 'Q':
-            Serial.write('Q');
+            {
+                void (*sendbyte)(byte);
+                if (cmd_source == FROM_485) {
+                    start_485_reply();
+                    sendbyte = send_485_byte;
+                } else {
+                    start_usb_reply();
+                    sendbyte = send_usb_byte;
+                }
+
+                sendbyte('Q');
 #if HW_MODEL == MODEL_3xx_MONOCHROME
-            Serial.write('M');
+                sendbyte('M');
 #else
 # if HW_MODEL == MODEL_3xx_RGB
-            Serial.write('C');
+                sendbyte('C');
 # else
 #  error "hardware model not supported"
 # endif
 #endif
-            Serial.write('=');
-            Serial.write(encode_int6(my_device_address));
-            Serial.write(USB_baud_rate_code);
-            Serial.write(RS485_baud_rate_code);
-            Serial.write(encode_int6(my_device_address));
+                sendbyte('=');
+                sendbyte(encode_int6(my_device_address));
+                sendbyte(USB_baud_rate_code);
+                sendbyte(RS485_baud_rate_code);
+                sendbyte(encode_int6(global_device_address));
 #if HAS_I2C_EEPROM
-            Serial.write('X');
+                sendbyte('X');
 #else
 # if HW_MC == HW_MC_DUE
-            Serial.write('_');
+                sendbyte('_');
 # else
-            Serial.write('I');
+                sendbyte('I');
 # endif
 #endif
-            Serial.write('$');
-            Serial.write(SERIAL_VERSION_STAMP);
-			Serial.write('M');
-            for (int plane=0; plane<N_COLORS; plane++) {
-                byte planebit = 1 << plane;
-                for (int col=0; col<N_COLS; col++) {
-                    Serial.write(encode_hex_nybble(
-                                  ((image_buffer[4][col] & planebit)? 0x01:0) |
-                                  ((image_buffer[5][col] & planebit)? 0x02:0) |
-                                  ((image_buffer[6][col] & planebit)? 0x04:0) |
-                                  ((image_buffer[7][col] & planebit)? 0x08:0)));
-                    Serial.write(encode_hex_nybble(
-                                  ((image_buffer[0][col] & planebit)? 0x01:0) |
-                                  ((image_buffer[1][col] & planebit)? 0x02:0) |
-                                  ((image_buffer[2][col] & planebit)? 0x04:0) |
-                                  ((image_buffer[3][col] & planebit)? 0x08:0)));
+                sendbyte('$');
+                for (const char *c = SERIAL_VERSION_STAMP; *c != '\0'; c++) {
+                    sendbyte(*c);
                 }
-                Serial.write('$');
+                sendbyte('M');
+                for (int plane=0; plane<N_COLORS; plane++) {
+                    byte planebit = 1 << plane;
+                    for (int col=0; col<N_COLS; col++) {
+                        sendbyte(encode_hex_nybble(
+                                      ((image_buffer[4][col] & planebit)? 0x01:0) |
+                                      ((image_buffer[5][col] & planebit)? 0x02:0) |
+                                      ((image_buffer[6][col] & planebit)? 0x04:0) |
+                                      ((image_buffer[7][col] & planebit)? 0x08:0)));
+                        sendbyte(encode_hex_nybble(
+                                      ((image_buffer[0][col] & planebit)? 0x01:0) |
+                                      ((image_buffer[1][col] & planebit)? 0x02:0) |
+                                      ((image_buffer[2][col] & planebit)? 0x04:0) |
+                                      ((image_buffer[3][col] & planebit)? 0x08:0)));
+                    }
+                    sendbyte('$');
+                }
+                sendbyte('\n');
+                if (cmd_source == FROM_485) {
+                    end_485_reply();
+                } else {
+                    end_usb_reply();
+                }
             }
-            Serial.write('\n');
             end_cmd();
             break;
 
@@ -430,57 +641,52 @@ void CommandStateMachine::accept(int inputchar)
             flasher.stop();
             break;
 
-        case '*':
-            state = StrobeState;
-            strober.stop();
-            break;
-
         case 'L':
-            LEDset = 0;
+            flasher.stop();
+            discrete_all_off(false);
             state = LightSetState;
             break;
 
         case 'S':
         case 's':
+            flasher.stop();
+            discrete_all_off(false);
             state = LightOnState;
+            break;
+
+        case 'T':
+            state = TextMergeState;
             break;
 
         case 'X':
         case 'x':
             discrete_all_off(true);
+            end_cmd();
+            break;
+
+        case '%':
+            test_pattern();
+            end_cmd();
+            break;
+
+        case 'K':
+            state = SetColorState;
             break;
 
         case '?':
             report_state();
+            end_cmd();
             break;
 
         default:
             error();
         }
         break;
-
-    // Collecting LED numbers to form a flash or strobe sequence
+//
+//    // Collecting LED numbers to form a flash or strobe sequence
     case FlashState:
     case StrobeState:
-        switch (inputchar) {
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-            if (state == FlashState) {
-                flasher.append(inputchar - '0');
-            }
-            else {
-                strober.append(inputchar - '0');
-            }
-            break;
-
-        case '$':
-        case '\x1b':
+        if (inputchar == '$' || inputchar == '\x1b') {
             discrete_all_off(false);
             if (state == FlashState) {
                 flasher.start();
@@ -488,61 +694,100 @@ void CommandStateMachine::accept(int inputchar)
             else {
                 strober.start();
             }
-            reset();
+            end_cmd();
             break;
+        }
 
-        default:
+        if (state == FlashState) {
+            flasher.append(parse_led_name(inputchar));
+        }
+        else {
+            strober.append(parse_led_name(inputchar));
+        }
+        break;
+
+    // Set operational parameters
+    case SetState:
+        state = SetUspdState;
+        if (inputchar == '.') {
+            append_byte(EE_ADDRESS_DISABLED);
+        } else if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+            break;
+        } else {
             error();
         }
         break;
 
-    // Collecting LED numbers to light at once
+    case SetUspdState:
+        append_byte(inputchar);
+        state = SetRspdState;
+        break;
+
+    case SetRspdState:
+        append_byte(inputchar);
+        state = SetDgState;
+        break;
+
+    case SetDgState:
+        // 0=addr
+        // 1=usb baud code
+        // 2=485 baud code
+        int b1, b2;
+        if ((b1 = parse_baud_rate_code(buffer[1])) == 0
+        ||  (b2 = parse_baud_rate_code(buffer[2])) == 0) {
+            error();
+            break;
+        }
+        if (accept_encoded_int6(inputchar)) {
+            global_device_address = bytebuf;
+            my_device_address = buffer[0];
+            USB_baud_rate_code = buffer[1];
+            USB_baud_rate = b1;
+            RS485_baud_rate_code = buffer[2];
+            RS485_baud_rate = b2;
+            end_cmd();
+        } else {
+            error();
+        }
+        break;
+
+    case SetColState:
+        if (accept_encoded_pos(inputchar)) {
+            column = bytebuf;
+            end_cmd();
+        } else {
+            error();
+        }
+        break;
+
+    case SelectFontState:
+        if (accept_encoded_int6(inputchar)) {
+            font = min(bytebuf, N_FONTS - 1);
+            end_cmd();
+        } else {
+            error();
+        }
+        break;
+
     case LightSetState:
-        switch (inputchar) {
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-            LEDset |= (1 << (inputchar - '0'));
+        if (inputchar == '$' || inputchar == '\x1b') {
+            end_cmd();
             break;
-
-        case '$':
-        case '\x1b':
-            set_lights(LEDset);
-            LEDset = 0;
-            state = IdleState;
-            break;
-
-        default:
-            error();
         }
+        discrete_set(parse_led_name(inputchar), 1);
         break;
 
-    // waiting for a light number to turn on
-    case LightOnState:
-        switch (inputchar) {
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-            set_lights(1 << (inputchar - '0'));
-            break;
-
-        default:
-            error();
-        }
-        reset();
+   case LightOnState:
+        discrete_set(parse_led_name(inputchar), 1);
+        end_cmd();
         break;
 
     case BarGraphState:
+        if (inputchar == 'K') {
+            state = BarColorState;
+            break;
+        }
         if (inputchar >= '0' && inputchar <= '9') {
             commit_graph_datapoint(inputchar - '0');
             end_cmd();
@@ -552,57 +797,44 @@ void CommandStateMachine::accept(int inputchar)
         }
         break;
 
+    case BarColorState:
+        if (!accept_encoded_rgb(inputchar)) {
+            error();
+            break;
+        }
+        append_bytebuf();
+        if (buffer_idx >= 8) {
+            commit_graph_datacolors();
+            end_cmd();
+        }
+        break;
+
     case ImageStateMerge:
+        state = ImageStateCol;
         if (inputchar == '.') 
             merge = false;
         else if (inputchar == 'M')
             merge = true;
-        else
+        else 
             error();
-        state = ImageStateCol;
         break;
 
     case ImageStateCol:
         if (accept_encoded_pos(inputchar)) {
             column = bytebuf;
             state = ImageStateTransition;
+        } else {
+            error();
         }
         break;
 
     case ImageStateTransition:
-		switch (inputchar) {
-		case '.': transition = NoTransition; break;
-		case '<': transition = TransScrollLeft; break;
-		case '>': transition = TransScrollRight; break;
-		case '^': transition = TransScrollUp; break;
-		case 'v': transition = TransScrollDown; break;
-		case 'L': transition = TransWipeLeft; break;
-		case 'R': transition = TransWipeRight; break;
-		case 'U': transition = TransWipeUp; break;
-		case 'D': transition = TransWipeDown; break;
-		case '|': transition = TransWipeLeftRight; break;
-		case '-': transition = TransWipeUpDown; break;
-		case '?': 
-			// random transition pattern
-			switch (millis() % 10) {
-			case 0: transition = TransScrollLeft; break;
-			case 1: transition = TransScrollRight; break;
-			case 2: transition = TransScrollUp; break;
-			case 3: transition = TransScrollDown; break;
-			case 4: transition = TransWipeLeft; break;
-			case 5: transition = TransWipeRight; break;
-			case 6: transition = TransWipeUp; break;
-			case 7: transition = TransWipeDown; break;
-			case 8: transition = TransWipeLeftRight; break;
-			case 9: transition = TransWipeUpDown; break;
-			default: transition = NoTransition; break;
-			}
-			break;
-		default:
-			error();
+        if (accept_encoded_transition(inputchar)) {
+            state = ImageStateData;
+            k = 0;
+        } else {
+            error();
         }
-
-		state = ImageStateData;
         break;
 
     case ImageStateData:
@@ -611,17 +843,108 @@ void CommandStateMachine::accept(int inputchar)
                 error();
                 break;
             }
-            commit_image_data();
-            end_cmd();
+
+            if (k >= N_COLORS) {
+                error();
+                break;
+            }
+
+            for (int col = column, i=0; col < N_COLS && i < buffer_idx; col++, i++) {
+                for (int row = 0; row < N_ROWS; row++) {
+                    if (k == 0 && !merge) {
+                        image_buffer[row][col] = 0;
+                    }
+                    if (buffer[i] & (1 << row)) {
+                        image_buffer[row][col] |= 1 << k;
+                    }
+                }
+            }
+
+            if (++k >= N_COLORS) {
+                display_buffer(image_buffer, transition);
+                end_cmd();
+            } else {
+                error();
+            }
             break;
         }
         if (accept_hex_nybble(inputchar)) {
-            if (buffer_idx < CSM_BUFSIZE) {
-                buffer[buffer_idx++] = bytebuf;
-                bytebuf = 0;
-                break;
-            }
+            append_bytebuf();
+            break;
         }
+        break;
+
+    case TextMergeState:
+        state = TextAlignState;
+        if (inputchar == '.') {
+            merge = false;
+        } else if (inputchar == 'M') {
+            merge = true;
+        } else {
+            error();
+        }
+        break;
+
+    case TextAlignState:
+        //TODO parse alignment specifier
+        state = TextTransitionState;
+        break;
+
+    case TextTransitionState:
+        if (accept_encoded_transition(inputchar)) {
+            state = TextDataState;
+            transitions.set_stage();
+        } else {
+            error();
+        }
+        break;
+
+    case TextDataState:
+        if (inputchar == '\0') {
+            // ignore nulls in input
+            break;
+        }
+        if (inputchar == '\x1b') {
+            append_byte(0);
+            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge);
+            //commit_image_buffer(image_buffer);
+            display_buffer(image_buffer, transition);
+            end_cmd();
+            break;
+        }
+        append_byte(inputchar);
+        break;
+
+    case SetColorState:
+        if (!accept_encoded_rgb(inputchar)) {
+            error();
+            break;
+        }
+        color = bytebuf;
+        end_cmd();
+        break;
+
+    case ScrollState:
+        state = ScrollTextState;
+        if (inputchar == '.')
+            repeat = false;
+        else if (inputchar == 'L')
+            repeat = true;
+        else 
+            error();
+        break;
+
+    case ScrollTextState:
+        if (inputchar == '\x1b') {
+            append_byte(0);
+            strncpy((char *)scrolling_buffer, (const char *) buffer, CSM_BUFSIZE);
+            scrolling_buffer[CSM_BUFSIZE-1] = '\0';
+            transitions.start_scrolling_text((const char *) scrolling_buffer, strlen((const char *)scrolling_buffer), repeat, font, color);
+            end_cmd();
+            break;
+        }
+        if (inputchar != '\0')
+            append_byte(inputchar);
         break;
 
     default:
@@ -636,19 +959,35 @@ void CommandStateMachine::accept(int inputchar)
 //
 void CommandStateMachine::report_state(void)
 {
-    int i = 0;
-    Serial.write('L');
-    for (i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        Serial.write(discrete_query(i) ? encode_led(i) : '_');
+    void (*send_byte)(byte);
+    void (*send_end)(void);
+
+    Stream *port;
+
+    if (cmd_source == FROM_485) {
+        start_485_reply();
+        send_byte = send_485_byte;
+        send_end = end_485_reply;
+    } else {
+        start_usb_reply();
+        send_byte = send_usb_byte;
+        send_end = end_usb_reply;
     }
-    Serial.write('$');
-    Serial.write('F');
-    flasher.report_state();
-    Serial.write('$');
-    Serial.write('S');
-    strober.report_state();
-    Serial.write('$');
-    Serial.write('\n');
+
+    int i = 0;
+    (*send_byte)('L');
+    for (i = 0; i < LENGTH_OF(discrete_led_set); i++) {
+        (*send_byte)(discrete_query(i) ? encode_led(i) : '_');
+    }
+    (*send_byte)('$');
+    (*send_byte)('F');
+    flasher.report_state(send_byte);
+    (*send_byte)('$');
+    (*send_byte)('S');
+    strober.report_state(send_byte);
+    (*send_byte)('$');
+    (*send_byte)('\n');
+    (*send_end)();
 }
 
 //
@@ -660,7 +999,7 @@ void CommandStateMachine::report_state(void)
 //
 void CommandStateMachine::error(void)
 {
-    set_lights(0b00011001);
+    set_lights(0b10011000);
     state = ErrorState;
 }
 
@@ -681,21 +1020,6 @@ void CommandStateMachine::set_lights(byte bits)
 }
 
 //
-// (CSM) commit_image_data()
-//   Send the collected bytes of raw bitmap image data in buffer[0,buffer_idx)
-//   to the hardware display. Advances the current cursor position to be past the
-//   end of the image data.
-//
-void CommandStateMachine::commit_image_data(void)
-{
-    for (byte c=0; c < buffer_idx; c++) {
-        //TODO draw_column(c+column, buffer[c], merge, image_buffer);
-    }
-    //TODO display_buffer(image_buffer, transition);
-    column = min(column + buffer_idx, 63);
-}
-
-//
 // (CSM) commit_graph_datapoint(value)
 //    Plots the data value in the range [0,8] by lighting up
 //    that number of lights from the bottom row, displaying them
@@ -703,27 +1027,20 @@ void CommandStateMachine::commit_image_data(void)
 //
 void CommandStateMachine::commit_graph_datapoint(int value)
 {
-    byte bits = 0;
-
-    //TODO shift_left(image_buffer);
-    switch (value) {
-	case 0: bits = 0x00; break;
-    case 1: bits = 0x80; break;
-    case 2: bits = 0xc0; break;
-    case 3: bits = 0xe0; break;
-    case 4: bits = 0xf0; break;
-    case 5: bits = 0xf8; break;
-    case 6: bits = 0xfc; break;
-    case 7: bits = 0xfe; break;
-    case 8:
-    case 9:
-        bits = 0xff; 
-        break;
-    default:
-        bits = 0xaa;
+    shift_left(image_buffer);
+    for (int i=0; i<value && i<N_ROWS; i++) {
+        image_buffer[7-i][N_COLS-1] = color;
     }
-    //TODO draw_column(63, bits, false, image_buffer);
-    //TODO display_buffer(image_buffer, NoTransition);
+    display_buffer(image_buffer);
+}
+
+void CommandStateMachine::commit_graph_datacolors()
+{
+    shift_left(image_buffer);
+    for (int i=0; i<buffer_idx && i<N_ROWS; i++) {
+        image_buffer[i][N_COLS-1] = buffer[i];
+    }
+    display_buffer(image_buffer);
 }
 
 CommandStateMachine cmd;
@@ -742,9 +1059,19 @@ void setup_commands(void)
 //   Read in a character from the serial port and buffer it up
 //   until we have a complete command, then execute it.
 //
-void receive_serial_data(void)
+void receive_serial_data(serial_source_t source)
 {
-    if (Serial.available() > 0) {
-        cmd.accept(Serial.read());
+    switch (source) {
+        case FROM_USB:
+            if (Serial.available() > 0) {
+                cmd.accept(source, Serial.read());
+            }
+            break;
+
+        case FROM_485:
+            if (Serial3.available() > 0) {
+                cmd.accept(source, Serial3.read());
+            }
+            break;
     }
 }
