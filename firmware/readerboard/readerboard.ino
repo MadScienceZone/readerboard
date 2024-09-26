@@ -21,9 +21,11 @@
  */
 
 #include <TimerEvent.h>
-//#include <EEPROM.h>
 #include "fonts.h"
 #include "readerboard.h"
+#if HW_MC != HW_MC_DUE
+# include <EEPROM.h>
+#endif
 #include "commands.h"
 
 byte USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
@@ -34,8 +36,10 @@ int USB_baud_rate = 0;
 int RS485_baud_rate = 0;
 bool RS485_enabled = false;
 
+#if IS_READERBOARD
 void debug_image_buffer(byte buf[N_ROWS][N_COLS]);
 void debug_hw_buffer(void);
+#endif
 
 //
 // EEPROM locations
@@ -58,32 +62,19 @@ void debug_hw_buffer(void);
 #define EE_ADDR_GLOBAL_ADDR (0x05)
 #define EE_ADDR_SENTINEL2  (0x06)
 
-/* Hardware model selected for this firmware.
- * 2xx logic 
- */
-
-#define HW_CONTROL_LOGIC_3xx (1)
-
-#if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
-# define HW_CONTROL_LOGIC HW_CONTROL_LOGIC_3xx
-#else
-# if HW_MODEL == MODEL_LEGACY_64x7 || HW_MODEL == MODEL_LEGACY_64x8 || HW_MODEL == MODEL_LEGACY_64x8_INTEGRATED
-#  error "Legacy readerboard hardware model no longer supported."
-# else
-#  error "HW_MODEL not set to a supported hardware configuration"
-# endif
-#endif
-
 /* I/O port to use for full 8-bit write operations to the sign board */
 /* On the Mega 2560, PORTF<7:0> corresponds to <A7:A0> pins */
 /* On the Due, we just toggle the bits separately. */
 /* TODO consider if using PORTF is even a good idea considering interrupts and such */
-#if HW_MC == HW_MC_MEGA_2560
-# define MATRIX_DATA_PORT    PORTF   
+#if IS_READERBOARD
+# if HW_MC == HW_MC_MEGA_2560
+#  define MATRIX_DATA_PORT    PORTF   
+# endif
 #endif
 
 #define LENGTH_OF(A) (sizeof(A) / sizeof(A[0]))
 
+#if IS_READERBOARD
 /* Refresh the display every REFRESH_MS milliseconds. For an 8-row
  * display, an overall refresh rate of 30 FPS =  4.16 mS
  *                                     25 FPS =  5.00 mS
@@ -93,31 +84,34 @@ void debug_hw_buffer(void);
  *                                      5 FPS = 25.00 mS
  */
 const int ROW_HOLD_TIME_US = 500;   /* how long in microseconds to hold the row on during refresh */
+#endif
 
+#if HW_MC != HW_MC_PRO
 const int PIN_STATUS_LED = 13;
+#endif
 
 // Hardware notes
-// DUE    MEGA                 READERBOARD              DUE    MEGA
+// DUE    MEGA                 READERBOARD              DUE    MEGA     PRO
 //                                                  LED 13~    13~
 //                                                      12~    12~
 //                                                      11~    11~
 //                                                      10~    10~
-//                                    L4                09~    09~
-//                                    L5                08~    08~
+//                                    L4                09~    09~      06
+//                                    L5                08~    08~      07
 //     
-//                                    L6                07~    07~
-//                                    L7                06~    06~
-//  A0/54  A0/54                 D7   L3                05~    05~
-//  A1/55  A0/55                 D6   L2                04~    04~
-//  A2/56  A0/56                 D5   L1                03~    03~
-//  A3/57  A0/57                 D4   L0                02~    02~
+//                                    L6                07~    07~      10
+//                                    L7                06~    06~      --
+//  A0/54  A0/54                 D7   L3                05~    05~      08
+//  A1/55  A0/55                 D6   L2                04~    04~      09
+//  A2/56  A0/56                 D5   L1                03~    03~      14
+//  A3/57  A0/57                 D4   L0                02~    02~      16
 //  A4/58  A0/58                 D3   USB TxD           01/TX0 01/TX0~
 //  A5/59  A0/59                 D2   USB RxD           00/RX0 00/RX0~
 //  A6/60  A0/60                 D1                     
 //  A7/61  A0/61                 D0   485 TxD           14/TX3 14/TX3
 //                                    485 RxD           15/RX3 15/RX3
-//  A8/62  A0/62              SRCLK   485 DE            16/TX2 16/TX2
-//  A9/63  A0/53               /CLR   485 /RE           17/RX2 17/RX2
+//  A8/62  A0/62              SRCLK   485 DE            16/TX2 16/TX2   02
+//  A9/63  A0/53               /CLR   485 /RE           17/RX2 17/RX2   03
 // A10/64 A10/64                  /G                    18/TX1 18/TX1
 // A11/65 A11/65                RCLK   R3               19/RX1 19/RX1
 //     66 A12/66                  R0                    20/SDA 20/SDA
@@ -172,10 +166,29 @@ const int PIN_L6    =  7;   // discrete LED 6 (blue)
 const int PIN_L7    =  6;   // discrete LED 7 (top) (white)
 const int PIN_DE    = 16;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   = 17;   // RS-485 ~receiver enable (0=enabled)
+#elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_1xx
+const int PIN_L0    = 16;   // discrete LED 0 (bottom) (green)
+const int PIN_L1    = 14;   // discrete LED 1 (yellow)
+const int PIN_L2    =  9;   // discrete LED 2 (yellow)
+const int PIN_L3    =  8;   // discrete LED 3 (red)
+const int PIN_L4    =  6;   // discrete LED 4 (red)
+const int PIN_L5    =  7;   // discrete LED 5 (blue)
+const int PIN_L6    = 10;   // discrete LED 6 (blue)
+#elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_2xx
+const int PIN_L0    = 16;   // discrete LED 0 (bottom) (green)
+const int PIN_L1    = 14;   // discrete LED 1 (yellow)
+const int PIN_L2    =  9;   // discrete LED 2 (yellow)
+const int PIN_L3    =  8;   // discrete LED 3 (red)
+const int PIN_L4    =  6;   // discrete LED 4 (red)
+const int PIN_L5    =  7;   // discrete LED 5 (blue)
+const int PIN_L6    = 10;   // discrete LED 6 (blue)
+const int PIN_DE    =  2;   // RS-485 driver enable (1=enabled)
+const int PIN__RE   =  3;   // RS-485 ~receiver enable (0=enabled)
 #else
 # error "HW_CONTROL_LOGIC not defined to supported model"
 #endif
 
+#if IS_READERBOARD
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
 const byte discrete_led_labels[8] = {
     STATUS_LED_COLOR_L0,
@@ -188,6 +201,24 @@ const byte discrete_led_labels[8] = {
     STATUS_LED_COLOR_L7,
 };
 const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5, PIN_D6, PIN_D7};
+#else
+const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
+const byte discrete_led_labels[7] = {
+//    STATUS_LED_COLOR_L0,
+//    STATUS_LED_COLOR_L1,
+//    STATUS_LED_COLOR_L2,
+//    STATUS_LED_COLOR_L3,
+//    STATUS_LED_COLOR_L4,
+//    STATUS_LED_COLOR_L5,
+//    STATUS_LED_COLOR_L6,
+
+    STATUS_LED_COLOR_L0,
+    STATUS_LED_COLOR_L2,
+    STATUS_LED_COLOR_L4,
+    STATUS_LED_COLOR_L3,
+    STATUS_LED_COLOR_L6,
+};
+#endif
 
 //
 // setup_pins()
@@ -195,7 +226,10 @@ const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5
 //
 void setup_pins(void)
 {
+#if HW_MC != HW_MC_PRO
 	pinMode(PIN_STATUS_LED, OUTPUT);
+#endif
+#if IS_READERBOARD
     pinMode(PIN_D0, OUTPUT);
     pinMode(PIN_D1, OUTPUT);
     pinMode(PIN_D2, OUTPUT);
@@ -213,8 +247,11 @@ void setup_pins(void)
     pinMode(PIN_R2, OUTPUT);
     pinMode(PIN_R3, OUTPUT);
     pinMode(PIN_R4, OUTPUT);
+#endif
+#if HW_MODEL != MODEL_BUSYLIGHT_1
     pinMode(PIN_DE, OUTPUT);
     pinMode(PIN__RE, OUTPUT);
+#endif
     pinMode(PIN_L0, OUTPUT);
     pinMode(PIN_L1, OUTPUT);
     pinMode(PIN_L2, OUTPUT);
@@ -222,7 +259,9 @@ void setup_pins(void)
     pinMode(PIN_L4, OUTPUT);
     pinMode(PIN_L5, OUTPUT);
     pinMode(PIN_L6, OUTPUT);
+#if IS_READERBOARD
     pinMode(PIN_L7, OUTPUT);
+#endif
 #if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
     //                              //            _ _____
     //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -235,10 +274,7 @@ void setup_pins(void)
     digitalWrite(PIN_R0, LOW);      //   X    X   1   0    1  1  0  0  0
     digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   0    1  1  0  0  0    clock idle
     digitalWrite(PIN_RCLK, LOW);    //   0    0   1   0    1  1  0  0  0    clock idle
-    digitalWrite(PIN_DE, LOW);      // RS-485 driver disabled
-    digitalWrite(PIN__RE, HIGH);    // RS-485 receiver disabled
-#else
-# error "HW_CONTROL_LOGIC not set to a supported model"
+    digitalWrite(PIN_L7, LOW);
 #endif
     digitalWrite(PIN_L0, LOW);      // turn off discrete LEDs
     digitalWrite(PIN_L1, LOW);
@@ -247,10 +283,13 @@ void setup_pins(void)
     digitalWrite(PIN_L4, LOW);
     digitalWrite(PIN_L5, LOW);
     digitalWrite(PIN_L6, LOW);
-    digitalWrite(PIN_L7, LOW);
+#if HW_MODEL != MODEL_BUSYLIGHT_1
+    digitalWrite(PIN_DE, LOW);      // RS-485 driver disabled
+    digitalWrite(PIN__RE, HIGH);    // RS-485 receiver disabled
+#endif
 }
 
-
+#if IS_READERBOARD
 byte image_buffer[N_ROWS][N_COLS];              // one pixel per element, value = <frgb> bit-encoded
 byte hw_buffer[N_COLORS][N_ROWS][N_COLBYTES];   // pixels arranged by color plane as convenient for display refresh
 byte hw_active_color_planes = 0;                // which color planes are currently needing to be included in refresh?
@@ -620,6 +659,7 @@ void draw_column(byte col, byte bits, byte color, bool mergep, byte buffer[N_ROW
         }
     }
 }
+#endif /* IS_READERBOARD */
 
 //
 // The following LightBlinker support was adapted from the
@@ -672,7 +712,7 @@ void LightBlinker::append(byte v)
 
 void LightBlinker::report_state(void (*sendfunc)(byte))
 {
-    (*sendfunc)(cur_state ? 'R' : 'S');
+    (*sendfunc)(timer.isEnabled()? 'R' : 'S');
     if (sequence_length > 0) {
         (*sendfunc)(encode_int6(cur_index));
         (*sendfunc)('@');
@@ -771,13 +811,14 @@ void flash_lights(void);
 void strobe_lights(void);
 LightBlinker flasher(200,   0, flash_lights);
 LightBlinker strober(50, 2000, strobe_lights);
+
+#if IS_READERBOARD
 TransitionManager transitions;
 
 void next_transition(void)
 {
 	transitions.next();
 }
-
 
 //
 // display_buffer(src, transition)
@@ -797,6 +838,7 @@ void display_buffer(byte src[N_ROWS][N_COLS], TransitionEffect transition)
 		transitions.start_transition(transition, 100);
 	}
 }
+#endif /* IS_READERBOARD */
 
 void discrete_all_off(bool stop_blinkers)
 {
@@ -804,7 +846,7 @@ void discrete_all_off(bool stop_blinkers)
     flasher.stop();
     strober.stop();
   }
-  for (int i=0; i < 8; i++) {
+  for (int i=0; i < LENGTH_OF(discrete_led_set); i++) {
     digitalWrite(discrete_led_set[i], LOW);
   }
 }
@@ -830,39 +872,27 @@ void strobe_lights(void)
 //
 void flag_init(void)
 {
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
-    digitalWrite(PIN_L0, LOW);
-    digitalWrite(PIN_L1, LOW);
-    digitalWrite(PIN_L2, LOW);
-    digitalWrite(PIN_L3, LOW);
-    digitalWrite(PIN_L4, LOW);
-    digitalWrite(PIN_L5, LOW);
-    digitalWrite(PIN_L6, LOW);
-    digitalWrite(PIN_L7, HIGH);
-#else
-# error "HW_CONTROL_LOGIC not set to supported model"
-#endif
+    for (int i=0; i<LENGTH_OF(discrete_led_set); i++) {
+        digitalWrite(discrete_led_set[i], LOW);
+    }
+    for (int i=0; i<LENGTH_OF(discrete_led_set); i++) {
+        digitalWrite(discrete_led_set[i], HIGH);
+        delay(100);
+        digitalWrite(discrete_led_set[i], LOW);
+    }
+
+    digitalWrite(discrete_led_set[LENGTH_OF(discrete_led_set)-1], HIGH);
 }
 
 void flag_ready(void)
 {
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
-    digitalWrite(PIN_L0, LOW);
-    digitalWrite(PIN_L1, LOW);
-    digitalWrite(PIN_L2, LOW);
-    digitalWrite(PIN_L3, LOW);
-    digitalWrite(PIN_L4, LOW);
-    digitalWrite(PIN_L5, LOW);
-    digitalWrite(PIN_L6, LOW);
-    digitalWrite(PIN_L7, LOW);
-#else
-# error "HW_CONTROL_LOGIC not set to supported model"
-#endif
+    for (int i=0; i<LENGTH_OF(discrete_led_set); i++) {
+        digitalWrite(discrete_led_set[i], LOW);
+    }
 }
 
 void flag_test(void)
 {
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
         digitalWrite(discrete_led_set[i], HIGH);
         delay(100);
@@ -881,9 +911,9 @@ void flag_test(void)
         delay(100);
         digitalWrite(discrete_led_set[i], LOW);
     }
-#endif
 }
 
+#if IS_READERBOARD
 TimerEvent status_timer;
 void strobe_status(void)
 {
@@ -901,31 +931,95 @@ void strobe_status(void)
 	}
 	analogWrite(PIN_STATUS_LED, status_value);
 }
+#endif
 
-void setup_eeprom(void) 
+void reset_eeprom_values(void)
+{
+#if HW_MC != HW_MC_DUE
+    EEPROM.write(EE_ADDR_LAYOUT, EE_VALUE_LAYOUT);
+    EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+    EEPROM.write(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+    EEPROM.write(EE_ADDR_DEVICE_ADDR, EE_DEFAULT_ADDRESS);
+    EEPROM.write(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS);
+    EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
+    EEPROM.write(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
+#endif
+}
+
+void save_eeprom(void)
 {
 #if HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"
+#elif HW_MC == HW_MC_DUE
+# if HAS_I2C_EEPROM
+#  error "Support for Due w/external EEPROM not implemented"
+# else
+#  warning "Arduino Due without external EEPROM module selected; cannot configure any system parameters!"
+#  warning "*** Configure desired parameters into this firmware image as the 'default' values ***"
+# endif
+#elif HW_MC == HW_MC_PRO
+    if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    EEPROM.write(EE_ADDR_USB_SPEED, USB_baud_rate_code);
+    EEPROM.write(EE_ADDR_485_SPEED, RS485_baud_rate_code);
+    EEPROM.write(EE_ADDR_DEVICE_ADDR, my_device_address);
+    EEPROM.write(EE_ADDR_GLOBAL_ADDR, global_device_address);
 #else
-# if HW_MC == HW_MC_DUE
-#  if HAS_I2C_EEPROM
-#   error "Support for Due w/external EEPROM not implemented"
-#  else
-#   warning "Arduino Due without external EEPROM module selected; cannot configure any system parameters!"
-#   warning "*** Configure desired parameters into this firmware image as the 'default' values ***"
+# error "No valid HW_MC configured"
+#endif
+}
+
+void setup_eeprom(void) 
+{
     USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
     RS485_baud_rate_code = EE_DEFAULT_485_SPEED;
     my_device_address = EE_DEFAULT_ADDRESS;
     global_device_address = EE_DEFAULT_GLOBAL_ADDRESS;
-#  endif
-# else
-#  error "No valid HW_MC configured"
-# endif
-#endif
     USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
     RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+
+#if HW_MC == HW_MC_MEGA_2560
+# error "Support for Mega 2560 not implemented"
+#elif HW_MC == HW_MC_DUE
+# if HAS_I2C_EEPROM
+#  error "Support for Due w/external EEPROM not implemented"
+# else
+#  warning "Arduino Due without external EEPROM module selected; cannot configure any system parameters!"
+#  warning "*** Configure desired parameters into this firmware image as the 'default' values ***"
+# endif
+#elif HW_MC == HW_MC_PRO
+    if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    USB_baud_rate_code = EEPROM.read(EE_ADDR_USB_SPEED);
+    RS485_baud_rate_code = EEPROM.read(EE_ADDR_485_SPEED);
+    USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    if (USB_baud_rate == 0) {
+        EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
+        USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    }
+    if (RS485_baud_rate == 0) {
+        EEPROM.write(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_485_SPEED;
+        RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    }
+#else
+# error "No valid HW_MC configured"
+#endif
 }
 
+#if IS_READERBOARD
 //
 // display_text(font, string, color, mS_delay)
 // Replace the displayed image with the given text and delay (blocking) for a time.
@@ -1233,7 +1327,7 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
         }
     }
 }
-
+#endif /* IS_READERBOARD */
 
 //
 // setup()
@@ -1246,17 +1340,20 @@ void setup(void)
     flasher.stop();
     strober.stop();
     setup_commands();
+#if IS_READERBOARD
     setup_buffers();
 	status_timer.set(0, strobe_status);
 	status_timer.reset();
 	status_timer.setPeriod(10);
 	status_timer.enable();
+#endif
 
 	start_usb_serial();
     setup_485_serial();
 
-	flag_test();
     flag_init();
+
+#if IS_READERBOARD
     char rbuf[32];
 	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
 	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
@@ -1298,10 +1395,14 @@ void setup(void)
 #else
 # error "hw control logic not set"
 #endif
+#endif /* IS_READERBOARD */
+
 #ifdef START_TEST_PATTERN
     test_pattern();
+# if IS_READERBOARD
     render_text(image_buffer, 0, 2, "XYZZY\013:012", BIT_RGB_RED);
     commit_image_buffer(image_buffer);
+# endif
     flasher.append(1);
     flasher.append(2);
     flasher.start();
@@ -1348,19 +1449,21 @@ void start_usb_serial(void) {
 // will follow that setting.
 //
 void setup_485_serial(void) {
+#if HW_MODEL != MODEL_BUSYLIGHT_1
     if (my_device_address == EE_ADDRESS_DISABLED) {
         digitalWrite(PIN_DE, LOW);      // disable driver
         digitalWrite(PIN__RE, HIGH);    // disable receiver
         if (RS485_enabled) {
-            Serial3.end();                  // disable USART
+            SERIAL_485.end();
         }
         RS485_enabled = false;
     } else {
-        Serial3.begin(RS485_baud_rate);
+        SERIAL_485.begin(RS485_baud_rate);
         digitalWrite(PIN_DE, LOW);      // disable driver
         digitalWrite(PIN__RE, LOW);     // enable receiver
         RS485_enabled = true;
     }
+#endif
 }
 
 // loop()
@@ -1368,20 +1471,25 @@ void setup_485_serial(void) {
 //
 void loop(void)
 {
+#if IS_READERBOARD
     refresh_hw_buffer();
+	transitions.update();
+	status_timer.update();
+#endif
     /* flash/strobe discrete LEDs as needed */
     flasher.update();
     strober.update();
-	status_timer.update();
-	transitions.update();
 
     /* receive commands via serial port */
     if (Serial.available() > 0) {
         receive_serial_data(FROM_USB);
     }
-    if (RS485_enabled && Serial3.available() > 0) {
+
+#if HW_MODEL != MODEL_BUSYLIGHT_1
+    if (RS485_enabled && SERIAL_485.available() > 0) {
         receive_serial_data(FROM_485);
     }
+#endif
 //
 //
 //          MEGA    DUE
@@ -1394,41 +1502,47 @@ void loop(void)
 
 void start_485_reply(void)
 {
+#if HW_MODEL != MODEL_BUSYLIGHT_1
     if (!RS485_enabled)
         return;
     
     digitalWrite(PIN_DE, HIGH); // enable driver
     if (my_device_address >= 16) {
-        Serial3.write(0xf0 | global_device_address);
-        Serial3.write(0x01);
-        Serial3.write(my_device_address & 0x3f);
+        SERIAL_485.write(0xf0 | global_device_address);
+        SERIAL_485.write(0x01);
+        SERIAL_485.write(my_device_address & 0x3f);
     }
     else {
-        Serial3.write(0xd0 | my_device_address);
+        SERIAL_485.write(0xd0 | my_device_address);
     }
+#endif
 }
 
 void send_485_byte(byte x)
 {
+#if HW_MODEL != MODEL_BUSYLIGHT_1
     if (!RS485_enabled)
         return;
 
     if (x == 0x7f || x == 0x7e) {
-        Serial3.write(0x7f);
-        Serial3.write(x);
+        SERIAL_485.write(0x7f);
+        SERIAL_485.write(x);
     }
     else if ((x & 0x80) == 0) {
-        Serial3.write(x);
+        SERIAL_485.write(x);
     }
     else {
-        Serial3.write(0x7e);
-        Serial3.write(x & 0x7f);
+        SERIAL_485.write(0x7e);
+        SERIAL_485.write(x & 0x7f);
     }
+#endif
 }
 
 void end_485_reply(void)
 {
+#if HW_MODEL != MODEL_BUSYLIGHT_1
     digitalWrite(PIN_DE, LOW); // disable driver
+#endif
 }
 
 void start_usb_reply(void)
@@ -1447,6 +1561,8 @@ void end_usb_reply(void)
 
 void test_pattern(void) 
 {
+	flag_test();
+#if IS_READERBOARD
     clear_all_buffers();
 	digitalWrite(PIN_D0, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
 	digitalWrite(PIN_D1, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
@@ -1498,8 +1614,10 @@ void test_pattern(void)
     test_row(7, 0x40, 0x40);
     test_row(7, 0x80, 0x80);
 	test_sweep();
+#endif
 }
 
+#if IS_READERBOARD
 void test_sweep()
 {
 	// Run a single column right and then left
@@ -1655,6 +1773,7 @@ void test_sequence_rows(void)
 		digitalWrite(PIN__G, HIGH);                     //   0     0  0   1    X  X  X  X  X turn off columns
 	}
 }
+#endif /* IS_READERBOARD */
 
 byte encode_led(byte n)
 {
@@ -1706,6 +1825,7 @@ byte decode_int6(byte n)
     return n-'0';
 }
 
+#if IS_READERBOARD
 byte decode_pos(byte n, byte current)
 {
     if (n == '~')
@@ -1816,3 +1936,4 @@ void shift_down(byte buffer[N_ROWS][N_COLS])
         buffer[0][col] = 0;
     }
 }
+#endif /* IS_READERBOARD */

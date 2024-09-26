@@ -17,21 +17,25 @@ Libraries Required:
 // Readerboard hardware models for HW_MODEL
 #define MODEL_3xx_MONOCHROME (3)
 #define MODEL_3xx_RGB (4)
+#define MODEL_BUSYLIGHT_1 (5)
+#define MODEL_BUSYLIGHT_2 (6)
 
 /* LEGACY models NO LONGER supported. Do not use these. */
 #define MODEL_LEGACY_64x7 (0)
 #define MODEL_LEGACY_64x8 (1)
 #define MODEL_LEGACY_64x8_INTEGRATED (2)
-/* ---------------------------------------------------------*/
 
 // Microcontroller Models for HW_MC
 #define HW_MC_MEGA_2560 (0)
 #define HW_MC_DUE (1)
+#define HW_MC_PRO (2)
 
 // BEGIN CONFIGURATION SECTION
 // TODO: Set these before compiling for a particular hardware configuration
-#define HW_MODEL (MODEL_3xx_RGB)
-#define HW_MC (HW_MC_DUE)
+//#define HW_MODEL (MODEL_3xx_RGB)
+//#define HW_MC (HW_MC_DUE)
+#define HW_MODEL (MODEL_BUSYLIGHT_1)
+#define HW_MC (HW_MC_PRO)
 #define HAS_I2C_EEPROM (false)
 
 // TODO: Set these default settings (this will be the "factory default settings")
@@ -66,10 +70,13 @@ Libraries Required:
 #define STATUS_LED_COLOR_L7 ('W')
 //
 // TODO: Adjust these for your version and serial number
+#if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 0.2.0  "
+#define BANNER_FIRMWARE_VERS "FW 2.1.0  "
 #define BANNER_SERIAL_NUMBER "S/N RB0000"
-#define SERIAL_VERSION_STAMP "V3.2.2$R0.2.0$SRB0000$"
+#endif
+//#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.0$SRB0000$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.1$SB0001$"
 //                             \___/  \___/  \____/
 //                               |      |      |
 //                  Hardware version    |      |
@@ -78,20 +85,47 @@ Libraries Required:
 //
 // END CONFIGURATION SECTION
 
+
+#define HW_CONTROL_LOGIC_3xx (1)
+#define HW_CONTROL_LOGIC_B_1xx (2)
+#define HW_CONTROL_LOGIC_B_2xx (3)
+
+#if HW_MODEL == MODEL_3xx_RGB
 const int N_COLS = 64;              // number of physical columns
 const int N_COLBYTES = 8;           // number of byte-size column blocks
 const int N_ROWS = 8;               // number of physical rows
-#if HW_MODEL == MODEL_3xx_MONOCHROME
-const int N_COLORS = 2;
-const int N_FLASHING_PLANE = 1;
-#else
-# if HW_MODEL == MODEL_3xx_RGB
 const int N_COLORS = 4;             // number of color planes
 const int N_FLASHING_PLANE = 3;
-# else
-#  error "hw model not set"
+# define IS_READERBOARD (true)
+# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_3xx)
+# define SERIAL_485 (Serial3)
+#elif HW_MODEL == MODEL_3xx_MONOCHROME
+const int N_COLS = 64;              // number of physical columns
+const int N_COLBYTES = 8;           // number of byte-size column blocks
+const int N_ROWS = 8;               // number of physical rows
+const int N_COLORS = 2;
+const int N_FLASHING_PLANE = 1;
+# define IS_READERBOARD (true)
+# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_3xx)
+# define SERIAL_485 (Serial3)
+#elif HW_MODEL == MODEL_BUSYLIGHT_1
+# define IS_READERBOARD (false)
+# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_B_1xx)
+# if HW_MC != HW_MC_PRO
+#  error "The busylight 1 only used the Arduino Pro Micro uC"
 # endif
+#elif HW_MODEL == MODEL_BUSYLIGHT_2
+# define IS_READERBOARD (false)
+# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_B_2xx)
+# define SERIAL_485 (Serial1)
+# if HW_MC != HW_MC_PRO
+#  error "The busylight 2 only used the Arduino Pro Micro uC"
+# endif
+#else
+# error "hw model not set"
 #endif
+
+#if IS_READERBOARD
 const byte BIT_RGB_FLASHING = 0x08;
 const byte BIT_RGB_BLUE = 0x04;
 const byte BIT_RGB_GREEN = 0x02;
@@ -139,17 +173,7 @@ public:
     void start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS=100);
 };
 extern TransitionManager transitions;
-extern byte USB_baud_rate_code;
-extern byte RS485_baud_rate_code;
-extern byte my_device_address;
-extern byte global_device_address;
-extern int USB_baud_rate;
-extern int RS485_baud_rate;
-
 extern byte image_buffer[N_ROWS][N_COLS];
-
-typedef enum {FROM_USB, FROM_485} serial_source_t;
-
 extern void clear_image_buffer();
 extern void clear_display_buffer();
 extern void display_buffer(byte buffer[N_ROWS][N_COLS], TransitionEffect transition=NoTransition);
@@ -157,13 +181,24 @@ extern byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_RO
 extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
 extern void shift_left(byte buffer[N_ROWS][N_COLS]);
 extern void setup_buffers(void);
+extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false);
+#endif /* IS_READERBOARD */
+
+extern byte USB_baud_rate_code;
+extern byte RS485_baud_rate_code;
+extern byte my_device_address;
+extern byte global_device_address;
+extern int USB_baud_rate;
+extern int RS485_baud_rate;
+
+typedef enum {FROM_USB, FROM_485} serial_source_t;
+
 extern void discrete_all_off(bool stop_blinkers);
 extern bool discrete_query(byte lightno);
 extern void discrete_set(byte lightno, bool value);
 extern byte encode_int6(byte n);
 extern byte encode_hex_nybble(byte n);
 extern int parse_baud_rate_code(byte code);
-extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false);
 extern void send_485_byte(byte x);
 extern void start_485_reply(void);
 extern void end_485_reply(void);

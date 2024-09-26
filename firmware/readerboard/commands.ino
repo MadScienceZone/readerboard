@@ -176,11 +176,17 @@
 //                                  The readerboard will ignore all further input until the next ^D character is received.
 //                                  A ^D also aborts any incomplete command in progress.
 //
+#if IS_READERBOARD
 const int CSM_BUFSIZE = 1024;
+#else
+const int CSM_BUFSIZE = 128;
+#endif
+
 class CommandStateMachine {
 private:
     enum StateCode { 
         IdleState, 
+		EndState,
         ErrorState,
         CollectNState,
         CollectAddressState,
@@ -189,6 +195,10 @@ private:
         SetUspdState,
         SetRspdState,
         SetDgState,
+        StrobeState, 
+        FlashState, 
+        LightOnState, 
+#if IS_READERBOARD
         ScrollState,
         ScrollTextState,
         SetColState,
@@ -199,46 +209,47 @@ private:
         TextTransitionState,
         TextDataState,
         SetColorState,
-        StrobeState, 
-		EndState,
-        FlashState, 
         BarGraphState,
         ImageStateCol,
         ImageStateData,
         ImageStateMerge,
         ImageStateTransition,
-        LightOnState, 
         LightSetState,
+#endif
     } state;
     byte LEDset;
     byte command_in_progress;
+#if IS_READERBOARD
     bool merge;
     TransitionEffect transition;
-    byte buffer[CSM_BUFSIZE];
     byte scrolling_buffer[CSM_BUFSIZE];
-    byte buffer_idx;
-    bool nybble;
-    byte bytebuf;
     byte column;
     byte font;
     byte color;
+    bool repeat;
+    bool nybble;
+#endif
+    byte buffer[CSM_BUFSIZE];
+    byte buffer_idx;
+    byte bytebuf;
     bool esc_literal;
     bool esc_msb;
-    bool repeat;
     int  k;
     serial_source_t cmd_source;
 
 public:
     void accept(serial_source_t source, int inputchar);
+#if IS_READERBOARD
     bool accept_hex_nybble(int inputchar);
-    bool accept_encoded_int6(int inputchar);    // 6-bit unsigned integer
     bool accept_encoded_pos(int inputchar);     // 6-bit position or ~ for current
     bool accept_encoded_rgb(int inputchar);     // 4-bit color code
     bool accept_encoded_transition(int inputchar);
-    void begin(void);
     void commit_graph_datapoint(int value);
     void commit_graph_datacolors(void);
-    void report_state(void);
+#endif
+    bool accept_encoded_int6(int inputchar);    // 6-bit unsigned integer
+    void begin(void);
+    void report_state(bool);
     void reset(void);
 	void end_cmd(void);
     void set_lights(byte lights);
@@ -250,9 +261,11 @@ public:
 
 void CommandStateMachine::begin(void)
 {
+#if IS_READERBOARD
     column = 0;
     font = 0;
     color = 1;
+#endif
     reset();
 }
 
@@ -263,6 +276,7 @@ void CommandStateMachine::begin(void)
 //
 //   In case of error, the state machine is reset with an error condition, and false is returned.
 //
+#if IS_READERBOARD
 bool CommandStateMachine::accept_encoded_pos(int inputchar)
 {
     nybble = false;
@@ -272,10 +286,13 @@ bool CommandStateMachine::accept_encoded_pos(int inputchar)
     }
     return accept_encoded_int6(inputchar);
 }
+#endif
 
 bool CommandStateMachine::accept_encoded_int6(int inputchar)
 {
+#if IS_READERBOARD
     nybble = false;
+#endif
     if (inputchar >= '0' && inputchar <= 'o') {
         bytebuf = inputchar - '0';
         return true;
@@ -284,6 +301,7 @@ bool CommandStateMachine::accept_encoded_int6(int inputchar)
     return false;
 }
 
+#if IS_READERBOARD
 bool CommandStateMachine::accept_encoded_rgb(int inputchar)
 {
     if (!accept_encoded_int6(inputchar))
@@ -328,6 +346,7 @@ bool CommandStateMachine::accept_encoded_transition(int inputchar)
     }
     return true;
 }
+#endif
 
 void CommandStateMachine::append_bytebuf(void)
 {
@@ -353,6 +372,7 @@ void CommandStateMachine::append_byte(byte n)
 //   If an error is encountered, the state machine is reset with an error condition, which
 //   should interrupt whatever operation was in progress automatically.
 //
+#if IS_READERBOARD
 bool CommandStateMachine::accept_hex_nybble(int inputchar)
 {
     byte val;
@@ -377,6 +397,7 @@ bool CommandStateMachine::accept_hex_nybble(int inputchar)
     nybble = true;
     return false;
 }
+#endif
 
 //
 // (CSM) end_cmd()
@@ -397,15 +418,17 @@ void CommandStateMachine::reset(void)
 {
     state = IdleState;
     command_in_progress = 0;
+#if IS_READERBOARD
     transition = NoTransition;
-    buffer_idx = 0;
     merge = false;
-    LEDset = 0;
     nybble = false;
+    repeat = false;
+#endif
+    buffer_idx = 0;
+    LEDset = 0;
     bytebuf = 0;
     esc_literal = false;
     esc_msb = false;
-    repeat = false;
     cmd_source = FROM_USB;
     for (int i=0; i<CSM_BUFSIZE; i++)
         buffer[i] = 0;
@@ -448,7 +471,9 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
             switch (inputchar & 0xf0) {
                 case 0x80:
+#if IS_READERBOARD
                     clear_all_buffers();
+#endif
                     discrete_all_off(true);
                     end_cmd();
                     return;
@@ -540,15 +565,18 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             strober.stop();
             break;
 
+#if IS_READERBOARD
         case 'C':
             clear_all_buffers();
             end_cmd();
             break;
+#endif
 
         case '=':
             state = SetState;
             break;
 
+#if IS_READERBOARD
         case '<':
           state = ScrollState;
           break;
@@ -568,6 +596,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         case 'I':
             state = ImageStateMerge;
             break;
+#endif
 
         case 'Q':
             {
@@ -583,31 +612,34 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 sendbyte('Q');
 #if HW_MODEL == MODEL_3xx_MONOCHROME
                 sendbyte('M');
-#else
-# if HW_MODEL == MODEL_3xx_RGB
+#elif HW_MODEL == MODEL_3xx_RGB
                 sendbyte('C');
-# else
-#  error "hardware model not supported"
-# endif
+#elif HW_MODEL == MODEL_BUSYLIGHT_1 || HW_MODEL == MODEL_BUSYLIGHT_2
+                sendbyte('B');
+#else
+# error "hardware model not supported"
 #endif
                 sendbyte('=');
-                sendbyte(encode_int6(my_device_address));
+                if (my_device_address == EE_ADDRESS_DISABLED)
+                    sendbyte('.');
+                else
+                    sendbyte(encode_int6(my_device_address));
                 sendbyte(USB_baud_rate_code);
                 sendbyte(RS485_baud_rate_code);
                 sendbyte(encode_int6(global_device_address));
 #if HAS_I2C_EEPROM
                 sendbyte('X');
-#else
-# if HW_MC == HW_MC_DUE
+#elif HW_MC == HW_MC_DUE
                 sendbyte('_');
-# else
+#else
                 sendbyte('I');
-# endif
 #endif
                 sendbyte('$');
                 for (const char *c = SERIAL_VERSION_STAMP; *c != '\0'; c++) {
                     sendbyte(*c);
                 }
+                report_state(false);
+#if IS_READERBOARD
                 sendbyte('M');
                 for (int plane=0; plane<N_COLORS; plane++) {
                     byte planebit = 1 << plane;
@@ -625,6 +657,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                     }
                     sendbyte('$');
                 }
+#endif
                 sendbyte('\n');
                 if (cmd_source == FROM_485) {
                     end_485_reply();
@@ -641,11 +674,13 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             flasher.stop();
             break;
 
+#if IS_READERBOARD
         case 'L':
             flasher.stop();
             discrete_all_off(false);
             state = LightSetState;
             break;
+#endif
 
         case 'S':
         case 's':
@@ -654,9 +689,11 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             state = LightOnState;
             break;
 
+#if IS_READERBOARD
         case 'T':
             state = TextMergeState;
             break;
+#endif
 
         case 'X':
         case 'x':
@@ -669,12 +706,14 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             end_cmd();
             break;
 
+#if IS_READERBOARD
         case 'K':
             state = SetColorState;
             break;
+#endif
 
         case '?':
-            report_state();
+            report_state(true);
             end_cmd();
             break;
 
@@ -746,12 +785,16 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             USB_baud_rate = b1;
             RS485_baud_rate_code = buffer[2];
             RS485_baud_rate = b2;
+            save_eeprom();
+            start_usb_serial();
+            setup_485_serial();
             end_cmd();
         } else {
             error();
         }
         break;
 
+#if IS_READERBOARD
     case SetColState:
         if (accept_encoded_pos(inputchar)) {
             column = bytebuf;
@@ -777,12 +820,14 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         discrete_set(parse_led_name(inputchar), 1);
         break;
+#endif
 
    case LightOnState:
         discrete_set(parse_led_name(inputchar), 1);
         end_cmd();
         break;
 
+#if IS_READERBOARD
     case BarGraphState:
         if (inputchar == 'K') {
             state = BarColorState;
@@ -946,6 +991,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         if (inputchar != '\0')
             append_byte(inputchar);
         break;
+#endif
 
     default:
         error();
@@ -957,7 +1003,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 //   Reports the discrete LED state to the host.
 //   This is the action that results from the '?' command.
 //
-void CommandStateMachine::report_state(void)
+void CommandStateMachine::report_state(bool terminate)
 {
     void (*send_byte)(byte);
     void (*send_end)(void);
@@ -986,7 +1032,8 @@ void CommandStateMachine::report_state(void)
     (*send_byte)('S');
     strober.report_state(send_byte);
     (*send_byte)('$');
-    (*send_byte)('\n');
+    if (terminate) 
+        (*send_byte)('\n');
     (*send_end)();
 }
 
@@ -1012,7 +1059,7 @@ void CommandStateMachine::set_lights(byte bits)
 {
     discrete_all_off(false);
     flasher.stop();
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
         if (bits & (1 << i)) {
             discrete_set(i, true);
         }
@@ -1025,6 +1072,7 @@ void CommandStateMachine::set_lights(byte bits)
 //    that number of lights from the bottom row, displaying them
 //    in the far right column, shifting the display one column left.
 //
+#if IS_READERBOARD
 void CommandStateMachine::commit_graph_datapoint(int value)
 {
     shift_left(image_buffer);
@@ -1042,6 +1090,7 @@ void CommandStateMachine::commit_graph_datacolors()
     }
     display_buffer(image_buffer);
 }
+#endif
 
 CommandStateMachine cmd;
 
@@ -1068,10 +1117,12 @@ void receive_serial_data(serial_source_t source)
             }
             break;
 
+#if HW_MODEL != MODEL_BUSYLIGHT_1
         case FROM_485:
-            if (Serial3.available() > 0) {
-                cmd.accept(source, Serial3.read());
+            if (SERIAL_485.available() > 0) {
+                cmd.accept(source, SERIAL_485.read());
             }
             break;
+#endif
     }
 }

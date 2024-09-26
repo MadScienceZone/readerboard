@@ -759,7 +759,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\multicolumn{1}{c}{\bfseries Description}&
 			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
 			\z{strobe}&\z{*} & Strobe \led s in Sequence & [1]\\
-			         &\z{?} & Query discrete \led\ status & [1] [2] [4]\\
+			\z{query}&\z{?} & Query discrete \led\ status & [1] [2]\\
 			\z{flash}&\z{F} & Flash \led s in Sequence & [1]\\
 			\z{light}&\z{L} & Light one or more \led s steady & [3]\\
 			\z{light}&\z{S} & Light one \led\ steady & [1]\\
@@ -775,11 +775,11 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{graph}&\z{H} & Add histogram/bargraph data point & \\
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
-			         &\z{Q} & Query matrix display status & [2] [4]\\
+			\z{query}&\z{Q} & Query matrix display status & [2]\\
 			\z{text}&\z{T} & Display text on display & \\
 			\bottomrule
 			\multicolumn{4}{l}{\footnotesize [1] Busylight compatibile command}\\
-			\multicolumn{4}{l}{\footnotesize [2] Sends response (\acronym{USB} only)}\\
+			\multicolumn{4}{l}{\footnotesize [2] Sends response}\\
 			\multicolumn{4}{l}{\footnotesize [3] Busylight extension (not in original Busylight)}\\
 			\multicolumn{4}{l}{\footnotesize [4] \acronym{USB} only}\\
 		\end{tabular}
@@ -787,9 +787,9 @@ The remaining commands are used for management of the matrix display. All comman
 	\end{center}
 \end{table}
 
-Although starting with the revision 2 hardware, the readerboard supports the ability to enable the RS-485 transmitter and send data back onto the network,
-this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
-at all times. {\color{red} This is expected to change with the next revision of the firmware which allows responding over the RS-485 network.}
+%Although starting with the revision 2 hardware, the readerboard supports the ability to enable the RS-485 transmitter and send data back onto the network,
+%this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
+%at all times. {\color{red} This is expected to change with the next revision of the firmware which allows responding over the RS-485 network.}
 
 \section{\z{\%}---Run Full Lamp Test Pattern}
 \begin{center}
@@ -961,10 +961,10 @@ defaults may be changed when compiling the firmware for specific devices.
 	\bitheader{0} \\
 	\bitbox{1}{\z{?}}
 \end{bytefield}
-%\\
-%\begin{Coding}
-%	|{"m":"query","a":[|\Var*{ad$_0$}|,|\dots|],"status":true}|
-%\end{Coding}
+\\
+\begin{Coding}
+	|/readerboard/v1/query?a=|\Var*{ad}|&status|
+\end{Coding}
 \end{center}
 
 This command causes the sign to send a status report back to the host to indicate
@@ -1196,7 +1196,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{04x}&&\bfseries!&$\square$&$\blacksquare$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&thin .&\\\hline
 			\emph{06x}&\bfseries 0&\bfseries 1&\bfseries 2&\bfseries 3&\bfseries 4&\bfseries 5&\bfseries 6&\bfseries 7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
-			\emph{07x}&\bfseries 8&\bfseries 9&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{07x}&\bfseries 8&\bfseries 9&\bfseries :&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{10x}&\textcopyright&\bfseries A&\bfseries B&\bfseries C&\bfseries D&\bfseries E&\bfseries F&\bfseries G&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
 			\emph{11x}&\bfseries H&\bfseries I&\bfseries J&\bfseries K&\bfseries L&\bfseries M&\bfseries N&\bfseries O&\\\hline
 			\emph{12x}&\bfseries P&\bfseries Q&\bfseries R&\bfseries S&\bfseries T&\bfseries U&\bfseries V&\bfseries W&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
@@ -1205,9 +1205,9 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{15x}&$\swarrow$&$\leftarrow$&$\rightarrow$&$\uparrow$&$\downarrow$&\raise1ex\hbox{\rule{1ex}{1ex}}\rule{1ex}{1ex}&\rule{1em}{1em}&\tUnused&\\\hline
 			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
-			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&zero&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
 			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
-			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
+			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&wide \OE&wide \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&NM&WC&1Q&WG&FM&WG&3Q&WC&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
 			\emph{25x}&\tSpecial\tiny{TS8}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
@@ -1545,6 +1545,8 @@ Note that anything drawn in black simply turns off the corresponding pixels.
 
 This command is identical to the \z{S} command (see below), except that multiple
 discrete \led s can be specified, all of which are illuminated simultaneously.
+%Also, unlike \z{S}, the \acronym{LED}s specified are \emph{added to} the ones which may already
+%be lit. To clear the existing \acronym{LED}s first, issue the \z{X} command ahead of \z{L}.
 See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command), it remains running.
 
 The list of \Var*{led} values is terminated by either a dollar sign (\z{\$}) character
@@ -1557,9 +1559,9 @@ or an escape byte (hex value \z{1B}), represented in the protocol diagram as ``\
 	\bitbox{1}{\z{Q}} 
 \end{bytefield}
 \\
-%\begin{Coding}
-%	|{"m":"query","a":[|\Var*{ad$_0$}|,|\dots|],"status":false}|
-%\end{Coding}
+\begin{Coding}
+	|/readerboard/v1/query?a=|\Var*{ad}
+\end{Coding}
 \end{center}
 
 This command causes the sign to send a status report back to the host to indicate
@@ -1639,7 +1641,7 @@ thus those strings may not contain dollar signs).
 The \Var*{serial} field is a variable-width alphanumeric string which was set when the firm\-ware was
 compiled. It should be a unique serial number for the device (although that depends on
 some effort on the part of the person compiling the firmware to insert that serial number
-each time). Serial numbers \z{RB000}--\z{RB299} are reserved for the original author's use. This string is also
+each time). Serial numbers \z{RB0000}--\z{RB0299} are reserved for the original author's use. This string is also
 terminated with a dollar sign.
 
 The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acronym{EEPROM} chip or module,
@@ -1697,7 +1699,7 @@ If a dedicated (non-readerboard) busylight device is sent the
 \end{bytefield}
 \end{center}
 
-For Busylight devices, serial numbers \z{B000}--\z{B299} are reserved for use by the original author.
+For Busylight devices, serial numbers \z{B0000}--\z{B0299} are reserved for use by the original author.
 
 \section{\z{S}---Light Single \led}
 \begin{center}
