@@ -204,19 +204,21 @@ const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5
 #else
 const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
 const byte discrete_led_labels[7] = {
-//    STATUS_LED_COLOR_L0,
-//    STATUS_LED_COLOR_L1,
-//    STATUS_LED_COLOR_L2,
-//    STATUS_LED_COLOR_L3,
-//    STATUS_LED_COLOR_L4,
-//    STATUS_LED_COLOR_L5,
-//    STATUS_LED_COLOR_L6,
-
+# ifdef SN_B0001
     STATUS_LED_COLOR_L0,
     STATUS_LED_COLOR_L2,
     STATUS_LED_COLOR_L4,
     STATUS_LED_COLOR_L3,
     STATUS_LED_COLOR_L6,
+# else
+    STATUS_LED_COLOR_L0,
+    STATUS_LED_COLOR_L1,
+    STATUS_LED_COLOR_L2,
+    STATUS_LED_COLOR_L3,
+    STATUS_LED_COLOR_L4,
+    STATUS_LED_COLOR_L5,
+    STATUS_LED_COLOR_L6,
+# endif
 };
 #endif
 
@@ -1556,7 +1558,6 @@ void send_usb_byte(byte x)
 
 void end_usb_reply(void)
 {
-    Serial.write('\004');
 }
 
 void test_pattern(void) 

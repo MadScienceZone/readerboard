@@ -32,10 +32,10 @@ Libraries Required:
 
 // BEGIN CONFIGURATION SECTION
 // TODO: Set these before compiling for a particular hardware configuration
-//#define HW_MODEL (MODEL_3xx_RGB)
-//#define HW_MC (HW_MC_DUE)
-#define HW_MODEL (MODEL_BUSYLIGHT_1)
-#define HW_MC (HW_MC_PRO)
+#define HW_MODEL (MODEL_3xx_RGB)
+#define HW_MC (HW_MC_DUE)
+//#define HW_MODEL (MODEL_BUSYLIGHT_1)
+//#define HW_MC (HW_MC_PRO)
 #define HAS_I2C_EEPROM (false)
 
 // TODO: Set these default settings (this will be the "factory default settings")
@@ -72,11 +72,10 @@ Libraries Required:
 // TODO: Adjust these for your version and serial number
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.1.0  "
+#define BANNER_FIRMWARE_VERS "FW 2.1.2  "
 #define BANNER_SERIAL_NUMBER "S/N RB0000"
 #endif
-//#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.0$SRB0000$"
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.1$SB0001$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.1$SRB0000$"
 //                             \___/  \___/  \____/
 //                               |      |      |
 //                  Hardware version    |      |
@@ -85,6 +84,21 @@ Libraries Required:
 //
 // END CONFIGURATION SECTION
 
+// some definitions for known devices and their hardware configurations
+#define SN_B0001
+
+#ifdef SN_B0001
+# define HW_MODEL (MODEL_BUSYLIGHT_1)
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.2$SB0001$"
+# define HW_MC (HW_MC_PRO)
+#endif
+#ifdef SN_RB0000
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.2$SRB0000$"
+# define BANNER_HARDWARE_VERS "HW 3.2.2  "
+# define BANNER_SERIAL_NUMBER "S/N RB0000"
+# define HW_MC (HW_MC_DUE)
+# define HAS_I2C_EEPROM (false)
+#endif
 
 #define HW_CONTROL_LOGIC_3xx (1)
 #define HW_CONTROL_LOGIC_B_1xx (2)
