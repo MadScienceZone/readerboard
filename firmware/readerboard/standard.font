@@ -890,11 +890,17 @@
 ;
 ; Special characters
 ;
-[$80 open dbl quote]
+[$A8 open dbl quote]
 @@.@@|
 @@.@@|
 @..@.|
 .@..@|
+
+[$80 open dbl quote]
+.@..@|
+@..@.|
+@@.@@|
+@@.@@|
 
 [$81 close dbl quote]
 @@.@@|
@@ -902,11 +908,17 @@
 .@..@|
 @..@.|
 
-[$82 open sgl quote]
+[$B8 open sgl quote]
 ...@@|
 ...@@|
 ...@.|
 ....@|
+
+[$82 open sgl quote]
+....@|
+...@.|
+...@@|
+...@@|
 
 [$83 close sgl quote]
 @@||||

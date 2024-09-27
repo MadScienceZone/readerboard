@@ -871,7 +871,12 @@ noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
 future control codes which may be added to the protocol). The string is terminated by an
 escape character (hex byte \z{1B}$_{16}$), indicated in the protocol description as \z{ESC}.
 
-The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
+The string may include control codes as listed in Table~\ref{tbl:controlcodes}. These allow
+for special effects such as color and font changes to appear mid-message. They also include
+the three-character sequence \z{\textasciicircum X}\Var*{hh} to add any arbitrary 8-bit codepoint
+specified as the 2-digit hex value \Var*{hh} to compensate for interference from your terminal
+program or transport protocols which may, e.g., encode non-7-bit-\acronym{ASCII} characters
+to a multi-byte \acronym{UTF-8} representation which the readerboard doesn't grok.
 \begin{table}
 	\begin{center}
 		\begin{tabular}{lll}\toprule
@@ -1149,7 +1154,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
 			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
-			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&!&\z"&\#&\$&\%&\&&\z'&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&(&)&*&+&,&-&.&/&\\\hline
 			\emph{06x}&0&1&2&3&4&5&6&7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
@@ -1167,9 +1172,9 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{22x}&$\le$&$\ge$&$\approx$&$\Gamma$&$\Delta$&$\Xi$&$\Pi$&$\Sigma$&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&$\Omega$&$\pi$&$\rho$&$\sigma$&---&\textperthousand&\tUnused&\tUnused&\\\hline
 			\emph{24x}&&!`&\textcent&\textsterling&\textcurrency&\textyen&\textbrokenbar&\S&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
-			\emph{25x}&\tUnused&\textcopyright&\textordfeminine&\guillemotleft&$\neg$&-&\textregistered&\tUnused&\\\hline
+			\emph{25x}&``&\textcopyright&\textordfeminine&\guillemotleft&$\neg$&-&\textregistered&\tUnused&\\\hline
 			\emph{26x}&$^\circ$&$\pm$&$^2$&$^3$&\tUnused&$\mu$&\P&$\bullet$&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
-			\emph{27x}&\tUnused&$^1$&\textordmasculine&\guillemotright&1/4&1/2&3/4&?`&\\\hline
+			\emph{27x}&`&$^1$&\textordmasculine&\guillemotright&1/4&1/2&3/4&?`&\\\hline
 			\emph{30x}&\`A&\'A&\^A&\~A&\"A&\AA&\AE&\c C&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
 			\emph{31x}&\`E&\'E&\^E&\"E&\`I&\'I&\^I&\"I&\\\hline
 			\emph{32x}&\DH&\~N&\`O&\'O&\^O&\~O&\"O&$\times$&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
@@ -1194,7 +1199,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
 			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
-			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&\bfseries!&$\square$&$\blacksquare$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&thin .&\\\hline
 			\emph{06x}&\bfseries 0&\bfseries 1&\bfseries 2&\bfseries 3&\bfseries 4&\bfseries 5&\bfseries 6&\bfseries 7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
@@ -1209,12 +1214,12 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
 			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
 			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
-			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&wide \OE&wide \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
-			\emph{23x}&NM&WC&1Q&WG&FM&WG&3Q&WC&\\\hline
+			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&{\tiny wide} \OE&{\tiny wide} \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
+			\emph{23x}&\tiny new&\tiny waxC&1Q&\tiny waxG&\tiny full&\tiny waneG&3Q&\tiny waneC&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
 			\emph{25x}&\tSpecial\tiny{TS8}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-%			\emph{26x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
-%			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{26x}&\trigram{0}&\trigram{1}&\trigram{2}&\trigram{3}&\trigram{4}&\trigram{5}&\trigram{6}&\trigram{7}&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
+			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 %			\emph{30x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
 %			\emph{31x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 %			\emph{32x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
@@ -1860,15 +1865,18 @@ a repeating display schedule for this message (e.g., display this every hour on 
 		\begin{tabular}{ll}\toprule
 			\bfseries Code&\bfseries Description\\\midrule
 			\z{\{big\}}&Display letters and numbers in large font\\
-			\z{\{color}\Var*{n}\z{\}}& Switch to color number \Var*{n}\\
+			\z{\{color}\Var*{n}\z{\}}& Switch to color number \Var*{n} (= \z{\textasciicircum K}\Var*{n})\\
+			\z{\{}\Var*{colorname}\z{\}}& Switch to color by name\\
 			\z{\{date\}}&Date as ``\Var*{dd}\z-\Var*{mmm}\z-\Var*{yyyy}''\\
-			\z{\{font}\Var*{n}\z{\}}& Switch to font number \Var*{n}\\
+			\z{\{font}\Var*{n}\z{\}}& Switch to font number \Var*{n} (= \z{\textasciicircum F}\Var*{n})\\
 			\z{\{normal\}}&Stop displaying numbers in large font\\
 			\z{\{mdy\}}&Date as ``\Var*{mm}\z/\Var*{dd}\z/\Var*{yyyy}''\\
 			\z{\{pom\}}&Phase of the moon (as a symbol)\\
 			\z{\{time12\}}&Time as ``\Var*{hh}\z:\Var*{mm} \z{AM}/\z{PM}'' on 12-hour clock\\
 			\z{\{time24\}}&Time as ``\Var*{hh}\z:\Var*{mm}'' on 24-hour clock\\
 			\z{\{ymd\}}&Date as ``\Var*{yyyy}\z-\Var*{mm}\z-\Var*{dd}''\\
+			\z{\{\#}\Var*{n}\z{\}}&Insert character with codepoint \Var*{n} (decimal)\\
+			\z{\{\#\$}\Var*{h}\z{\}}&Insert character with codepoint \Var*{h} (hex)\\
 			\z{\{\$}\Var*{name}\z{\}}&User variable \Var*{name}\\
 			\z{\{\{}&Literal ``\z{\{}''\\
 			\z{\}\}}&Literal ``\z{\}}''\\
