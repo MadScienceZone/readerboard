@@ -759,7 +759,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\multicolumn{1}{c}{\bfseries Description}&
 			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
 			\z{strobe}&\z{*} & Strobe \led s in Sequence & [1]\\
-			\z{query}&\z{?} & Query discrete \led\ status & [1] [2]\\
+			\z{busy}&\z{?} & Query discrete \led\ status & [1] [2]\\
 			\z{flash}&\z{F} & Flash \led s in Sequence & [1]\\
 			\z{light}&\z{L} & Light one or more \led s steady & [3]\\
 			\z{light}&\z{S} & Light one \led\ steady & [1]\\
@@ -775,7 +775,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{graph}&\z{H} & Add histogram/bargraph data point & \\
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
-			\z{query}&\z{Q} & Query matrix display status & [2]\\
+			\z{query}&\z{Q} & Query full device status & [2]\\
 			\z{text}&\z{T} & Display text on display & \\
 			\bottomrule
 			\multicolumn{4}{l}{\footnotesize [1] Busylight compatibile command}\\
@@ -885,6 +885,7 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 			\z{\textasciicircum H}\Var*{pos} & \z{08}\Var*{pos} & Move cursor left \Var*{pos} columns\\
 			\z{\textasciicircum K}\Var*{rgb} & \z{0B}\Var*{rgb} & Change color to \Var*{rgb}\\
 			\z{\textasciicircum L}\Var*{pos} & \z{0C}\Var*{pos} & Move cursor right \Var*{pos} columns\\
+			\z{\textasciicircum X}\Var*{hex} & \z{18}\Var*{hex} & Specify character code as 2-digit hex value\\
 			\z{\textasciicircum [} & \z{1B} & Never allowed in strings (string terminator)\\
 			\bottomrule
 		\end{tabular}
@@ -963,12 +964,13 @@ defaults may be changed when compiling the firmware for specific devices.
 \end{bytefield}
 \\
 \begin{Coding}
-	|/readerboard/v1/query?a=|\Var*{ad}|&status|
+	|/readerboard/v1/busy?a=|\Var*{ad}
 \end{Coding}
 \end{center}
 
 This command causes the sign to send a status report back to the host to indicate
-what the discrete \led s are currently showing. This response has the form:
+what the discrete \led s (usually showing a person's ``busy'' status) are currently showing. 
+This response has the form:
 
 \medskip
 
@@ -1087,7 +1089,7 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 	\end{center}
 \end{table}
 
-This command may only be sent on the \acronym{USB} port.
+%This command may only be sent on the \acronym{USB} port.
 
 \section{\z{@}---Set Column Cursor Position}
 \begin{center}
@@ -1565,7 +1567,7 @@ or an escape byte (hex value \z{1B}), represented in the protocol diagram as ``\
 \end{center}
 
 This command causes the sign to send a status report back to the host to indicate
-the general status of the device except for the discrete \led\ display which
+the general status of the device, including the discrete \led\ display which
 may be queried using the \z? command. The response has the form:
 
 \medskip
@@ -1600,35 +1602,52 @@ may be queried using the \z? command. The response has the form:
 	\bitbox{1}{\z{S}}\\ 
 	\bitbox{1}{\Var*{serial}}& 
 	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{M}} &
+	\bitbox{1}{\z{L}} &
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
+	\bitbox[tb]{1}{\Var*{led$_3$}} &
+	\bitbox[tb]{1}{\Var*{led$_4$}} &
+	\bitbox[tb]{1}{\Var*{led$_5$}} \\
+	\bitbox[tb]{1}{\strut$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{F}} &
+	\bitbox{5}{flasher status (q.v.)} \\
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{S}} &
+	\bitbox{5}{strober status (q.v.)} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{M}} \\
 	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
 %	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
 %	\bitbox[tb]{1}{}\\
 	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}&
-	\bitbox{1}{\z{\$}}\\
+	\bitbox{1}{\z{\$}}&
 	\bitbox[tbl]{2}{\Var*{G coldata$_0$}} &
 %	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tb]{1}{$\cdots$} \\
 %	\bitbox[tb]{1}{}\\
 	\bitbox[tbr]{2}{\Var*{G coldata$_{63}$}}&
 	\bitbox{1}{\z{\$}}&
 	\bitbox[tbl]{2}{\Var*{B coldata$_0$}} &
 %	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} \\
+	\bitbox[tb]{1}{$\cdots$} &
 %	\bitbox[tb]{1}{}\\
 	\bitbox[tbr]{2}{\Var*{B coldata$_{63}$}}&
-	\bitbox{1}{\z{\$}}&
+	\bitbox{1}{\z{\$}}\\
 	\bitbox[tbl]{2}{\Var*{flashdata$_{0}$}}&
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{2}{\Var*{flashdata$_{63}$}}&
-	\bitbox{1}{\z{\$}}\\
+	\bitbox{1}{\z{\$}}&
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
 
-The \Var*{model} field may be ``\z{L}'' for the legacy hardware the author still has
-lying around (but this shouldn't be something anyone else would need to see),
+The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author still has
+%lying around (but this shouldn't be something anyone else would need to see),
+``\z{B}'' for the stand-alone busylight modules which only include discrete busy status lights,
 ``\z{M}'' for 64$\times$8 matrix display hardware with monochrome \acronym{LED}s, or
 ``\z{C}'' for 64$\times$8 \acronym{RGB} color display boards.
 
@@ -1649,6 +1668,10 @@ The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acron
 is no \acronym{EEPROM} memory at all (and thus, configuration settings made with the \z= commaand
 are not persistent).
 
+The discrete light, flasher, and strober fields (starting, respectively, with \z{L}, \z{F}, and \z{S},
+are as documented above for the \z{?} (\z{busy}) command. Busylight units stop here and don't include
+the image bitmap data that readerboards report.
+
 The \Var*{coldata} bytes are sent just as with the \z{I} command, as hexadecimal values indicating
 the \led s lit on the matrix display, with \Var*{coldata$_0$} being the leftmost column of the display
 and \Var*{coldata$_{63}$} being the rightmost. In each column, the least significant bit indicates
@@ -1662,42 +1685,42 @@ defaults if they were never changed).
 The status message sent to the host is terminated by a newline character (hex byte \z{0A}$_{16}$),
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 
-\subsection{Busylight Device Query Response}
-If a dedicated (non-readerboard) busylight device is sent the
-\z{Q} command, it responds with the following information.
-\begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
-%	\bitheader{0-8} \\
-	\bitbox[]{1}{\scriptsize0}&
-	\bitbox[]{1}{\scriptsize1}&
-	\bitbox[]{1}{\scriptsize2}&
-	\bitbox[]{1}{\scriptsize3}&
-	\bitbox[]{1}{\scriptsize4}&
-	\bitbox[]{1}{\scriptsize5}&
-	\bitbox[]{1}{\scriptsize6}&
-	\bitbox[]{1}{\scriptsize7}&
-	\bitbox[]{1}{\scriptsize8}\\
-	\bitbox{1}{\z{Q}} &
-	\bitbox{1}{\z{B}} &
-	\bitbox{1}{\z{=}} &
-	\bitbox{1}{\Var*{ad}}&
-	\bitbox{1}{\Var*{uspd}}&
-	\bitbox{1}{\Var*{rspd}}&
-	\bitbox{1}{\Var*{ad$_G$}}&
-	\bitbox{1}{\z{I}} &
-	\bitbox{1}{\z{\$}} \\
-	\bitbox{1}{\z{V}} &
-	\bitbox{2}{\Var*{hwversion}}
-	\bitbox{1}{\z\$}&
-	\bitbox{1}{\z{R}} &
-	\bitbox{2}{\Var*{romversion}}&
-	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}\\
-	\bitbox{1}{\Var*{serial}} &
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{\textbackslash n}}
-\end{bytefield}
-\end{center}
+%\subsection{Busylight Device Query Response}
+%If a dedicated (non-readerboard) busylight device is sent the
+%\z{Q} command, it responds with the following information.
+%\begin{center}
+%\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+%%	\bitheader{0-8} \\
+%	\bitbox[]{1}{\scriptsize0}&
+%	\bitbox[]{1}{\scriptsize1}&
+%	\bitbox[]{1}{\scriptsize2}&
+%	\bitbox[]{1}{\scriptsize3}&
+%	\bitbox[]{1}{\scriptsize4}&
+%	\bitbox[]{1}{\scriptsize5}&
+%	\bitbox[]{1}{\scriptsize6}&
+%	\bitbox[]{1}{\scriptsize7}&
+%	\bitbox[]{1}{\scriptsize8}\\
+%	\bitbox{1}{\z{Q}} &
+%	\bitbox{1}{\z{B}} &
+%	\bitbox{1}{\z{=}} &
+%	\bitbox{1}{\Var*{ad}}&
+%	\bitbox{1}{\Var*{uspd}}&
+%	\bitbox{1}{\Var*{rspd}}&
+%	\bitbox{1}{\Var*{ad$_G$}}&
+%	\bitbox{1}{\z{I}} &
+%	\bitbox{1}{\z{\$}} \\
+%	\bitbox{1}{\z{V}} &
+%	\bitbox{2}{\Var*{hwversion}}
+%	\bitbox{1}{\z\$}&
+%	\bitbox{1}{\z{R}} &
+%	\bitbox{2}{\Var*{romversion}}&
+%	\bitbox{1}{\z{\$}}& 
+%	\bitbox{1}{\z{S}}\\
+%	\bitbox{1}{\Var*{serial}} &
+%	\bitbox{1}{\z{\$}} &
+%	\bitbox{1}{\z{\textbackslash n}}
+%\end{bytefield}
+%\end{center}
 
 For Busylight devices, serial numbers \z{B0000}--\z{B0299} are reserved for use by the original author.
 
@@ -1837,7 +1860,9 @@ a repeating display schedule for this message (e.g., display this every hour on 
 		\begin{tabular}{ll}\toprule
 			\bfseries Code&\bfseries Description\\\midrule
 			\z{\{big\}}&Display letters and numbers in large font\\
+			\z{\{color}\Var*{n}\z{\}}& Switch to color number \Var*{n}\\
 			\z{\{date\}}&Date as ``\Var*{dd}\z-\Var*{mmm}\z-\Var*{yyyy}''\\
+			\z{\{font}\Var*{n}\z{\}}& Switch to font number \Var*{n}\\
 			\z{\{normal\}}&Stop displaying numbers in large font\\
 			\z{\{mdy\}}&Date as ``\Var*{mm}\z/\Var*{dd}\z/\Var*{yyyy}''\\
 			\z{\{pom\}}&Phase of the moon (as a symbol)\\

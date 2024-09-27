@@ -205,11 +205,13 @@ const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5
 const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
 const byte discrete_led_labels[7] = {
 # ifdef SN_B0001
-    STATUS_LED_COLOR_L0,
-    STATUS_LED_COLOR_L2,
-    STATUS_LED_COLOR_L4,
-    STATUS_LED_COLOR_L3,
-    STATUS_LED_COLOR_L6,
+    "0",
+    "1",
+    "G",
+    "Y",
+    "R",
+    "r",
+    "B",
 # else
     STATUS_LED_COLOR_L0,
     STATUS_LED_COLOR_L1,
@@ -1078,6 +1080,12 @@ byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *s
                 break;
             pos += decode_int6(*string);
         }
+        else if (*string == '\030') {
+            char n1, n2;
+            if ((n1 = *++string) == '\0' || (n2 = *++string) == '\0')
+                break;
+            pos = draw_character(pos, font, parse_hex_nybble_pair(n1, n2), buffer, color, mergep);
+        }
         else {
             pos = draw_character(pos, font, *string, buffer, color, mergep);
         }
@@ -1808,6 +1816,23 @@ byte parse_led_name(byte ch)
 byte encode_int6(byte n)
 {
     return (n & 0x3f) + '0';
+}
+
+byte parse_hex_nybble(byte n)
+{
+    if (n >= '0' && n <= '9')
+        return n - '0';
+    if (n >= 'a' && n <= 'f')
+        return n - 'a' + 10;
+    if (n >= 'A' && n <= 'F')
+        return n - 'A' + 10;
+    return 0;
+}
+
+byte parse_hex_nybble_pair(byte n1, byte n2)
+{
+    return (((parse_hex_nybble(n1) << 4) & 0xf0)
+           |((parse_hex_nybble(n2)     ) & 0x0f));
 }
 
 byte encode_hex_nybble(byte n)

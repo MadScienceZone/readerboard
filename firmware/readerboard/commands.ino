@@ -513,7 +513,14 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 return;
             }
         }
-    } 
+    } else {
+        /* USB: if ^D received, abandon current command */
+        if (inputchar == '\004') {
+            if (state != IdleState && state != EndState && state != ErrorState) {
+                error();
+            }
+        }
+    }
 
     switch (state) {
     // stuck in error state until end of command
@@ -568,6 +575,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #if IS_READERBOARD
         case 'C':
             clear_all_buffers();
+            column = 0;
             end_cmd();
             break;
 #endif
