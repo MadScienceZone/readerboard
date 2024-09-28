@@ -205,13 +205,13 @@ const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5
 const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
 const byte discrete_led_labels[7] = {
 # ifdef SN_B0001
-    "0",
-    "1",
-    "G",
-    "Y",
-    "R",
-    "r",
-    "B",
+    '0',
+    '1',
+    'G',
+    'Y',
+    'R',
+    'r',
+    'B',
 # else
     STATUS_LED_COLOR_L0,
     STATUS_LED_COLOR_L1,
@@ -1307,14 +1307,13 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
     for (int row=0; row < N_ROWS; row++) {
         for (int col=0; col < N_COLS; col++) {
 #if HW_MODEL == MODEL_3xx_MONOCHROME
-# if N_COLORS < 2
-#  error "invalid assumption that monochrome displays have 2 bit planes"
-# endif
             if (buffer[row][col] & (BIT_RGB_RED | BIT_RGB_GREEN | BIT_RGB_BLUE)) {
                 hw_buffer[0][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
+                hw_active_color_planes |= 1;
             }
             if (buffer[row][col] & BIT_RGB_FLASHING) {
                 hw_buffer[1][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
+                hw_active_color_planes |= 2;
             }
 #else
 # if HW_MODEL == MODEL_3xx_RGB

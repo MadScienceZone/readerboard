@@ -1218,7 +1218,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{23x}&\tiny new&\tiny waxC&1Q&\tiny waxG&\tiny full&\tiny waneG&3Q&\tiny waneC&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
 			\emph{25x}&\tSpecial\tiny{TS8}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{26x}&\trigram{0}&\trigram{1}&\trigram{2}&\trigram{3}&\trigram{4}&\trigram{5}&\trigram{6}&\trigram{7}&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
+			\emph{26x}&\multicolumn{8}{c|}{The eight trigrams 0--7}&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
 			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 %			\emph{30x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
 %			\emph{31x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
@@ -1827,7 +1827,8 @@ known to the server which the devices don't themselves track, such as time of da
 \begin{center}
 	\begin{Coding}
 		|/readerboard/v1/post?a=|\Var*{ad}|&t=|\Var*{text}|&id=|\Var*{id}|&trans=|\Var*{trans}\\
-		|&until=|\Var*{datetime}|&hold=|\Var*{duration}|&color=|\Var*{rgb}|&repeat=|\Var*{schedule}
+		|&until=|\Var*{datetime}|&hold=|\Var*{duration}|&color=|\Var*{rgb}|&visible=|\Var*{duration}\\
+		|&show=|\Var*{duration}|&repeat=|\Var*{duration}
 	\end{Coding}
 \end{center}
 
@@ -1845,46 +1846,123 @@ to keep the \acronym{API} simple. Thus, it is recommended that you assign these 
 \acronym{UUID}s or other scheme to keep them from colliding.
 
 If \z{trans} is given, this message will be introduced using the specified
-transition effect.
+transition effect, specified by name or number (see Table~\ref{tbl:transcodes}).
+\begin{table}
+	\begin{center}
+	    \begin{tabular}{cl|cl}\toprule
+		    \bfseries Code & \bfseries Name & \bfseries Code & \bfseries Name\\\midrule
+		    \z.&\z{none}& \z{R}&\z{wipe-right}\\
+		    \z>&\z{scroll-right}& \z{U}&\z{wipe-up}\\
+		    \z<&\z{scroll-left}& \z{D}&\z{wipe-down}\\
+		    \z{\textasciicircum}&\z{scroll-up}& \z{|}&\z{wipe-horiz}\\
+		    \z{v}&\z{scroll-down}& \z{-}&\z{wipe-vert}\\
+		    \z{L}&\z{wipe-left}& \z{?}&\z{random}\\\bottomrule
+	    \end{tabular}
+	    \caption{Transition codes for use in \z{post} command\label{tbl:transcodes}}
+	\end{center}
+\end{table}
 
 If \z{until} is given, the message will automatically unpost when the specified
-date and time is reached.
+date and time is reached. \Var*{Datetime} has one of the formats:
+\begin{center}
+	\begin{Coding}
+		[\Var*{day}|@|][\Var*{hour}]|:|\Var*{min}[|:|\Var*{sec}]\\
+		\Var*{day}\\
+		\Var*{duration}
+	\end{Coding}
+\end{center}
+In the first form, an absolute time is specified for the message's expiration. In the second form,
+a day of the week is specified without a time (defaulting the time to 00:00:00), and in the third
+form, a relative duration since posting is given.
+
+If \Var*{day} is specified, it gives the day of the week. \Var*{Hour} and \Var*{sec}
+default to the current hour and \z{00} respectively, so ``\z{until=monday}'' shows
+the message until the beginning of Monday; ``\z{until=tuesday@12:00}'' expires at noon
+on Tuesday, ``\z{until=:30}'' expires after half-past the current hour, ``\z{until=17:00}'' expires
+at 5:00 PM, and ``\z{until=30m}''
+expires after 30 minutes have passed since posting.
 
 If \z{hold} is given, the message will remain on-screen for the specified time
 duration before moving on to the next posted message.
 
 If \z{color} is given, the current color will be changed to the specified value
 before writing the message; otherwise (or additionally) color codes may be
-added in-line in the message text.
+added in-line in the message text. (See Table~\ref{tbl:colorcodes} for the codes you
+can use here.)
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cl|cl}\toprule
+			\bfseries Code & \bfseries Name & \bfseries Code & \bfseries Name \\\midrule
+			\z{0}&\z{off} & \z{8}&\z{flashing-off}* \\
+			\z{1}&\z{red} & \z{9}&\z{flashing-red} \\
+			\z{2}&\z{green} & \z{10} or \z{:}&\z{flashing-green} \\
+			\z{3}&\z{yellow} & \z{11} or \z{;}&\z{flashing-yellow} \\
+			\z{4}&\z{blue} & \z{12} or \z{<}&\z{flashing-blue} \\
+			\z{5}&\z{magenta} & \z{13} or \z{=}&\z{flashing-magenta} \\
+			\z{6}&\z{cyan} & \z{14} or \z{>}&\z{flashing-cyan} \\
+			\z{7}&\z{white} & \z{15} or \z{?}&\z{flashing-white} \\\bottomrule
+			\multicolumn{4}{l}{\tiny *Included for technical completeness but actually using this code would be silly.}
+		\end{tabular}\\
+		\caption{Color codes for use with the \z{post} command\label{tbl:colorcodes}}
+	\end{center}
+\end{table}
 
-If \z{repeat} is given, \Var*{schedule} specifies (in a way yet to be determined)
-a repeating display schedule for this message (e.g., display this every hour on the hour).
+The \z{show} value gives a time duration during which the message will be visible on the sign.
+After this time has elapsed, it will be hidden (but not necessarily removed from the queue).
+If the \z{repeat} value is also specified, then the message will reappear after the specified
+duration has elapsed since it was hidden.
+
+The \z{visible} parameter controls absolute time ranges outside of which the message will be unconditionally
+hidden. Hidden messages automatically reappear at the start of any of these visible time ranges.
+The value is a pair of date strings in any of the forms allowed for \z{until}, separated by a hyphen (`\z{-}').
+Multiple such pairs may appear, separated by commas (`\z{,}').
 
 \begin{table}
 	\begin{center}
 		\begin{tabular}{ll}\toprule
 			\bfseries Code&\bfseries Description\\\midrule
 			\z{\{big\}}&Display letters and numbers in large font\\
-			\z{\{color}\Var*{n}\z{\}}& Switch to color number \Var*{n} (= \z{\textasciicircum K}\Var*{n})\\
+			\z{\{color}\Var*{n}\z{\}}& Switch to color number \Var*{n} (as \z{\textasciicircum K}\Var*{n})\\
 			\z{\{}\Var*{colorname}\z{\}}& Switch to color by name\\
 			\z{\{date\}}&Date as ``\Var*{dd}\z-\Var*{mmm}\z-\Var*{yyyy}''\\
-			\z{\{font}\Var*{n}\z{\}}& Switch to font number \Var*{n} (= \z{\textasciicircum F}\Var*{n})\\
+			\z{\{font}\Var*{n}\z{\}}& Switch to font number \Var*{n} (as \z{\textasciicircum F}\Var*{n})\\
 			\z{\{normal\}}&Stop displaying numbers in large font\\
 			\z{\{mdy\}}&Date as ``\Var*{mm}\z/\Var*{dd}\z/\Var*{yyyy}''\\
 			\z{\{pom\}}&Phase of the moon (as a symbol)\\
-			\z{\{time12\}}&Time as ``\Var*{hh}\z:\Var*{mm} \z{AM}/\z{PM}'' on 12-hour clock\\
-			\z{\{time24\}}&Time as ``\Var*{hh}\z:\Var*{mm}'' on 24-hour clock\\
+			\z{\{time12\}}&Time as ``\Var*{hh}\z:\Var*{mm} \z{AM}/\z{PM}'' on 12-hour clock*\\
+			\z{\{time24\}}&Time as ``\Var*{hh}\z:\Var*{mm}'' on 24-hour clock$\dagger$\\
 			\z{\{ymd\}}&Date as ``\Var*{yyyy}\z-\Var*{mm}\z-\Var*{dd}''\\
+			\z{\{@}[$\pm$]\Var*{n}\z{\}}&Reposition cursor to column \Var*{n}$\ddagger$\\
 			\z{\{\#}\Var*{n}\z{\}}&Insert character with codepoint \Var*{n} (decimal)\\
 			\z{\{\#\$}\Var*{h}\z{\}}&Insert character with codepoint \Var*{h} (hex)\\
 			\z{\{\$}\Var*{name}\z{\}}&User variable \Var*{name}\\
 			\z{\{\{}&Literal ``\z{\{}''\\
 			\z{\}\}}&Literal ``\z{\}}''\\
 			\bottomrule
-		\end{tabular}
+			\multicolumn{2}{p{.9\textwidth}}{\tiny *Hour is space-padded (e.g., ``\z{\textvisiblespace 3:15}'')
+
+			\noindent $\dagger$Hour is zero-padded (e.g., ``\z{03:15}'')
+
+			\noindent $\ddagger$\z-\Var*{n} and \z+\Var*{n} move left or right by \Var*{n} columns}
+		\end{tabular}\\
 		\caption{Special Codes in Post Messages\label{tbl:msgcodes}}
 	\end{center}
 \end{table}
+
+\section{\z{postlist}---Report of Message Queue}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/postlist?a=|\Var*{ad}|&id=|\Var*{id}
+	\end{Coding}
+\end{center}
+
+Returns a JSON-formatted list of the messages in the display queue. If \Var*{ad} is missing or is the
+global address, the messages for all devices will be returned; otherwise the list is filtered to include
+only messages targetted at the listed devices.
+
+If \z{id} is given, only that message is included in the report; if the \Var*{id} value starts with a slash
+(`\z{/}') then the remaining characters are interpreted as a regular expression. Only messages whose \Var*{id} values match the
+regular expression are included in the report.
 
 \section{\z{unpost}---Remove a Posted Message}
 \begin{center}
@@ -1894,6 +1972,12 @@ a repeating display schedule for this message (e.g., display this every hour on 
 \end{center}
 
 Remove the message with the given \Var*{id} from the display list.
+If \Var*{ad} is missing or is the global address, the message is removed for all devices. Otherwise,
+it is only removed for the listed target devices.
+
+If the \Var*{id} value starts with a slash
+(`\z{/}') then the remaining characters are interpreted as a regular expression. All messages whose \Var*{id} values match the
+regular expression are unposted. Thus, ``\z{id=/.*}'' deletes the entire message queue.
 
 \section{\z{update}---Update Dynamic Content}
 \begin{center}
@@ -2347,11 +2431,16 @@ of the device's response to being queried for its configuration and status.
 
 \chapter{Schematics and Diagrams}
 The following pages include the schematics for the current 3.3.0 version of the readerboard \acronym{PCB}
-and the board assembly diagram, showing where the components are placed.
+and the board assembly diagram, showing where the components are placed, and the same for the 2.1.0 version
+of the Busylight circuit board.
 \newpage
 \noindent\includegraphics[width=\textheight,angle=90]{../hardware/matrix64x8_rgb_330_schematic.png}
+\noindent\includegraphics[width=\textheight,angle=90]{images/busylight_shield_210_schematic.png}
 \noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_330_assembly-0.png}
 \noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_330_assembly-1.png}
+\newpage
+\noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-0.png}
+\noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-1.png}
 \indexintoc
 
 \printindex
