@@ -1,4 +1,4 @@
-# release: pcb v4.3.0-g9dea9f5a
+# release: pcb 4.2.2
 
 # To read pcb files, the pcb version (or the git source date) must be >= the file version
 FileVersion[20091103]
@@ -14560,9 +14560,9 @@ Layer(9 "bottom silk" "silk")
 	Text[691.00mil 1410.00mil 0 166 "1" "clearline,onsolder"]
 	Text[691.00mil 1160.00mil 0 166 "0" "clearline,onsolder"]
 	Text[98.00mil 1365.00mil 3 100 "A" "clearline,onsolder"]
-	Text[93.00mil 1557.00mil 3 100 "B" "clearline,onsolder"]
-	Text[103.00mil 1770.00mil 3 100 "A" "clearline,onsolder"]
-	Text[103.00mil 1938.00mil 3 100 "B" "clearline,onsolder"]
+	Text[93.00mil 1567.00mil 3 100 "B" "clearline,onsolder"]
+	Text[93.00mil 1770.00mil 3 100 "A" "clearline,onsolder"]
+	Text[93.00mil 1958.00mil 3 100 "B" "clearline,onsolder"]
 	Text[95.00mil 2395.00mil 3 100 "GND" "clearline,onsolder"]
 	Text[92.00mil 2775.00mil 3 100 "+9V" "clearline,onsolder"]
 	Text[144.00mil 713.00mil 0 100 "R" "clearline,onsolder"]
@@ -14908,10 +14908,10 @@ Layer(10 "top silk" "silk")
 	Text[3540.00mil 3505.00mil 0 100 "U0 CD74HCT238PWR" "clearline"]
 	Text[11480.00mil 780.00mil 0 100 "U8 STPIC6D595MTR" "clearline"]
 	Text[92.00mil 2680.10mil 3 100 "+9V" "clearline"]
-	Text[102.00mil 48.7896mm 3 100 "B" "clearline"]
+	Text[92.00mil 49.0436mm 3 100 "B" "clearline"]
 	Text[92.00mil 34.0576mm 3 100 "A" "clearline"]
-	Text[92.00mil 38.8836mm 3 100 "B" "clearline"]
-	Text[102.00mil 44.3446mm 3 100 "A" "clearline"]
+	Text[92.00mil 39.1376mm 3 100 "B" "clearline"]
+	Text[92.00mil 44.3446mm 3 100 "A" "clearline"]
 	Text[92.00mil 58.1876mm 3 100 "GND" "clearline"]
 	Text[453.00mil 2062.00mil 1 100 "D0-D511 COMMON CATHODE PIN MARKED" "clearline"]
 	Text[497.00mil 59.4855mm 3 100 "J1 POWER / RS-485" "clearline"]

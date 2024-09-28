@@ -61,7 +61,7 @@ materials are suitable for your purpose and function as expected.
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware (\acronym{PCB}) version 3.3.0, schematic version 3.3.0, and firmware version 0.0.0.
+	For readerboard hardware (\acronym{PCB}) version 3.3.0, schematic version 3.3.0, and firmware version 2.1.3.
 \end{center}
 
 \strut\vfill
@@ -168,8 +168,8 @@ and other dangers. This requires skill and expertise as well as personal protect
 Please also observe all precautions to avoid damaging the electronic components themselves from harm due to
 heat or static electricity discharge.
 \newcommand\mouser[1]{{\sffamily\footnotesize#1}}
-\begin{figure}
-	\begin{tabular}{lrlll}\toprule
+\begin{table}
+	\begin{tabular}{lrll}\toprule
 		{\bfseries Part No.}&{\bfseries Qty}&{\bfseries Mouser}&{\bfseries Description}\\\midrule
 		&1&&Printed circuit board rev 3.2.2\\
 		&1&&Arduino Due or Mega 2560\\
@@ -204,7 +204,7 @@ heat or static electricity discharge.
 		\bottomrule
 	\end{tabular}
 	\caption{Bill of Materials\label{fig:bom}}
-\end{figure}
+\end{table}
 
 \subsection{Suggested Order}
 For best results, solder components in a way that allows best access to the solder points without some parts getting
@@ -264,6 +264,133 @@ Set the firmware value \z{HW\_MODEL} to \z{MODEL\_3xx\_MONOCHROME} and recompile
 changes the behavior of the controller so that it understands it can only drive one color which
 is attached to the blue color plane. Now, all colors (other than ``off'') will turn the \acronym{LED}s
 on.
+
+\section{Busylight Devices}
+The readerboard units are designed to be compatible with another project by the author. The ``Busylight''
+is a small stand-alone indicator which can be used to indicate simple statuses like room occupancy or
+whether someone is busy, free, on a phone call, etc.
+
+The busylight can drive up to seven \acronym{LED}s. If directly connected to a host computer
+via \acronym{USB}, it can be powered entirely from the \acronym{USB} port. Starting with version 2,
+it can also receive commands via \acronym{RS-485} network. In that case it can be powered by a 9\,V
+supply over the same \acronym{CAT5}, \acronym{CAT5e}, or \acronym{CAT6} cable carrying the serial
+communications.
+
+\subsection{Firmware}
+Starting with revision 2 of the Busylight, it is driven by a firmware image compiled from the same
+source code as the Readerboard units. Setting the compiler preprocessor symbol
+\z{HW\_MODEL} to \z{MODEL\_BUSYLIGHT\_2} will cause the Arduino compiler to prepare the image
+for a Busylight, excluding the code that drives the readerboard-specific functions.
+In such firmware images, \z{HW\_MC} should be set to \z{HW\_MC\_PRO} since the Busylight is
+based on the SparkFun Arduino-compatible Pro Micro microcontroller.
+
+Also set the \z{SERIAL\_VERSION\_STAMP} symbol to reflect the device serial number, hardware and firmware
+revision numbers. See Chapter~\ref{chap:firmware} starting on p.~\pageref{chap:firmware} for more information
+about preparing firmware images.
+
+\subsection{Construction}
+Once you have created a printed circuit board (\acronym{PCB}) from the fabrication
+files included with the Git repository and obtained the parts
+as listed in Figure \ref{fig:busylightbom}, carefully solder the components in place.
+
+\strong{Warning! Danger! Only perform the assembly operation if you
+are qualified to do so. Soldering electronic components may be
+hazardous due to the high temperatures, sharp objects, electrical
+voltages, potentially toxic materials, and other dangers. This requires skill and expertise as well as personal protection equipment
+to perform safely.} Please also observe all precautions to avoid damaging
+the electronic components themselves from harm due to heat or static electricity discharge.
+\begin{table}
+    \begin{center}
+	\begin{tabular}{lrll}\toprule
+		{\bfseries Part No.}&{\bfseries Qty}&&{\bfseries Description}\\\midrule
+		&1&&Printed circuit board rev 2.1\\
+		&7&&\acronym{LED} tier printed circuit board rev 1.1\\
+		&7&&\acronym{LED} ring printed circuit board (if desired)\\
+		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C\\
+		&1&&Arduino stacking pin set\\
+		C0&1&&0.1 $\mu$F capacitor\\
+		J0&1&&8-pin DIN connector, \acronym{PCB} mount\\
+		J1&1&&16-pin Euro-style terminal block\\
+		P0&1&&8-pin DIN plug\\
+		R0--2&3&&10K resistor\\
+		U0&1&&\mc{ULN2003A} NPN Darlington array\\
+		U1&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		  &14&&5-pin bussed resistor network (2/\acronym{LED} tier)*\\
+		  &56&&\acronym{LED}, 3\,mm, through-hole (8/\acronym{LED} tier)$\dagger$\\
+		  &1&&\sfrac14$''$ screw rod\\
+		  &1&&Enclosure$\ddagger$\\
+		  &8&&Nylon spacers between (and above and below) the tiers\\
+		  &2&&\sfrac14$''$ hex nuts\\
+		\bottomrule
+		\multicolumn{4}{p{.9\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
+		for the LEDs to be used on that tier, with a maximum current draw of 20\,mA per LED.
+
+		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$yellow, 2$\times$red,
+		and 2$\times$blue).
+
+		\noindent$\ddagger$One idea for an inexpensive enclosure is a clear plastic tube storage container with an inside
+		diameter large enough to hold the LED tier boards.}
+	\end{tabular}
+	    \caption{Bill of Materials (Busylight)\label{fig:busylightbom}}
+    \end{center}
+\end{table}
+
+\subsection{Suggested Order}
+For best results, solder components in a way that allows best access to the
+solder points without some parts getting in the way of connecting subsequent ones. For example:
+\begin{enumerate}
+	\item Solder the surface mount components:
+		\begin{itemize}
+			\item U0 \acronym{ULN2003A} 7-circuit \acronym{NPN} Darlington transistor array.
+				Note that the board was designed for narrow \acronym{SOIC-16} packages but
+				there is an additional column of pads for a wider version of this chip.
+			\item U1 \acronym{THVD1439} \acronym{RS-485} driver/receiver.
+		\end{itemize}
+	\item Solder through-hole components:
+		\begin{itemize}
+			\item R0--R2 10K resistors
+			\item C0 0.1\,$\mu$F capacitor
+		\end{itemize}
+	\item Solder the sockets:
+		\begin{itemize}
+			\item J0 8-pin DIN socket
+			\item J1 16-circuit Euro-style terminal block (alternatively you may choose to
+				directly solder the \acronym{CAT6} wires into the holes on the \acronym{PCB}.
+			\item Arduino stacking pins.
+		\end{itemize}
+	\item Place the microcontroller board onto the stacking pins.
+	\item Build each \acronym{LED} tier of 8 \acronym{LED}s:
+		\begin{itemize}
+			\item Solder eight 3\,mm \acronym{LED}s around the edge of the board with their leads straddling
+				the edge, so the anode is on the side of the \acronym{PCB} labelled ``anode side'' and the
+				cathode is on the ``cathode side.'' Solder the leads to the exposed pads and trim the
+				leads so they don't extend past the pads.
+			\item Solder the two resistor arrays, making sure to select the correct values for the specific
+				\acronym{LED}s used on this tier board.
+		\end{itemize}
+	\item Assemble the tier stack by threading the tiers onto the \sfrac14$''$ threaded rod with nylon spacers between them,
+		secured in place with hex nuts on either end of the stack. The following assumes the use of a length of \acronym{CAT6}
+		cable between the \acronym{PCB} and the light tree stack.
+		\begin{itemize}
+			\item Solder one end of the cable to P0, the 8-bin \acronym{DIN} plug. Suggested color assignments:
+				\begin{itemize}
+					\item Pin 1 (sixth tier/blue): blue	
+					\item Pin 2 (third tier/yellow): brown/white
+					\item Pin 3 (fifth tier/red): orange/white
+					\item Pin 4 (fourth tier/red): orange
+					\item Pin 5 (seventh tier/blue): blue/white
+					\item Pin 6 (second tier/yellow): brown
+					\item Pin 7 (+V supply): green
+					\item Pin 8 (bottom tier/green): green/white
+				\end{itemize}
+			\item Strip the insulation from the green wire to the height of the assembled tier tree.
+				As each tier is added, thread this bare wire through the ``V+'' hole of each tier, soldering it to
+				each tier along the way.
+			\item Attach the wire for each tier to its ``GND'' hole.
+			\item Thread the remaining wires through the larger holes to pass them up to the next tiers.
+		\end{itemize}
+\end{enumerate}
+
 
                                                       
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1215,7 +1342,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
 			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
 			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&{\tiny wide} \OE&{\tiny wide} \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
-			\emph{23x}&\tiny new&\tiny waxC&1Q&\tiny waxG&\tiny full&\tiny waneG&3Q&\tiny waneC&\\\hline
+			\emph{23x}&\multicolumn{8}{c|}{The phases of the moon}&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
 			\emph{25x}&\tSpecial\tiny{TS8}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{26x}&\multicolumn{8}{c|}{The eight trigrams 0--7}&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
@@ -2258,7 +2385,7 @@ as Font~\#0, such as:
 ->$23,0
 \end{SourceCode}
 
-\chapter{Preparing and Updating Firmware Images}
+\chapter{Preparing and Updating Firmware Images}\label{chap:firmware}
 The firmware that runs on the readerboard hardware (or, more precisely, the Arduino single-board
 computer attached to the circuit board) is located in the \z{firmware/readerboard} directory of the
 readerboard project repository.
@@ -2440,7 +2567,9 @@ of the Busylight circuit board.
 \noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_330_assembly-1.png}
 \newpage
 \noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-0.png}
-\noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-1.png}
+%\noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-1.png}
+\noindent\includegraphics[width=.48\textwidth]{images/busylight_tree-assembly-0.png}
+%\noindent\includegraphics[width=.48\textwidth]{images/busylight_tree-assembly-1.png}
 \indexintoc
 
 \printindex
