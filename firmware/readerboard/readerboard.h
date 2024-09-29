@@ -39,8 +39,9 @@ Libraries Required:
 #define HAS_I2C_EEPROM (false)
 
 // TODO: Set these default settings (this will be the "factory default settings")
-//       On Due-based systems without external EEPROM, this is the only way to
-//       make these settings at all. On every other model, this is just the default
+//       On Due-based systems without EEPROM chip U16 installed, this is the only way to
+//       make these settings at all. If the EEPROM is installed (or one is built-in
+//       to the microcontroller), this is just the default
 //       that can be overridden by configuring the unit since the new configuration
 //       values can be saved in EEPROM.
 //
@@ -50,7 +51,8 @@ Libraries Required:
 #define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
 #define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
 //
-#define EE_ADDRESS_DISABLED (0xff) /* interface disabled */
+#define EE_ADDRESS_DISABLED (0xff) /* use this as the address if the RS-485 interface is not used */
+
 // Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
 // you won't be using RS-485 at all.)
 #define EE_DEFAULT_ADDRESS (EE_ADDRESS_DISABLED)
@@ -73,14 +75,19 @@ Libraries Required:
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
 #define BANNER_FIRMWARE_VERS "FW 2.1.3  "
-//#define BANNER_SERIAL_NUMBER "S/N RB0000"
 #endif
 #define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$"
-//                             \___/  \___/  \____/
-//                               |      |      |
-//                  Hardware version    |      |
-//                         Firmware version    |
-//                                 Serial number
+//                             \___/  \___/
+//                               |      |
+//                  Hardware version    |
+//                         Firmware version
+//
+//
+// Uncomment and adjust the following #define symbol ONLY IF
+// using a controller with NO EEPROM installed or built-in AND
+// you want to make the permanent device settings here in the
+// firmware which you are custom-compiling for that specific unit.
+//#define BESPOKE_SERIAL_NUMBER "RBXXXX"
 //
 // END CONFIGURATION SECTION
 
@@ -99,6 +106,7 @@ Libraries Required:
 //# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)
 # define HAS_I2C_EEPROM (false)
+# define BESPOKE_SERIAL_NUMBER "RB0000"
 #endif
 
 #define HW_CONTROL_LOGIC_3xx (1)

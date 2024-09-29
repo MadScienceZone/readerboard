@@ -1007,6 +1007,11 @@ void setup_eeprom(void)
     global_device_address = EE_DEFAULT_GLOBAL_ADDRESS;
     USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
     RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+#ifdef BESPOKE_SERIAL_NUMBER
+    strncpy(serial_number, BESPOKE_SERIAL_NUMBER, EE_LENGTH_SERIAL_NO);
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+#endif
+
 
 #if HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"

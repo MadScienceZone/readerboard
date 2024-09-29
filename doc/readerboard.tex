@@ -324,7 +324,9 @@ the electronic components themselves from harm due to heat or static electricity
 		  &2&&\sfrac14$''$ hex nuts\\
 		\bottomrule
 		\multicolumn{4}{p{.9\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
-		for the LEDs to be used on that tier, with a maximum current draw of 20\,mA per LED.
+		for the LEDs to be used on that tier. Assuming a 5\,V supply and
+		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and yellow LEDs and 100$\Omega$ or larger
+		for blue, green, and white LEDs. Check your LED datasheet to confirm.
 
 		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$yellow, 2$\times$red,
 		and 2$\times$blue).
@@ -2447,10 +2449,10 @@ Edit a few lines near the top of \z{readerboard.h}:
 
 These values should come already set up for the latest hardware model (in this example,
 the revision 3 \acronym{RGB} models which incorporate the Arduino directly onto
-the main circuit board). If your hardware uses a different design, such as one
-of the older legacy boards, \z{HW\_MODEL} needs to be changed to another hardware
-name, provided that name is actually supported (and supported correctly) in the rest
-of the firmware. 
+the main circuit board). If your hardware uses a different design, %such as one
+%of the older legacy boards, 
+\z{HW\_MODEL} needs to be changed to another supported hardware
+name (see Table~\ref{tab:hwmodel}).
 
 Also, \z{HW\_MC} needs to be set to the model of Arduino microcontroller you will be
 using to control this unit.
@@ -2468,10 +2470,14 @@ Table~\ref{tab:hwmodel}.
 			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MODEL} (Readerboard Hardware Model):}\\
 			\z{MODEL\_3xx\_RGB}&\acronym{PCB} revision 3.0 and later with \acronym{RGB} \led s installed.\\
 			\z{MODEL\_3xx\_MONOCHROME}&\acronym{PCB} revision 3.0 and later with single-color \led s installed with their
-				anodes soldered into pin 4 (the blue circuit).\\\midrule
+				anodes soldered into pin 4 (the blue circuit).\\
+			\z{MODEL\_BUSYLIGHT\_1}&\acronym{PCB} revision 1.\Var{x} Busylight module.\\
+			\z{MODEL\_BUSYLIGHT\_2}&\acronym{PCB} revision 2.\Var{x} Busylight module.\\
+			\midrule
 			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MC} (Microcontroller Installed):}\\
 			\z{HW\_MC\_MEGA\_2560}&Arduino Mega 2560.\\
 			\z{HW\_MC\_DUE}&Arduino Due.\\
+			\z{HW\_MC\_PRO}&SparkFun Arduino-compatible Pro Micro.\\
 			\bottomrule
 		\end{tabular}
 		\caption{Firmware Configuration Values\label{tab:hwmodel}}
@@ -2481,11 +2487,12 @@ Table~\ref{tab:hwmodel}.
 \begin{SourceCode}
 // TODO: Set these default settings (this will be the "factory
 //	 default settings"). On Due-based systems without 
-//	 external EEPROM, this is the only way to make these
-//       settings at all. On every other model, this is just
-//       the default that can be overridden by configuring the
-//       unit since the new configuration values can be saved 
-//       in EEPROM.
+//       EEPROM chip U16 installed, this is the only way to 
+//       make these settings at all. If the EEPROM is installed
+//       (or one is built-in to the microcontroller), this is
+//       just the default that can be overridden by configuring
+//       the unit since the new configuration values can be
+//       saved in EEPROM.
 //
 // Default baud rate. Allowed values are '0'=300, '1'=600, 
 // '2'=1200, '3'=2400, '4'=4800, '5'=9600, '6'=14400,
@@ -2536,28 +2543,26 @@ unit with different colors, you may assign appropriate color codes here.
 \begin{SourceCode}
 #define BANNER_HARDWARE_VERS "HW 3.2.3  "
 #define BANNER_FIRMWARE_VERS "FW 0.0.0  "
-#define BANNER_SERIAL_NUMBER "S/N RBXXXX"
-#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$SRBXXXX$"
-//                             \___/  \___/  \____/
-//                               |      |       |
-//                  Hardware version    |       |
-//                         Firmware version     |
-//                                  Serial number
+#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$"
+//                             \___/  \___/
+//                               |      |
+//                  Hardware version    |
+//                         Firmware version
 \end{SourceCode}
 
 The \z{BANNER\_FIRMWARE\_VERS} value should match the version of the firm\-ware source code you are compiling.
 
 Likewise, \z{BANNER\_HARDWARE\_VERS} gives the revision of the \acronym{PCB} in use.
 
-Set the \z{BANNER\_SERIAL\_NUMBER} value to the serial number for your specific device. Serial numbers under 300 are
-reserved for the project author's use. If building your own device, assign a serial number that makes sense to you.
-It will help you manage your collection of devices best if you give them unique serial numbers since those can be
-queried by software.
+%Set the \z{BANNER\_SERIAL\_NUMBER} value to the serial number for your specific device. Serial numbers under 300 are
+%reserved for the project author's use. If building your own device, assign a serial number that makes sense to you.
+%It will help you manage your collection of devices best if you give them unique serial numbers since those can be
+%queried by software.
 
 These should be 10-character text strings. They will be displayed briefly when the sign is booted.
 
-Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous three values while still preserving
-the format ``\z{V}\dots\z{\$R}\dots\z{\$S}\dots\z{\$}''. This string will be sent verbatim as part
+Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous two values while still preserving
+the format ``\z{V}\dots\z{\$R}\dots\z{\$}''. This string will be sent verbatim as part
 of the device's response to being queried for its configuration and status.
 
 %An example of a properly configured file looks like this:
@@ -2580,6 +2585,12 @@ of the device's response to being queried for its configuration and status.
 %#define HW_MC (HW_MC_DUE)
 %\end{SourceCode}
 
+If, and \strong{only if}, you are making a custom firmware image for a board with no \acronym{EEPROM}
+storage capability, uncomment and adjust the \z{BESPOKE\_SERIAL\_NUMBER} definition with the serial
+number of this device. For example:
+\begin{SourceCode}
+#define BESPOKE_SERIAL_NUMBER "RB1234"
+\end{SourceCode}
 
 {\bfseries Step 2: Make.}
 		Run the \z{make} program. This will build the font tables from the various
@@ -2593,6 +2604,11 @@ of the device's response to being queried for its configuration and status.
 		to your readerboard hardware. This step assumes you have set up your own Arduino
 		development environment and is beyond the scope of this document to help you with.
 
+{\bfseries Step 4: Serial Number.}
+		Run the \z{setsn} command to field-configure the device's serial number. For example:
+\begin{SourceCode}
+% setsn -port /dev/ttyACM0 -sn RB1234 -model rb
+\end{SourceCode}
 %\chapter{Future Ideas}
 %Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
 %is set on the color code, to allow arbitrary parts of the matrix to flash.
