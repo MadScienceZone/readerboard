@@ -73,9 +73,9 @@ Libraries Required:
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
 #define BANNER_FIRMWARE_VERS "FW 2.1.3  "
-#define BANNER_SERIAL_NUMBER "S/N RB0000"
+//#define BANNER_SERIAL_NUMBER "S/N RB0000"
 #endif
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$SRB0000$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$"
 //                             \___/  \___/  \____/
 //                               |      |      |
 //                  Hardware version    |      |
@@ -90,13 +90,13 @@ Libraries Required:
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
-# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.3$SB0001$"
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.3$"
 # define HW_MC (HW_MC_PRO)
 #endif
 #ifdef SN_RB0000
-# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$SRB0000$"
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$"
 # define BANNER_HARDWARE_VERS "HW 3.2.2  "
-# define BANNER_SERIAL_NUMBER "S/N RB0000"
+//# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)
 # define HAS_I2C_EEPROM (false)
 #endif
@@ -208,6 +208,7 @@ extern int RS485_baud_rate;
 
 typedef enum {FROM_USB, FROM_485} serial_source_t;
 
+extern void store_serial_number(const char *sn);
 extern void discrete_all_off(bool stop_blinkers);
 extern bool discrete_query(byte lightno);
 extern void discrete_set(byte lightno, bool value);

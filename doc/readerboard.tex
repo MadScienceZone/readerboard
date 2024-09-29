@@ -61,7 +61,8 @@ materials are suitable for your purpose and function as expected.
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware (\acronym{PCB}) version 3.3.0, schematic version 3.3.0, and firmware version 2.1.3.
+	For Readerboard hardware (\acronym{PCB}) version 3.3, %schematic version 3.3.0, 
+	Busylight hardware version 2.1 (light tree version 1.1), and firmware version 2.1.3.
 \end{center}
 
 \strut\vfill
@@ -104,11 +105,11 @@ different models of hardware prototypes which were designed and created.
 
 \section{Version 1}
 The initial prototype (\acronym{PCB} 1.0.1) was a fairly large board, approximately 20\sfrac{5}{8}$\times$6\sfrac{5}{8}$''$
-with an \acronym{LED} pitch of \sfrac{1}{3}$''$.
+with an \led\ pitch of \sfrac{1}{3}$''$.
 
 It requires an Arduino Mega 2560 or Arduino Due to drive it. A custom-made shield board attaches to
 the Arduino, which provides connectors for power and ribbon cables to drive the display (one to control
-the matrix, the other for the 8 status \acronym{LED}s which appear in a horizontal row along the bottom
+the matrix, the other for the 8 status \led s which appear in a horizontal row along the bottom
 right of the matrix).
 
 %One of the problems with this board is the use of the obsolete \acronym{TPIC6B595} chip. Later boards
@@ -120,9 +121,9 @@ right of the matrix).
 
 \section{Version 2}
 This version was based on the 1.0 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
-with an \acronym{LED} pitch of \sfrac{1}{4}$''$. It also replaced the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
-Further, it relocated the ribbon cable which connects the Arduino controller to the \acronym{LED} matrix, moved the
-eight status \acronym{LED}s to a vertical column to the right of the matrix, and switched to resistor arrays
+with an \led\ pitch of \sfrac{1}{4}$''$. It also replaced the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
+Further, it relocated the ribbon cable which connects the Arduino controller to the \led\ matrix, moved the
+eight status \led s to a vertical column to the right of the matrix, and switched to resistor arrays
 for the matrix current limiting resistors, instead of the individual discrete resistors used on the 1.0.1 board.
 
 \section{Version 2}
@@ -135,16 +136,16 @@ has all of the external connections in one place, including power, \acronym{RS-4
 \acronym{USB} connector(s) on the Arduino itself.
 
 \section{Version 3}
-Revision 3.2 of the hardware expands on the version 2.1 design by replacing the single-color \acronym{LED}s with
-\acronym{RGB} \acronym{LED}s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
-green, and blue \acronym{LED} elements.
+Revision 3.2 of the hardware expands on the version 2.1 design by replacing the single-color \led s with
+\acronym{RGB} \led s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
+green, and blue \led\ elements.
 
-Note that the discrete status \acronym{LED}s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \acronym{LED}
+Note that the discrete status \led s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \led\
 on the bottom (canonically green) and L$_7$ is on top (white).
 
 \subsection{Version 3.3 (current model)}
 The current version of the hardware (3.3.0) corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
-connectors on the Arduino board and adjusting the mounting holes slightly. It also corrects the mislabeled L$_0$--L$_7$ \acronym{LED}s
+connectors on the Arduino board and adjusting the mounting holes slightly. It also corrects the mislabeled L$_0$--L$_7$ \led s
 
 It also adds a R51 for Arduino Due reset circuits, J3 to manually reset the Arduino, and J4, R52, R53, and U16 to support the addition of a external
 \acronym{EEPROM} chip for microcontrollers (such as the Due) which don't have one onboard.
@@ -175,12 +176,12 @@ heat or static electricity discharge.
 		&1&&Arduino Due or Mega 2560\\
 		C0--9,11,12&12&\mouser{810-FA18X7R1H10400}&0.1 $\mu$F capacitor\\
 		C10&1&\mouser{667-ECA-1HM100I}&10 $\mu$F electrolytic capacitor\\
-		D0--511&512&&\acronym{LED}, 5mm, \acronym{RGB}, common cathode\\
-		D512&1&&\acronym{LED}, 5mm, green\\
-		D513--14&2&&\acronym{LED}, 5mm, yellow\\
-		D515--16&2&&\acronym{LED}, 5mm, red\\
-		D517--18&2&&\acronym{LED}, 5mm, blue\\
-		D519&1&&\acronym{LED}, 5mm, white\\
+		D0--511&512&&\led, 5mm, \acronym{RGB}, common cathode\\
+		D512&1&&\led, 5mm, green\\
+		D513--14&2&&\led, 5mm, yellow\\
+		D515--16&2&&\led, 5mm, red\\
+		D517--18&2&&\led, 5mm, blue\\
+		D519&1&&\led, 5mm, white\\
 		J0&1&&Arduino stacking pin set\\
 		J1&1&&8-position Euro-style terminal block\\
 		J2,3&2&&2-position jumper header\\
@@ -220,7 +221,7 @@ in the way of connecting subsequent ones. For example:
 			\item If needed for your microcontroller (Arduino Due, usually), solder U16: AT24C256 \acronym{EEPROM} chip.
 		\end{itemize}
 	\item Solder the discrete resistors: R0--R7, R24--R50 (and optionally, R52 and R53). See below first to ensure the correct values are used
-		for R24--R31 based on your choice of corresponding \acronym{LED}s.
+		for R24--R31 based on your choice of corresponding \led s.
 		\begin{itemize}
 			\item R0--R7, R35--50: 1K
 			\item R24, R29--R31: 300$\Omega$
@@ -230,11 +231,11 @@ in the way of connecting subsequent ones. For example:
 		\end{itemize}
 	\item Solder the 0.1$\mu$F capacitors: C0--C9, C11--C12.
 	\item Solder the resistor arrays: R8--R23.
-	\item Solder the \acronym{RGB} \acronym{LED}s D0--D511. Ensure that the common cathode goes to pin~2 so that pins 1, 3, and 4
+	\item Solder the \acronym{RGB} \led s D0--D511. Ensure that the common cathode goes to pin~2 so that pins 1, 3, and 4
 		are respectvely the red, green, and blue anodes.
-	\item Solder the single-color \acronym{LED}s D512--D519 in the colors of your choice, being mindful of the polarity. The anode has a square pin on the \acronym{PCB}. Our recommendation:
+	\item Solder the single-color \led s D512--D519 in the colors of your choice, being mindful of the polarity. The anode has a square pin on the \acronym{PCB}. Our recommendation:
 		\begin{itemize}
-			\item D512 (bottom): green (with R24=300$\Omega$)\footnote{Resistor values based on typical \acronym{LED} voltage and current ratings. Check to see what is appropriate for your components.}
+			\item D512 (bottom): green (with R24=300$\Omega$)\footnote{Resistor values based on typical \led\ voltage and current ratings. Check to see what is appropriate for your components.}
 			\item D513: yellow (with R25=360$\Omega$)
 			\item D514: yellow (with R26=360$\Omega$)
 			\item D515: red (with R27=360$\Omega$)
@@ -253,16 +254,16 @@ in the way of connecting subsequent ones. For example:
 
 
 \subsection{Option: Using Single-Color LEDs}
-If you don't need \acronym{RGB} \acronym{LED}s for your application, the same \acronym{PCB}
-may be used with single-color 5mm \acronym{LED}s instead. Simply solder them onto the board so
-that their cathode is on pin~2 and the anode is on pin~4 of the \acronym{LED} footprint. This
-means the \acronym{LED}s will electrically all be connected to the blue circuit. 
+If you don't need \acronym{RGB} \led s for your application, the same \acronym{PCB}
+may be used with single-color 5mm \led s instead. Simply solder them onto the board so
+that their cathode is on pin~2 and the anode is on pin~4 of the \led\ footprint. This
+means the \led s will electrically all be connected to the blue circuit. 
 
 Since they won't be used, omit parts U0, U2, U12, U14, C0, C11, Q0--Q15, R0--R7, and R35--R42.
 
 Set the firmware value \z{HW\_MODEL} to \z{MODEL\_3xx\_MONOCHROME} and recompile the firmware. This
 changes the behavior of the controller so that it understands it can only drive one color which
-is attached to the blue color plane. Now, all colors (other than ``off'') will turn the \acronym{LED}s
+is attached to the blue color plane. Now, all colors (other than ``off'') will turn the \led s
 on.
 
 \section{Busylight Devices}
@@ -270,7 +271,7 @@ The readerboard units are designed to be compatible with another project by the 
 is a small stand-alone indicator which can be used to indicate simple statuses like room occupancy or
 whether someone is busy, free, on a phone call, etc.
 
-The busylight can drive up to seven \acronym{LED}s. If directly connected to a host computer
+The busylight can drive up to seven \led s. If directly connected to a host computer
 via \acronym{USB}, it can be powered entirely from the \acronym{USB} port. Starting with version 2,
 it can also receive commands via \acronym{RS-485} network. In that case it can be powered by a 9\,V
 supply over the same \acronym{CAT5}, \acronym{CAT5e}, or \acronym{CAT6} cable carrying the serial
@@ -304,8 +305,8 @@ the electronic components themselves from harm due to heat or static electricity
 	\begin{tabular}{lrll}\toprule
 		{\bfseries Part No.}&{\bfseries Qty}&&{\bfseries Description}\\\midrule
 		&1&&Printed circuit board rev 2.1\\
-		&7&&\acronym{LED} tier printed circuit board rev 1.1\\
-		&7&&\acronym{LED} ring printed circuit board (if desired)\\
+		&7&&\led\ tier printed circuit board rev 1.1\\
+		&7&&\led\ ring printed circuit board (if desired)\\
 		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C\\
 		&1&&Arduino stacking pin set\\
 		C0&1&&0.1 $\mu$F capacitor\\
@@ -315,8 +316,8 @@ the electronic components themselves from harm due to heat or static electricity
 		R0--2&3&&10K resistor\\
 		U0&1&&\mc{ULN2003A} NPN Darlington array\\
 		U1&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
-		  &14&&5-pin bussed resistor network (2/\acronym{LED} tier)*\\
-		  &56&&\acronym{LED}, 3\,mm, through-hole (8/\acronym{LED} tier)$\dagger$\\
+		  &14&&5-pin bussed resistor network (2/\led\ tier)*\\
+		  &56&&\led, 5\,mm or 3\,mm, through-hole (8/\led\ tier)$\dagger$\\
 		  &1&&\sfrac14$''$ screw rod\\
 		  &1&&Enclosure$\ddagger$\\
 		  &8&&Nylon spacers between (and above and below) the tiers\\
@@ -359,14 +360,14 @@ solder points without some parts getting in the way of connecting subsequent one
 			\item Arduino stacking pins.
 		\end{itemize}
 	\item Place the microcontroller board onto the stacking pins.
-	\item Build each \acronym{LED} tier of 8 \acronym{LED}s:
+	\item Build each \led\ tier of 8 \led s:
 		\begin{itemize}
-			\item Solder eight 3\,mm \acronym{LED}s around the edge of the board with their leads straddling
+			\item Solder eight 3\,mm \led s around the edge of the board with their leads straddling
 				the edge, so the anode is on the side of the \acronym{PCB} labelled ``anode side'' and the
 				cathode is on the ``cathode side.'' Solder the leads to the exposed pads and trim the
 				leads so they don't extend past the pads.
 			\item Solder the two resistor arrays, making sure to select the correct values for the specific
-				\acronym{LED}s used on this tier board.
+				\led s used on this tier board.
 		\end{itemize}
 	\item Assemble the tier stack by threading the tiers onto the \sfrac14$''$ threaded rod with nylon spacers between them,
 		secured in place with hex nuts on either end of the stack. The following assumes the use of a length of \acronym{CAT6}
@@ -511,7 +512,7 @@ expect to see the start of another command. Thus, \z{\textasciicircum D} may not
 appear in any transmitted data except to terminate commands.
 
 Commands which contain arbitrary-size data fields, such as text strings or lists of
-\acronym{LED}s to light in sequence, end such fields with a terminator byte. In most cases
+\led s to light in sequence, end such fields with a terminator byte. In most cases
 this may be
 either a dollar-sign (``\z{\$}'') character or the
 escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagrams below
@@ -896,6 +897,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
 			&\z{=} & Set operational parameters & [4]\\
+			&\z{=\#}&Set serial number & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
 			\z{clear}&\z{C} & Clear matrix display & \\
@@ -905,10 +907,15 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{query}&\z{Q} & Query full device status & [2]\\
 			\z{text}&\z{T} & Display text on display & \\
 			\bottomrule
-			\multicolumn{4}{l}{\footnotesize [1] Busylight compatibile command}\\
-			\multicolumn{4}{l}{\footnotesize [2] Sends response}\\
-			\multicolumn{4}{l}{\footnotesize [3] Busylight extension (not in original Busylight)}\\
-			\multicolumn{4}{l}{\footnotesize [4] \acronym{USB} only}\\
+			\multicolumn{4}{p{\textwidth}}{\tiny[1] Busylight compatibile command
+
+			\noindent[2] Sends response
+
+			\noindent[3] Busylight extension (not in original Busylight)
+
+			\noindent[4] \acronym{USB} only
+
+			\noindent[5] Must be targeted to a specific device at a time; does not respond on the global address}
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
@@ -931,7 +938,7 @@ The remaining commands are used for management of the matrix display. All comman
 \end{Coding}
 \end{center}
 
-Displays various test patterns on the display to show that each element of each \acronym{LED} is working correctly
+Displays various test patterns on the display to show that each element of each \led\ is working correctly
 individually and in concert with others.
 
 While running the test pattern set, the device is not responsive to other inputs or background operations.
@@ -1088,6 +1095,33 @@ defaults may be changed when compiling the firmware for specific devices.
 	\end{center}
 \end{table}
 
+\section{\z{=\#}---Set Serial Number}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-3} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize\dots}\\
+	\bitbox{1}{\strut\z{=}} &
+	\bitbox{1}{\strut\z{\#}} &
+	\bitbox{3}{\strut\Var*{Serial}}&
+	\bitbox{1}{\strut\z{\$}} &
+	\bitbox{1}{\strut\z{\#}} &
+	\bitbox{1}{\strut\z{=}} &
+\end{bytefield}
+\end{center}
+
+To avoid recompiling the firmware image for every single device, the serial number
+may be set in the field using this command. The serial number is stored in
+\acronym{EEPROM}, so it won't be persistent on units that are not equipped with
+\acronym{EEPROM}.
+
+This command may only be sent over the \acronym{USB} port.
+
+The serial number may be arbitrary alphanumeric text of up to six characters.
+Numbers \z{RB0000}--\z{RB0299} and \z{B00000}--\z{B00299} are reserved for use by the author.
+
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
@@ -1102,6 +1136,9 @@ defaults may be changed when compiling the firmware for specific devices.
 
 This command causes the sign to send a status report back to the host to indicate
 what the discrete \led s (usually showing a person's ``busy'' status) are currently showing. 
+
+This cannot be sent to the global device address.
+
 This response has the form:
 
 \medskip
@@ -1505,7 +1542,7 @@ are scrolled left one column.
 
 In the second form, it takes eight \Var*{rgb} values (see Table~\ref{tbl:rgbcolors}) which give the color to light up
 each row in the bar-graph column. For consistency with other drawing commands, \Var*{rgb$_0$} refers to the topmost
-\acronym{LED} in the column.
+\led\ in the column.
 
 %In \acronym{JSON}, the values of \Var*{n} and \Var*{rgb$_n$} are sent as integer values.
 In \acronym{HTTP}, the value of \Var*{n} is sent as an integer value.
@@ -1679,8 +1716,8 @@ Note that anything drawn in black simply turns off the corresponding pixels.
 
 This command is identical to the \z{S} command (see below), except that multiple
 discrete \led s can be specified, all of which are illuminated simultaneously.
-%Also, unlike \z{S}, the \acronym{LED}s specified are \emph{added to} the ones which may already
-%be lit. To clear the existing \acronym{LED}s first, issue the \z{X} command ahead of \z{L}.
+%Also, unlike \z{S}, the \led s specified are \emph{added to} the ones which may already
+%be lit. To clear the existing \led s first, issue the \z{X} command ahead of \z{L}.
 See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command), it remains running.
 
 The list of \Var*{led} values is terminated by either a dollar sign (\z{\$}) character
@@ -1700,7 +1737,11 @@ or an escape byte (hex value \z{1B}), represented in the protocol diagram as ``\
 
 This command causes the sign to send a status report back to the host to indicate
 the general status of the device, including the discrete \led\ display which
-may be queried using the \z? command. The response has the form:
+may be queried using the \z? command. 
+
+This command cannot be addressed to the global address.
+
+The response has the form:
 
 \medskip
 
@@ -1780,7 +1821,7 @@ may be queried using the \z? command. The response has the form:
 The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author still has
 %lying around (but this shouldn't be something anyone else would need to see),
 ``\z{B}'' for the stand-alone busylight modules which only include discrete busy status lights,
-``\z{M}'' for 64$\times$8 matrix display hardware with monochrome \acronym{LED}s, or
+``\z{M}'' for 64$\times$8 matrix display hardware with monochrome \led s, or
 ``\z{C}'' for 64$\times$8 \acronym{RGB} color display boards.
 
 \Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
@@ -2194,7 +2235,7 @@ This is wired the same as J1 on the revision 3.2 boards.
 		\node [above] at (12,3) {\strut 24};
 	\end{tikzpicture}
 \end{center}
-For readerboards before version 2.1.0, this 24-position ribbon cable carries signals to directly drive the 64$\times$8 \acronym{LED}
+For readerboards before version 2.1.0, this 24-position ribbon cable carries signals to directly drive the 64$\times$8 \led\
 matrix.  The other end of this cable mates with J0 on the shield board. The pinout of its \acronym{IDC} header  is:
 \begin{center}
 	\begin{tabular}{rl|rl|rl|rl}
@@ -2231,7 +2272,7 @@ matrix.  The other end of this cable mates with J0 on the shield board. The pino
 		\node [above] at (5,3) {\strut 10};
 	\end{tikzpicture}
 \end{center}
-For readerboards before version 2.1.0, this 10-position ribbon cable carries signals to directly drive the 64$\times$8 \acronym{LED}
+For readerboards before version 2.1.0, this 10-position ribbon cable carries signals to directly drive the 64$\times$8 \led\
 matrix.  The other end of the cable mates with J1 on the shield board. The pinout of its \acronym{IDC} header  is:
 \begin{center}
 	\begin{tabular}{rl|rl}
@@ -2244,7 +2285,7 @@ matrix.  The other end of the cable mates with J1 on the shield board. The pinou
 \end{center}
 \subsubsection{Board Power (3-pin screw terminal) [J0]}
 This 3-position screw terminal block provides power to the readerboard. Note that the +5\,V supply is also connected
-to pins 13--16, and Ground to pins 17--20 of J1, the only power required here is the +9\,V input that drives the \acronym{LED}s themselves.
+to pins 13--16, and Ground to pins 17--20 of J1, the only power required here is the +9\,V input that drives the \led s themselves.
 \begin{center}
 	\begin{tabular}{rl}
 		1&+5\,V DC in\\
@@ -2344,7 +2385,7 @@ one default glyph may be defined in the entire set of fonts.
 
 The non-blank lines which follow the bracketed header line define
 the bitmap for the glyph. In this definition, positions which are off
-are noted with `\z{.}' or `\z{|}', while positions where the \acronym{LED} is
+are noted with `\z{.}' or `\z{|}', while positions where the \led\ is
 on are noted with `\z{@}'.
 
 Any completely blank columns to the right of all lit pixels should be
@@ -2425,8 +2466,8 @@ Table~\ref{tab:hwmodel}.
 	\begin{center}
 		\begin{tabular}{lp{3in}}\toprule
 			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MODEL} (Readerboard Hardware Model):}\\
-			\z{MODEL\_3xx\_RGB}&\acronym{PCB} revision 3.0 and later with \acronym{RGB} \acronym{LED}s installed.\\
-			\z{MODEL\_3xx\_MONOCHROME}&\acronym{PCB} revision 3.0 and later with single-color \acronym{LED}s installed with their
+			\z{MODEL\_3xx\_RGB}&\acronym{PCB} revision 3.0 and later with \acronym{RGB} \led s installed.\\
+			\z{MODEL\_3xx\_MONOCHROME}&\acronym{PCB} revision 3.0 and later with single-color \led s installed with their
 				anodes soldered into pin 4 (the blue circuit).\\\midrule
 			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MC} (Microcontroller Installed):}\\
 			\z{HW\_MC\_MEGA\_2560}&Arduino Mega 2560.\\
@@ -2488,8 +2529,8 @@ wish the unit to recognize. This must be in the range 0--15.
 #define STATUS_LED_COLOR_L6 ('B')
 #define STATUS_LED_COLOR_L7 ('W')
 \end{SourceCode}
-These are set for the standard color assignments for the discrete status \acronym{LED}s, allowing for
-the use of these single-letter color codes to refer to the status \acronym{LED}s. If you build a
+These are set for the standard color assignments for the discrete status \led s, allowing for
+the use of these single-letter color codes to refer to the status \led s. If you build a
 unit with different colors, you may assign appropriate color codes here.
 
 \begin{SourceCode}

@@ -59,24 +59,24 @@
 //          ?/Q (USB)       |            ____             | |*  MSB=1 (485)+
 //  END <-------------------+ '*'   ____|_   | led       _V_|_  ^D (USB)
 //                          +----->|Strobe|<-+      $   |END  |-----------> Idle
-//   _____    = (USB)       |      |______|------------>|_____|
-//  |Set  |<----------------+  C                         
-//  |_____|                 +-----> END                        ____ 
-//    | Ad/'_'              |  <    ______  loop      ________|_   | char
-//   _V_____                +----->|Scroll|--------->|ScrollText|<-+       ESC
-//  |SetUspd|               |      |______|          |__________|-------------> END
-//  |_______|               |  @    ______  pos
-//    | speed               +----->|SetCol|---------> END
-//   _V_____                |      |______|
-//  |SetRspd|               |  A    __________  n
-//  |_______|               +----->|SelectFont|-----> END
-//    | speed               |      |__________|
-//   _V_____                |           ____
-//  |SetDg  |               |  F    ___|_   |led
-//  |_______|               +----->|Flash|<-+      $
-//    | Addr                |      |_____|----------> END
-//    V                     |  H    ________  n
-//   END                    +----->|BarGraph|-------> END
+//   ____________  = (USB)  |      |______|------------>|_____|
+//  |Set         |<---------+  C                         
+//  |____________|          +-----> END                        ____ 
+//    | Ad/'.'  |#          |  <    ______  loop      ________|_   | char 
+//   _V_____   _V___        +----->|Scroll|--------->|ScrollText|<-+       ESC
+//  |SetUspd| |SetSN|___*   |      |______|          |__________|-------------> END
+//  |_______| |_____|<-+    |  @    ______  pos
+//    | speed   |$          +----->|SetCol|---------> END
+//   _V_____   _V____       |      |______|
+//  |SetRspd| |SetSN2|      |  A    __________  n
+//  |_______| |______|      +----->|SelectFont|-----> END
+//    | speed   |#          |      |__________|
+//   _V_____   _V____       |           ____
+//  |SetDg  | |SetSN3|      |  F    ___|_   |led
+//  |_______| |______|      +----->|Flash|<-+      $
+//    | Addr    |=          |      |_____|----------> END
+//    V         V           |  H    ________  n
+//   END       END          +----->|BarGraph|-------> END
 //                          |      |________|                                                         
 //                          |           |K
 //                          |           |<------+
@@ -198,6 +198,9 @@ private:
         StrobeState, 
         FlashState, 
         LightOnState, 
+        SetSNState,
+        SetSN2State,
+        SetSN3State,
 #if IS_READERBOARD
         ScrollState,
         ScrollTextState,
@@ -234,6 +237,7 @@ private:
     byte bytebuf;
     bool esc_literal;
     bool esc_msb;
+    bool target_is_global;
     int  k;
     serial_source_t cmd_source;
 
@@ -468,6 +472,8 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 end_cmd();
                 return;
             }
+            target_is_global = ((inputchar & 0x0f) == global_device_address);
+
 
             switch (inputchar & 0xf0) {
                 case 0x80:
@@ -515,6 +521,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
     } else {
         /* USB: if ^D received, abandon current command */
+        target_is_global = false;
         if (inputchar == '\004') {
             if (state != IdleState && state != EndState && state != ErrorState) {
                 error();
@@ -581,6 +588,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #endif
 
         case '=':
+            if (source != FROM_USB) {
+                error();
+                break;
+            }
             state = SetState;
             break;
 
@@ -607,8 +618,9 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #endif
 
         case 'Q':
-            {
+            if (!target_is_global) {
                 void (*sendbyte)(byte);
+
                 if (cmd_source == FROM_485) {
                     start_485_reply();
                     sendbyte = send_485_byte;
@@ -646,6 +658,11 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 for (const char *c = SERIAL_VERSION_STAMP; *c != '\0'; c++) {
                     sendbyte(*c);
                 }
+                sendbyte('S');
+                for (const char *c = serial_number; *c != '\0'; c++) {
+                    sendbyte(*c);
+                }
+                sendbyte('$');
                 report_state(false);
 #if IS_READERBOARD
                 sendbyte('M');
@@ -721,7 +738,9 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #endif
 
         case '?':
-            report_state(true);
+            if (!target_is_global) {
+                report_state(true);
+            }
             end_cmd();
             break;
 
@@ -755,6 +774,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
     // Set operational parameters
     case SetState:
+        if (inputchar == '#') {
+            state = SetSNState;
+            break;
+        }
         state = SetUspdState;
         if (inputchar == '.') {
             append_byte(EE_ADDRESS_DISABLED);
@@ -764,6 +787,36 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         } else {
             error();
         }
+        break;
+
+    case SetSNState:
+        if (inputchar == '\033' || inputchar == '$') {
+            state = SetSN2State;
+            break;
+        }
+        if (buffer_idx >= 6) {
+            error();
+            break;
+        }
+        append_byte(inputchar);
+        break;
+
+    case SetSN2State:
+        if (inputchar != '#') {
+            error();
+            break;
+        }
+        state = SetSN3State;
+        break;
+
+    case SetSN3State:
+        if (inputchar != '=') {
+            error();
+            break;
+        }
+        append_byte(0);
+        store_serial_number((const char *) buffer);
+        end_cmd();
         break;
 
     case SetUspdState:

@@ -60,7 +60,10 @@ void debug_hw_buffer(void);
 #define EE_ADDR_485_SPEED (0x03)
 #define EE_ADDR_DEVICE_ADDR (0x04)
 #define EE_ADDR_GLOBAL_ADDR (0x05)
-#define EE_ADDR_SENTINEL2  (0x06)
+#define EE_ADDR_SERIAL_NO (0x06)
+#define EE_LENGTH_SERIAL_NO (7)
+#define EE_ADDR_SENTINEL2  (EE_ADDR_SERIAL_NO+EE_LENGTH_SERIAL_NO)
+char serial_number[EE_LENGTH_SERIAL_NO] = "";
 
 /* I/O port to use for full 8-bit write operations to the sign board */
 /* On the Mega 2560, PORTF<7:0> corresponds to <A7:A0> pins */
@@ -947,7 +950,25 @@ void reset_eeprom_values(void)
     EEPROM.write(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS);
     EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
+    EEPROM.write(EE_ADDR_SERIAL_NO, 0);
 #endif
+}
+
+void store_serial_number(const char *sn)
+{
+    int i;
+    for (i=0; i<EE_LENGTH_SERIAL_NO-1 && sn[i] != '\0'; i++) {
+#if HW_MC != HW_MC_DUE
+        EEPROM.write(EE_ADDR_SERIAL_NO+i, sn[i]);
+#endif
+        serial_number[i] = sn[i];
+    }
+    for (; i<EE_LENGTH_SERIAL_NO; i++) {
+#if HW_MC != HW_MC_DUE
+        EEPROM.write(EE_ADDR_SERIAL_NO+i, 0);
+#endif
+        serial_number[i] = '\0'; 
+    }
 }
 
 void save_eeprom(void)
@@ -1017,6 +1038,10 @@ void setup_eeprom(void)
         EEPROM.write(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
         USB_baud_rate_code = EE_DEFAULT_485_SPEED;
         RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    }
+
+    for (int i=0; i<EE_LENGTH_SERIAL_NO; i++) {
+        serial_number[i] = EEPROM.read(EE_ADDR_SERIAL_NO+i);
     }
 #else
 # error "No valid HW_MC configured"
@@ -1366,7 +1391,9 @@ void setup(void)
     char rbuf[32];
 	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
 	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
-	display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
+    sprintf(rbuf, "S/N %s", serial_number);
+    display_text(1, rbuf, BIT_RGB_BLUE, 1500);
+	//display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
     if (my_device_address == EE_ADDRESS_DISABLED) {
         display_text(0, "ADDRESS \0133\234\234", BIT_RGB_RED, 3000);
     } else {
