@@ -169,7 +169,7 @@ func (d *DirectDriver) Detach() {
 }
 
 func (d *DirectDriver) AllLightsOffBytes(_ []int, command []byte) ([]byte, error) {
-	return append(command, 0x04), nil
+	return append(append([]byte{0x04}, command...), 0x04), nil
 }
 
 // Bytes produces a raw byte stream appropriate to send the given command to the target addresses on
@@ -320,7 +320,6 @@ tryOpeningPort:
 		}
 		return fmt.Errorf("network %s: unable to open any device matching /%s/ in %s.", netID, net.DeviceRegexp, net.DeviceDir)
 	}
-	return fmt.Errorf("network %s: reached unreachable condition (bug?)", netID)
 }
 
 func showAddress(a byte) string {

@@ -9,7 +9,6 @@
 package main
 
 import (
-	"busylight/readerboard"
 	"context"
 	"flag"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"readerboard/readerboard"
 	"sync"
 	"syscall"
 )

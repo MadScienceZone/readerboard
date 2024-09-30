@@ -1,4 +1,4 @@
-module busylight
+module readerboard
 
 go 1.22
 

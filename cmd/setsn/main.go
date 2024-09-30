@@ -15,10 +15,10 @@
 package main
 
 import (
-	"busylight/readerboard"
 	"encoding/json"
 	"flag"
 	"log"
+	"readerboard/readerboard"
 	"strings"
 )
 
