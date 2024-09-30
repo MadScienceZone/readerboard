@@ -5,7 +5,7 @@ FileVersion[20091103]
 
 PCB["" 1500.00mil 1500.00mil]
 
-Grid[1.00mil 0.0000 0.0000 1]
+Grid[25.00mil 0.0000 0.0000 1]
 PolyArea[3100.006200]
 Thermal[0.500000]
 DRC[10.00mil 10.00mil 10.00mil 10.00mil 15.00mil 10.00mil]
@@ -785,7 +785,7 @@ Symbol['~' 12.00mil]
 	SymbolLine[20.00mil 35.00mil 25.00mil 30.00mil 8.00mil]
 )
 Attribute("PCB::grid::unit" "mil")
-Attribute("PCB::grid::size" "1.00mil")
+Attribute("PCB::grid::size" "25.00mil")
 Via[750.00mil 750.00mil 266.00mil 22.00mil 268.00mil 260.00mil "" ""]
 Via[750.00mil 1100.00mil 136.00mil 20.00mil 146.00mil 135.00mil "" ""]
 Via[750.00mil 400.00mil 136.00mil 20.00mil 146.00mil 135.00mil "" ""]
@@ -1034,6 +1034,14 @@ Layer(10 "top silk" "silk")
 	Line[587.00mil 1057.00mil 587.00mil 1027.00mil 10.00mil 20.00mil "clearline"]
 	Line[587.00mil 1027.00mil 580.00mil 1020.00mil 10.00mil 20.00mil "clearline"]
 	Line[551.00mil 1020.00mil 580.00mil 1020.00mil 10.00mil 20.00mil "clearline"]
+	Line[750.00mil 0.0000 750.00mil 125.00mil 10.00mil 20.00mil "clearline"]
+	Line[750.00mil 1450.00mil 750.00mil 1500.00mil 10.00mil 20.00mil "clearline"]
+	Line[0.0000 750.00mil 125.00mil 750.00mil 10.00mil 20.00mil "clearline"]
+	Line[1500.00mil 750.00mil 1375.00mil 750.00mil 10.00mil 20.00mil "clearline"]
+	Line[1275.00mil 225.00mil 1175.00mil 325.00mil 10.00mil 20.00mil "clearline"]
+	Line[225.00mil 1275.00mil 325.00mil 1175.00mil 10.00mil 20.00mil "clearline"]
+	Line[325.00mil 325.00mil 225.00mil 225.00mil 10.00mil 20.00mil "clearline"]
+	Line[1175.00mil 1175.00mil 1275.00mil 1275.00mil 10.00mil 20.00mil "clearline"]
 	Text[600.00mil 1375.00mil 0 100 "ANODE SIDE" "clearline"]
 	Text[550.00mil 1225.00mil 0 100 "V+" "clearline"]
 	Text[875.00mil 1225.00mil 0 100 "GND" "clearline"]
