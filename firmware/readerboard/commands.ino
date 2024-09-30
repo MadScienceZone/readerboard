@@ -969,8 +969,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             if (++k >= N_COLORS) {
                 display_buffer(image_buffer, transition);
                 end_cmd();
-            } else {
-                error();
             }
             break;
         }
