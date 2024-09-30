@@ -127,7 +127,7 @@ func main() {
 		}
 	}()
 
-	req := make(chan os.Signal)
+	req := make(chan os.Signal, 1)
 	signal.Notify(req, syscall.SIGHUP, syscall.SIGINT)
 
 eventloop:

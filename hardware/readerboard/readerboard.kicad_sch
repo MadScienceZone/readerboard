@@ -7285,6 +7285,16 @@
 	)
 	(wire
 		(pts
+			(xy 212.09 163.83) (xy 212.09 166.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "26d84090-533b-4432-a0eb-0947e5c8cc5b")
+	)
+	(wire
+		(pts
 			(xy 243.205 135.89) (xy 251.46 135.89)
 		)
 		(stroke
@@ -10337,7 +10347,7 @@
 		)
 		(uuid "09428a45-a8d3-422b-8599-7a8b668b75d7")
 	)
-	(text "16-SEP-2024"
+	(text "29-SEP-2024"
 		(exclude_from_sim no)
 		(at 342.9 263.525 0)
 		(effects
@@ -15830,6 +15840,72 @@
 		)
 	)
 	(symbol
+		(lib_id "power:+5V")
+		(at 212.09 163.83 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "6dc9529f-2a4f-486c-8e35-e177819ba677")
+		(property "Reference" "#PWR027"
+			(at 212.09 167.64 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "V_{LOGIC}"
+			(at 212.09 158.75 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 212.09 163.83 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 212.09 163.83 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 212.09 163.83 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "20e02866-60e2-4aa6-a330-bd9ec0f8c24b")
+		)
+		(instances
+			(project "readerboard"
+				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
+					(reference "#PWR027")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:+9V")
 		(at 161.29 107.95 0)
 		(unit 1)
@@ -16558,7 +16634,6 @@
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "868c2c8d-7c3f-459a-80a1-e80e66615751")
 		(property "Reference" "#PWR014"
 			(at 246.38 196.088 0)
@@ -16569,12 +16644,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+5V"
-			(at 246.38 187.833 0)
+		(property "Value" "V_{LOGIC}"
+			(at 243.332 187.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Footprint" ""
@@ -16633,7 +16709,7 @@
 				)
 			)
 		)
-		(property "Value" "EEPROM VOLTAGE"
+		(property "Value" "LOGIC VOLTAGE"
 			(at 181.61 161.29 0)
 			(effects
 				(font
