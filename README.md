@@ -1,7 +1,8 @@
-# Readerboard
-An Electronic Readerboard 64x8 Sign with Discrete LEDs (Arduino-powered).
-This project also includes the Busylight indicator device which used to be a separate project but
-now shares a common command set and firmware source code base with the Readerboard devices.
+# Readerboard + Busylight
+An Electronic Readerboard 64x8 Sign with Discrete "busylight status" LEDs (Arduino-powered).
+There is also a smaller, standalone Busylight unit which just provides a status indicator with a 360° view. This was
+previously developed in its own dedicated [github project](https://github.com/MadScienceZone/busylight), but it is
+now merged into this one.
 
 ## Description
 This is mostly just a thing I put together for [hack value](http://www.catb.org/~esr/jargon/html/H/hack-value.html).
@@ -35,6 +36,10 @@ same purpose and accept the same commands as the Busylight units do.)
 
 ## Current Status
 I have a prototype Busylight and Readerboard built and being debugged.
+
+There's a lot of pre-release development work underway which makes it to the `develop` branch occasionally.
+This is where you can find the prototypes and experimental software and firmware images before they're ready
+for full release (in which time they will be moved to the `main` branch).
 
 ## Copyright
 This is all the original work of the author (Steve Willoughby). Copyright © 2023, 2024, All rights reserved. 
