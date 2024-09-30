@@ -211,6 +211,30 @@ On RGB models, there are four planes specified: red, green, blue, and flash; a b
 color to the corresponding pixel, combining to allow eight colors (including off) to be displayed. Any pixel whose corresponding
 bit in the flash plane is set will be flashed on and off instead of burning steady. Monochrome displays are similar but only
 use two planes: the first indicates which pixels are lit and the second indicates which are flashing.
+.LP
+Consider a 4x4-pixel red square filled in with green, which occupies the middle rows like so:
+.na
+.nf
+.ft C
+\&....
+\&....
+RRRR
+RGGR
+RGGR
+RRRR
+\&....
+\&....
+.ft
+.fi
+.ad
+To draw this on the readerboard starting at column 0, send the command
+.RS
+.BI bitmap&a= addresses &pos=0&image=3c24243c$00181800$00000000$00000000
+.RE
+To make the green inner square flash, then the command would instead be
+.RS
+.BI bitmap&a= addresses &pos=0&image=3c24243c$00181800$00000000$00181800
+.RE
 .RE
 .TP
 .B clear
@@ -320,7 +344,7 @@ strobes that one LED.
 Run a test pattern on the target device(s) which demonstrates that the LEDs are all connected and the device's circuitry is functioning
 properly.
 .TP
-.BR text ...[ &merge ][ &align= \fIalignment\fP][ &trans= \fItransition\fP] &t=\fItext\fP
+.BR text ...[ &merge ][ &align= \fIalignment\fP][ &trans= \fIeffect\fP] &t=\fItext\fP
 Displays
 .I text
 on the readerboard, optionally merging the pixels that spell out the letters with existing
@@ -379,14 +403,14 @@ command, as well as hardware and firmware revision numbers, serial number, conte
 The following commands execute higher-level operations on the server which in turn affects how it manages the state of the connected
 devices rather than being commands that are sent directly to the devices themselves.
 .TP
-.BI post ... &t= text &id= id \fR[\fP&trans= transition \fR][\fP&until= dt \fR][\fP&hold= d \fR][\fP&color= c \fR][\fP&visible= d \fR][\fP&show= d \fR][\fP&repeat= d \fR]\fP
+.BI post ... &t= text &id= id \fR[\fP&trans= effect \fR][\fP&until= dt \fR][\fP&hold= d \fR][\fP&color= c \fR][\fP&visible= d \fR][\fP&show= d \fR][\fP&repeat= d \fR]\fP
 Add a new message to the display list for the specified target devices. They will display these messages until they expire.
 Sending other display-manipulating commands will suspend this display until a
 .B clear
 command is issued to the device. 
 .RS
 .LP
-A number of variables, special tokens, and scheduling parameters may be given as documented in
+A number of variables, special tokens, and scheduling parameters may be given as documented in the
 .IR "Readerboard User's Guide" .
 .RE
 .TP
