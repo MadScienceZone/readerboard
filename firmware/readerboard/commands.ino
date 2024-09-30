@@ -965,6 +965,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                     }
                 }
             }
+            buffer_idx = 0;
 
             if (++k >= N_COLORS) {
                 display_buffer(image_buffer, transition);
