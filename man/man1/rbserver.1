@@ -1,0 +1,250 @@
+.TH RBSERVER 1 "Readerboard/Busylight Project" 29-Sep-2024
+.SH NAME
+rbserver \- Central service to manage readerboards and busylights
+.SH SYNOPSIS
+.na
+.B rbserver
+.RB [ \-conf
+.IR configfile ]
+.ad
+.SH DESCRIPTION
+.LP
+This program opens connections to all the readerboards and busylight units described in its configuration file
+and sends commands to them in order to maintain centrally-controlled messages and status indicators on them.
+It opens an HTTP web service endpoint which provides a simple-to-use interface for other users on the network
+to request display changes on the managed devices.
+.SH OPTIONS
+.TP
+.BI "\-conf " configfile
+Read the server configuration from the named file. This is a required parameter.
+.SH CONFIGURATION
+.LP
+The configuration file is a JSON object with the following fields. All fields have string values unless otherwise indicated.
+.TP
+.BI "GlobalAddress " (int)
+Specifies the address, which must be in the range 0\-15, that may be sent to the devices to indicate a global command that
+all devices should respond to. This same address
+.I must
+also be configured into each of the devices so they all agree with each other and the server about what the global address
+should be. By default, the devices use global address 15, but this may be changed by reconfiguring the devices.
+.TP
+.BI "Devices " (object)
+The list of all connected Readerboard and Busylight devices is provided here. The value in this case is a JSON object
+(i.e., key/value map) where the keys are the device IDs and the corresponding values are JSON objects which describe
+the attributes of that device. The IDs must be numeric and within the range 0\-63, and must not be the global address.
+For devices not directly attached via USB (e.g., ones on RS-485 networks), the device address must also be configured to
+match the ID number used by the server.
+.RS
+.LP
+.RB ( N.B.:
+in order to comply with the JSON representation standard, these keys must appear in the configuration file as quoted
+strings, so the entry for device with address 42 would be introduced here with the key
+.BR \[dq]42\[dq] ,
+not the integer value
+.BR 42 .)
+.LP
+The fields in the JSON object listed for each device include the following:
+.TP
+.B DeviceType
+This indicates the hardware type for this unit. Valid values as of this writing include
+.BR Busylight1 ,
+.BR Busylight2 ,
+.BR Readerboard3_RGB ,
+and
+.BR Readerboard3_Monochrome .
+.TP
+.B NetworkID
+The name of the network or direct connection to which this device is attached. This name must be defined in the
+.B Networks
+field (q.v.).
+.TP
+.B Description
+An arbitrary description of the device, its location, purpose, or whatever other information about it is useful to note.
+.TP
+.B Serial
+The serial number of the device. The server will check this by probing the unit and comparing the serial number it reports,
+to help identify mistakes in the server configuration.
+.RE
+.TP
+.BI "Networks " (object)
+All the serial ports over which the server will communicate with the various devices are enumerated here as a JSON object
+whose keys are arbitrarily-named network IDs, and the corresponding values describe that connection with the following fields:
+.RS
+.TP
+.B ConnectionType
+Defines the type of connection (and thus, the protocol which must be used to communicate over it). As of this writing,
+the valid values are
+.BR RS-485
+and
+.BR USB .
+.TP
+.B Device
+This gives the system device name (e.g., 
+.RB \*(lq /dev/ttyACM0 \*(rq)
+of the serial port which the server is to open in order to communicate with the device(s) connected there.
+If you want the server to try to find the appropriate device, then leave this field out and instead
+specify
+.B DeviceDir
+and
+.B DeviceRegexp
+(see below).
+.TP
+.B DeviceDir
+As an alternative to hard-coding a device name in
+.BR Device ,
+This specifies the directory in which all the system's serial port devices may be found.
+.TP
+.B DeviceRegexp
+A regular expression that matches serial ports which may be used for our devices. The first device
+found in
+.B DeviceDir
+which matches this expression and can be successfully opened by the server process will be used for
+this network.
+.TP
+.BI "BaudRate " (int)
+The speed at which to communicate over the serial port.
+.TP
+.RE
+.TP
+.B LogFile
+The name of a file where the server should log its state and activity along with debugging and error messages. By default,
+these messages are sent to the standard output.
+.TP
+.B PidFile
+If specified, this names a file in which the server will record its process ID number. This file is deleted when the server
+shuts down.
+.TP
+.B Endpoint
+This gives the TCP endpoint which is to accept HTTP requests. It has the form
+.RI [ hostname ] \fB:\fPport .
+.SS "Example Configuration"
+.na
+.nf
+.ft C
+{
+	"PidFile": "/tmp/rbserver.pid",
+	"GlobalAddress": 15,
+	"Endpoint": ":43210",
+	"Devices": {
+		"1": {
+			"DeviceType": "Busylight2", 
+			"NetworkID": "directlight",
+			"Description": "Work busy indicator (kitchen)",
+			"Serial": "B1234"
+		},
+		"2": {
+			"DeviceType": "Readerboard3",
+			"NetworkID": "sparkbus",
+			"Description": "Kitchen status board",
+			"Serial": "RB1234"
+		},
+		"3": {
+			"DeviceType": "Busylight2",
+			"NetworkID": "sparkbus",
+			"Description": "Downstairs remote busy indicator",
+			"Serial": "B1235"
+		}
+	},
+	"Networks": {
+		"directlight": {
+			"ConnectionType": "USB",
+			"Device": "/dev/usbtty0",
+			"BaudRate": 9600
+		},
+		"sparkbus": {
+			"ConnectionType": "RS-485",
+			"Device": "/dev/usbtty1",
+			"BaudRate": 9600
+		}
+	}
+}
+.ft
+.fi
+.ad
+.SH "WEB SERVICE API"
+.LP
+In the current pre-release version, no authentication protection is implemented, so steps must be taken by the user
+or system administrator to ensure
+that the endpoint is not reachable by untrusted systems or users.
+.LP
+The server responds to requests with URLs that begin with the prefix
+.RS
+.ft C
+http://\fIhost\fP:\fIport\fP/readerboard/v1/\fIcommand\fP?a=\fIaddress(es)\fP
+.ft R
+.RE
+followed by one of the following commands. All commands accept a parameter
+.B a
+which lists one or more device ID numbers which should receive the command. If the global
+address is in the list, then the command will be sent to all units. If more than one address
+is given, the addresses are separated from each other with commas.
+.SS "Simple Device Commands"
+.LP
+The following commands carry out the requested operation and do not send a reply unless they need to report a problem.
+This allows them to be sent with something as simple as a
+.BR curl (1)
+command at the shell prompt or in a script. In the descriptions that follow, we will omit the
+.RB \*(lq ?a= ...\*(rq
+parameter common to all commands which has already been described above.
+.TP
+.B alloff
+Extinguish all LEDs on the device(s).
+.TP
+.B bitmap
+.B clear
+.B color
+.B flash
+.B font
+.B graph
+.B light
+.B move
+.B off
+.TP
+.BR scroll ...[ &loop ] &t=\fItext\fP
+Scrolls
+.I text
+across the readerboard. If 
+.B loop
+is present (with no value or the value 
+.BR true ),
+the text will continually repeat in a never-ending scrolling display. Otherwise, it stops scrolling at the end of the text string.
+.TP
+.BI strobe ... &l= L0L1...LN
+Sets a pattern of 0\-64 lights which will be strobed (briefly flashed with a pause between each) in sequence on the discrete
+status LEDs. Each value
+.IR L0 ,
+.IR L1 ,
+etc., is either an ASCII digit representing the position in the stack of status lights or a single character which
+represents the color of the desired light (as defined by each specific target device), or the special character 
+.RB \*(lq _ \*(rq, 
+which means no light should be strobed at that place in the sequence.
+There are no delimiters between each
+value in the sequence list. A sequence of zero length turns off the strober entirely. A sequence of a single value merely
+strobes that one LED.
+.TP
+.B test
+Run a test pattern on the target device(s) which demonstrates that the LEDs are all connected and the device's circuitry is functioning
+properly.
+.B text
+.B configure-device
+.SS "Query Commands"
+.LP
+The following commands query devices to get information about them, and then report that information back in a JSON-formatted reply
+as an object with device IDs as keys and JSON-formatted payloads as the corresponding values.
+.TP
+.B query
+.B busy
+.SS "Server Commands"
+.LP
+The following commands execute higher-level operations on the server which in turn affects how it manages the state of the connected
+devices rather than being commands that are sent directly to the devices themselves.
+.TP
+.B post
+.B postlist
+.B unpost
+.B update
+.SH AUTHOR
+.LP
+Steve Willoughby / steve@madscience.zone.
+.SH COPYRIGHT
+Copyright \(co 2024 by Steven L. Willoughby, Aloha, Oregon, USA. All Rights Reserved. Distributed under the BSD 3-Clause License.

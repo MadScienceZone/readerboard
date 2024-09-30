@@ -1,0 +1,37 @@
+{
+	"PidFile": "/tmp/rbserver.pid",
+	"GlobalAddress": 15,
+	"Endpoint": ":43210",
+	"Devices": {
+		"1": {
+			"DeviceType": "Busylight2", 
+			"NetworkID": "directlight",
+			"Description": "Work busy indicator (kitchen)",
+			"Serial": "B1234"
+		},
+		"2": {
+			"DeviceType": "Readerboard3",
+			"NetworkID": "sparkbus",
+			"Description": "Kitchen status board",
+			"Serial": "RB1234"
+		},
+		"3": {
+			"DeviceType": "Busylight2",
+			"NetworkID": "sparkbus",
+			"Description": "Downstairs remote busy indicator",
+			"Serial": "B1235"
+		}
+	},
+	"Networks": {
+		"directlight": {
+			"ConnectionType": "USB",
+			"Device": "/dev/usbtty0",
+			"BaudRate": 9600
+		},
+		"sparkbus": {
+			"ConnectionType": "RS-485",
+			"Device": "/dev/usbtty1",
+			"BaudRate": 9600
+		}
+	}
+}
