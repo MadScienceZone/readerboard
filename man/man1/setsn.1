@@ -1,0 +1,59 @@
+.TH SETSN 1 "Readerboard/Busylight Project" 29-Sep-2024
+.SH NAME
+setsn \- Field program a new serial number into a device
+.SH SYNOPSIS
+.na
+.B setsn
+.RB [ \-model
+.IR type ]
+.B \-port
+.I name
+.B \-sn
+.I serialno
+.B \-speed
+.I rate
+.ad
+.SH DESCRIPTION
+.LP
+After flashing a new firmware image onto a new Readerboard or Busylight device, use this program to
+configure a unique serial number into its EEPROM.
+.SH OPTIONS
+.TP
+.BI "\-model " type
+Specifies the hardware type being programmed. The value of
+.I type
+may be
+.BR rb
+(the default),
+.BR mono ,
+or
+.BR busylight ,
+or any of the values which are accepted by
+.BR rbserver (1)'s
+configuration file in the
+.B DeviceType
+field of the
+.B Devices
+list.
+While not strictly required, specifying this parameter may make it easier for
+.B setsn
+to correctly verify that the serial number has successfully been set.
+.TP
+.BI "\-port " name
+Specifies the serial port's device name on the system through which the device may be reached.
+.TP
+.BI "\-sn " serialno
+The serial number to be set on the device. This must be no more than six characters, and should be
+plain ASCII characters, preferably alphanumerics.  Serial numbers
+.BR B00000\-B00299
+and
+.BR RB0000\-RB0299
+are reserved for use by the original author.
+.TP
+.BI "\-speed " rate
+Sets the baud rate at which to communicate with the target device.
+.SH AUTHOR
+.LP
+Steve Willoughby / steve@madscience.zone.
+.SH COPYRIGHT
+Copyright \(co 2024 by Steven L. Willoughby, Aloha, Oregon, USA. All Rights Reserved. Distributed under the BSD 3-Clause License.

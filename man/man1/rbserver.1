@@ -1,0 +1,510 @@
+.TH RBSERVER 1 "Readerboard/Busylight Project" 29-Sep-2024
+.SH NAME
+rbserver \- Central service to manage readerboards and busylights
+.SH SYNOPSIS
+.na
+.B rbserver
+.RB [ \-conf
+.IR configfile ]
+.ad
+.SH DESCRIPTION
+.LP
+This program opens connections to all the readerboards and busylight units described in its configuration file
+and sends commands to them in order to maintain centrally-controlled messages and status indicators on them.
+It opens an HTTP web service endpoint which provides a simple-to-use interface for other users on the network
+to request display changes on the managed devices.
+.SH OPTIONS
+.TP
+.BI "\-conf " configfile
+Read the server configuration from the named file. This is a required parameter.
+.SH CONFIGURATION
+.LP
+The configuration file is a JSON object with the following fields. All fields have string values unless otherwise indicated.
+.TP
+.BI "GlobalAddress " (int)
+Specifies the address, which must be in the range 0\-15, that may be sent to the devices to indicate a global command that
+all devices should respond to. This same address
+.I must
+also be configured into each of the devices so they all agree with each other and the server about what the global address
+should be. By default, the devices use global address 15, but this may be changed by reconfiguring the devices.
+.TP
+.BI "Devices " (object)
+The list of all connected Readerboard and Busylight devices is provided here. The value in this case is a JSON object
+(i.e., key/value map) where the keys are the device IDs and the corresponding values are JSON objects which describe
+the attributes of that device. The IDs must be numeric and within the range 0\-63, and must not be the global address.
+For devices not directly attached via USB (e.g., ones on RS-485 networks), the device address must also be configured to
+match the ID number used by the server.
+.RS
+.LP
+.RB ( N.B.:
+in order to comply with the JSON representation standard, these keys must appear in the configuration file as quoted
+strings, so the entry for device with address 42 would be introduced here with the key
+.BR \[dq]42\[dq] ,
+not the integer value
+.BR 42 .)
+.LP
+The fields in the JSON object listed for each device include the following:
+.TP
+.B DeviceType
+This indicates the hardware type for this unit. Valid values as of this writing include
+.BR Busylight1 ,
+.BR Busylight2 ,
+.BR Readerboard3_RGB ,
+and
+.BR Readerboard3_Monochrome .
+.TP
+.B NetworkID
+The name of the network or direct connection to which this device is attached. This name must be defined in the
+.B Networks
+field (q.v.).
+.TP
+.B Description
+An arbitrary description of the device, its location, purpose, or whatever other information about it is useful to note.
+.TP
+.B Serial
+The serial number of the device. The server will check this by probing the unit and comparing the serial number it reports,
+to help identify mistakes in the server configuration.
+.RE
+.TP
+.BI "Networks " (object)
+All the serial ports over which the server will communicate with the various devices are enumerated here as a JSON object
+whose keys are arbitrarily-named network IDs, and the corresponding values describe that connection with the following fields:
+.RS
+.TP
+.B ConnectionType
+Defines the type of connection (and thus, the protocol which must be used to communicate over it). As of this writing,
+the valid values are
+.BR RS-485
+and
+.BR USB .
+.TP
+.B Device
+This gives the system device name (e.g., 
+.RB \*(lq /dev/ttyACM0 \*(rq)
+of the serial port which the server is to open in order to communicate with the device(s) connected there.
+If you want the server to try to find the appropriate device, then leave this field out and instead
+specify
+.B DeviceDir
+and
+.B DeviceRegexp
+(see below).
+.TP
+.B DeviceDir
+As an alternative to hard-coding a device name in
+.BR Device ,
+This specifies the directory in which all the system's serial port devices may be found.
+.TP
+.B DeviceRegexp
+A regular expression that matches serial ports which may be used for our devices. The first device
+found in
+.B DeviceDir
+which matches this expression and can be successfully opened by the server process will be used for
+this network.
+.TP
+.BI "BaudRate " (int)
+The speed at which to communicate over the serial port.
+.TP
+.RE
+.TP
+.B LogFile
+The name of a file where the server should log its state and activity along with debugging and error messages. By default,
+these messages are sent to the standard output.
+.TP
+.B PidFile
+If specified, this names a file in which the server will record its process ID number. This file is deleted when the server
+shuts down.
+.TP
+.B Endpoint
+This gives the TCP endpoint which is to accept HTTP requests. It has the form
+.RI [ hostname ] \fB:\fPport .
+.SS "Example Configuration"
+.na
+.nf
+.ft C
+{
+	"PidFile": "/tmp/rbserver.pid",
+	"GlobalAddress": 15,
+	"Endpoint": ":43210",
+	"Devices": {
+		"1": {
+			"DeviceType": "Busylight2", 
+			"NetworkID": "directlight",
+			"Description": "Work busy indicator (kitchen)",
+			"Serial": "B1234"
+		},
+		"2": {
+			"DeviceType": "Readerboard3",
+			"NetworkID": "sparkbus",
+			"Description": "Kitchen status board",
+			"Serial": "RB1234"
+		},
+		"3": {
+			"DeviceType": "Busylight2",
+			"NetworkID": "sparkbus",
+			"Description": "Downstairs remote busy indicator",
+			"Serial": "B1235"
+		}
+	},
+	"Networks": {
+		"directlight": {
+			"ConnectionType": "USB",
+			"Device": "/dev/usbtty0",
+			"BaudRate": 9600
+		},
+		"sparkbus": {
+			"ConnectionType": "RS-485",
+			"Device": "/dev/usbtty1",
+			"BaudRate": 9600
+		}
+	}
+}
+.ft
+.fi
+.ad
+.SH "WEB SERVICE API"
+.LP
+In the current pre-release version, no authentication protection is implemented, so steps must be taken by the user
+or system administrator to ensure
+that the endpoint is not reachable by untrusted systems or users.
+.LP
+The server responds to requests with URLs that begin with the prefix
+.RS
+.ft C
+http://\fIhost\fP:\fIport\fP/readerboard/v1/\fIcommand\fP?a=\fIaddress(es)\fP
+.ft R
+.RE
+followed by one of the following commands. All commands accept a parameter
+.B a
+which lists one or more device ID numbers which should receive the command. If the global
+address is in the list, then the command will be sent to all units. If more than one address
+is given, the addresses are separated from each other with commas.
+.SS "Simple Device Commands"
+.LP
+The following commands carry out the requested operation and do not send a reply unless they need to report a problem.
+This allows them to be sent with something as simple as a
+.BR curl (1)
+command at the shell prompt or in a script. In the descriptions that follow, we will omit the
+.RB \*(lq ?a= ...\*(rq
+parameter common to all commands which has already been described above.
+.TP
+.B alloff
+Extinguish all LEDs on the device(s), including matrix LEDs and discrete status indicators.
+.TP
+.BI bitmap ... \fR[\fP&merge\fR][\fP&trans= transition \fR][\fP&pos= n \fR]\fP&image= bitmap
+Draw a bitmap pattern on the LED matrix starting at column
+.IR n .
+If
+.B merge
+is specified with no value or the value
+.BR true ,
+the pixels are merged with those already on the display; otherwise the previous contents of the
+affected columns are lost in favor of the new pattern.
+.RS
+.LP
+The
+.I bitmap
+value consists of a number of planes separated by dollar-signs
+.RB (\*(lq $ \*(rq). 
+Each plane consists of a number of two-digit hex values which provide
+the pattern of lit pixels for the corresponding column, with the least-significant bit representing the top pixel.
+On RGB models, there are four planes specified: red, green, blue, and flash; a bit in the red, green, or blue plane adds that
+color to the corresponding pixel, combining to allow eight colors (including off) to be displayed. Any pixel whose corresponding
+bit in the flash plane is set will be flashed on and off instead of burning steady. Monochrome displays are similar but only
+use two planes: the first indicates which pixels are lit and the second indicates which are flashing.
+.LP
+Consider a 4x4-pixel red square filled in with green, which occupies the middle rows like so:
+.na
+.nf
+.ft C
+\&....
+\&....
+RRRR
+RGGR
+RGGR
+RRRR
+\&....
+\&....
+.ft
+.fi
+.ad
+To draw this on the readerboard starting at column 0, send the command
+.RS
+.BI bitmap&a= addresses &pos=0&image=3c24243c$00181800$00000000$00000000
+.RE
+To make the green inner square flash, then the command would instead be
+.RS
+.BI bitmap&a= addresses &pos=0&image=3c24243c$00181800$00000000$00181800
+.RE
+.RE
+.TP
+.B clear
+Clear the LED matrix so all pixels are off.
+.TP
+.BI color ... &color= c
+Sets the current color to the specified color code.
+.TP
+.BI flash ... &l= L0L1...LN
+Sets a pattern of 0\-64 lights which will be illuminated in sequence on the discrete
+status LEDs. Each value
+.IR L0 ,
+.IR L1 ,
+etc., is either an ASCII digit representing the position in the stack of status lights or a single character which
+represents the color of the desired light (as defined by each specific target device), or the special character 
+.RB \*(lq _ \*(rq, 
+which means no light should be on at that place in the sequence.
+There are no delimiters between each
+value in the sequence list. A sequence of zero length turns off the flasher entirely. A sequence of a single value merely
+blinks that one LED on and off.
+.TP
+.BI font ... &idx= f
+Select the font with ID number
+.IR f .
+.TP
+.BI graph ... &colors= r0r1r2r3r4r5r6r7
+Add a data element to the scrolling histogram display where the color of each pixel is given by color codes
+.I r0
+(for the top pixel in the column) through
+.I r7
+(the bottom pixel).
+.TP
+.BI graph ... &v= n
+Add a data element to the scrolling histogram display as a stack of
+.I n
+lit pixels starting from the bottom of the column.
+.TP
+.BI light ... &l= L0L1...lN
+Specifies up to 64 lights in the same fashion as for the
+.B flash
+command, but the set of lights are all turned on steady instead of flashing.
+This command disables the flasher if it was running, but does not affect
+the strober, thus allowing a steady pattern with a strobe as a secondary status indicator. Busylight units can only
+light a single LED level at a time, while readerboard units can light any number.
+.TP
+.BI move ... &pos= n
+Move the cursor to the specified absolute column number. 
+.TP
+.B off
+Turn off the discrete status LED set on the target devices. The flasher and strober are stopped.
+.TP
+.BR scroll ...[ &loop ] &t=\fItext\fP
+Scrolls
+.I text
+across the readerboard. If 
+.B loop
+is present (with no value or the value 
+.BR true ),
+the text will continually repeat in a never-ending scrolling display. Otherwise, it stops scrolling at the end of the text string.
+The
+.I text
+value may contain special codes (these are introduced by control characters, so they are represented here using
+the URL encoding as normally specified in the URL sent to the server):
+.RS
+'\".TP
+'\".BI %03 pos
+'\"Move cursor to column
+'\".I pos
+'\"(encoded as a six-bit integer value).
+.TP
+.BI %06 f
+Switch the font to the one with the specified ID
+.IR f .
+'\".TP
+'\".BI %08 pos
+'\"Move the cursor
+'\".I pos
+'\"columns to the left.
+.TP
+.BI %0B c
+Switch to the specified color.
+'\".TP
+'\".BI %0C pos
+'\"Move the cursor
+'\".I pos
+'\"columns to the right.
+.TP
+.BI %18 hh
+Insert character with the codepoint given by the two-digit hex number
+.IR hh .
+.RE
+.TP
+.BI strobe ... &l= L0L1...LN
+Sets a pattern of 0\-64 lights which will be strobed (briefly flashed with a pause between each) in sequence on the discrete
+status LEDs. Each value
+.IR L0 ,
+.IR L1 ,
+etc., is either an ASCII digit representing the position in the stack of status lights or a single character which
+represents the color of the desired light (as defined by each specific target device), or the special character 
+.RB \*(lq _ \*(rq, 
+which means no light should be strobed at that place in the sequence.
+There are no delimiters between each
+value in the sequence list. A sequence of zero length turns off the strober entirely. A sequence of a single value merely
+strobes that one LED.
+.TP
+.B test
+Run a test pattern on the target device(s) which demonstrates that the LEDs are all connected and the device's circuitry is functioning
+properly.
+.TP
+.BR text ...[ &merge ][ &align= \fIalignment\fP][ &trans= \fIeffect\fP] &t=\fItext\fP
+Displays
+.I text
+on the readerboard, optionally merging the pixels that spell out the letters with existing
+pixels on the sign and/or transitioning to the message using an effect.
+The
+.I text
+value may contain special codes (these are introduced by control characters, so they are represented here using
+the URL encoding as normally specified in the URL sent to the server):
+.RS
+.TP
+.BI %03 p
+Move cursor to column
+.I p
+(encoded as a six-bit integer value).
+.TP
+.BI %06 f
+Switch the font to the one with the specified ID
+.IR f .
+.TP
+.BI %08 p
+Move the cursor
+.I p
+columns to the left.
+.TP
+.BI %0B c
+Switch to the specified color.
+.TP
+.BI %0C p
+Move the cursor
+.I p
+columns to the right.
+.TP
+.BI %18 hh
+Insert character with the codepoint given by the two-digit hex number
+.IR hh .
+.RE
+.TP
+.BI configure-device ... &rspeed= baud &uspeed= baud &address= a &global= g
+Command the target device (which must be a single device) to change its baud rates for RS-485 and USB, as well as its
+own device address and its understanding of the system global address.
+.SS "Query Commands"
+.LP
+The following commands query devices to get information about them, and then report that information back in a JSON-formatted reply
+as an object with device IDs as keys and JSON-formatted payloads as the corresponding values.
+.TP
+.B busy
+Query the device's discrete status LEDs, reporting on which lights are currently illuminated,
+and the state of the strober and flasher.
+.TP
+.B query
+Query the device's full status and report it. This includes the information reported by the
+.B busy
+command, as well as hardware and firmware revision numbers, serial number, contents of the LED matrix, etc.
+.SS "Server Commands"
+.LP
+The following commands execute higher-level operations on the server which in turn affects how it manages the state of the connected
+devices rather than being commands that are sent directly to the devices themselves.
+.TP
+.BI post ... &t= text &id= id \fR[\fP&trans= effect \fR][\fP&until= dt \fR][\fP&hold= d \fR][\fP&color= c \fR][\fP&visible= d \fR][\fP&show= d \fR][\fP&repeat= d \fR]\fP
+Add a new message to the display list for the specified target devices. They will display these messages until they expire.
+Sending other display-manipulating commands will suspend this display until a
+.B clear
+command is issued to the device. 
+.RS
+.LP
+A number of variables, special tokens, and scheduling parameters may be given as documented in the
+.IR "Readerboard User's Guide" .
+.RE
+.TP
+.BI postlist ... &id= id_or_ / regex
+Report back with a list of all the messages in the display queue for the specified device(s) that
+match the specified 
+.I id
+or regular expression.
+.TP
+.BI unpost ... &id= id_or_ / regex
+Removes all messages matching the
+.I id
+or regular expression from the display list of the target devices.
+.TP
+.BI update ... & k0 = v0...kn = vn
+Update the value of one or more user variables which may be substituted into posted display lists.
+\".SS "Encoded Values"
+\".TP
+\".B Colors
+\".RS
+\".TP
+\".B 0
+\"off
+\".TP
+\".B 1/9
+\"red (1=steady, 9=flashing)
+\".TP
+\".B 2/10
+\"green (2=steady, 10=flashing)
+\".TP
+\".B 3/11
+\"yellow (3=steady, 11=flashing)
+\".TP
+\".B 4/12
+\"blue (4=steady, 12=flashing)
+\".TP
+\".B 5/13
+\"magenta (5=steady, 13=flashing)
+\".TP
+\".B 6/14
+\"cyan (6=steady, 14=flashing)
+\".TP
+\".B 7/15
+\"white (7=steady, 15=flashing)
+\".LP
+\"When sending color codes embedded in strings with the
+\".B %0B
+\"control sequence, flashing green, yellow, blue, magenta, cyan, and white are represented by 
+\".RB \*(lq : \*(rq,
+\".RB \*(lq ; \*(rq,
+\".RB \*(lq < \*(rq,
+\".RB \*(lq = \*(rq,
+\".RB \*(lq > \*(rq,
+\"and
+\".RB \*(lq ? \*(rq,
+\"since two-digit values can't be used with that notation.
+\".RE
+\".TP
+\".B Font IDs
+\".RS
+\".TP
+\".B 0
+\"Standard fixed-width 5x7 matrix characters.
+\".TP
+\".B 1
+\"Variable-width version of font 0.
+\".TP
+\".B 2
+\"Special symbols and large letters and digits.
+\".RE
+\".TP
+\".B Positions
+\"Column positions are encoded as six-bit integers, with the addition that the special character
+\".RB \*(lq ~ \*(rq
+\"indicates the current cursor position.
+\".TP
+\".B Six-bit integers
+\"Integer values are encoded by adding 48 to the integer and sending that as an ASCII character. Thus, values 0\-9 are
+\"sent as the characters
+\".RB \*(lq 0 \*(rq\-\*(lq 9 \*(rq,
+\"10 is sent as
+\".RB \*(lq : \*(rq,
+\"and 63 (the maximum value which can be encoded) as
+\".RB \*(lq o \*(rq.
+\".TP
+\".B Transitions
+.SH "SEE ALSO"
+.LP
+More details about how values are encoded and handled by devices and the server are described
+in greater detail in the
+.I "Readerboard User's Guide"
+document that accompanies the project source code.
+.SH AUTHOR
+.LP
+Steve Willoughby / steve@madscience.zone.
+.SH COPYRIGHT
+Copyright \(co 2024 by Steven L. Willoughby, Aloha, Oregon, USA. All Rights Reserved. Distributed under the BSD 3-Clause License.

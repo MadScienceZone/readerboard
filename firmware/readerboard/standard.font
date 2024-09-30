@@ -51,7 +51,7 @@
 [$20 space]
 ||||||
 
-[$21 exclamation point]
+[$21 exclamation]
 ..@|||
 ..@|||
 ..@|||
@@ -106,7 +106,7 @@
 .@.|||
 @..|||
 
-[$28 left parenthesis]
+[$29 right paren]
 @..|||
 .@.|||
 ..@|||
@@ -115,7 +115,7 @@
 .@.|||
 @..|||
 
-[$29 right parenthesis]
+[$28 left paren]
 ....@|
 ...@.|
 ..@..|
@@ -558,7 +558,7 @@
 @....|
 @@@@@|
 
-[$5B left square bracket]
+[$5B left bracket]
 ..@@@|
 ..@..|
 ..@..|
@@ -576,7 +576,7 @@
 ....@|
 .....|
 
-[$5D right square bracket]
+[$5D right bracket]
 @@@|||
 ..@|||
 ..@|||
@@ -844,7 +844,7 @@
 .@...|
 @@@@@|
 
-[$7B open curly brace]
+[$7B open brace]
 ...@@|
 ..@..|
 ..@..|
@@ -863,7 +863,7 @@
 ..@|||
 ..@|||
 
-[$7D close curly brace]
+[$7D close brace]
 @@...|
 ..@..|
 ..@..|
@@ -890,25 +890,37 @@
 ;
 ; Special characters
 ;
-[$80 open double quote]
+[$A8 open dbl quote]
 @@.@@|
 @@.@@|
 @..@.|
 .@..@|
 
-[$81 close double quote]
+[$80 open dbl quote]
+.@..@|
+@..@.|
+@@.@@|
+@@.@@|
+
+[$81 close dbl quote]
 @@.@@|
 @@.@@|
 .@..@|
 @..@.|
 
-[$82 open single quote]
+[$B8 open sgl quote]
 ...@@|
 ...@@|
 ...@.|
 ....@|
 
-[$83 close single quote]
+[$82 open sgl quote]
+....@|
+...@.|
+...@@|
+...@@|
+
+[$83 close sgl quote]
 @@||||
 @@||||
 .@||||
@@ -950,7 +962,7 @@
 .@.@.|
 @.@..|
 
-[$89 double exclamation point]
+[$89 double !]
 .@.@||
 .@.@||
 .@.@||
@@ -1007,7 +1019,7 @@
 .@...|
 @....|
 
-[$90 less than or equal to]
+[$90 less or equal]
 ...@.|
 ..@..|
 .@...|
@@ -1017,7 +1029,7 @@
 ...@.|
 @@@@@|
 
-[$91 greater than or equal to]
+[$91 greater/equal]
 .@...|
 ..@..|
 ...@.|
@@ -1135,9 +1147,6 @@
 @.@.@|
 @.@.@|
 
-;[$9E undefined]
-;[$9F undefined]
-
 ;
 ; Unicode characters with codepoint < 256
 ; (mostly, with a few additions and omissions)
@@ -1146,7 +1155,7 @@
 [$A0 (unicode space)]
 ->32
 
-[$A1 inverted exclamation point]
+[$A1 inverted !]
 ...|||
 ..@|||
 ...|||
@@ -1211,7 +1220,7 @@
 ....@|
 @@@@.|
 
-;[$A8 (unicode umlaut)]
+;[$A8 (uni umlaut)]
 [$A9 copyright]
 .@@@.|
 @...@|
@@ -1248,7 +1257,7 @@
 .....|
 .....|
 
-[$AD (unicode hyphen)]
+[$AD (uni hyphen)]
 ....||
 ....||
 ....||
@@ -1316,7 +1325,7 @@
 ..@.@|
 ..@.@|
 
-[$B7 middle dot]
+[$B7 mid dot]
 ....||
 ....||
 .@@@||
@@ -1381,7 +1390,7 @@
 ....@|
 
 
-[$BF inverted question mark]
+[$BF inverted ?]
 .....|
 ..@..|
 .....|
@@ -1600,7 +1609,7 @@
 @...@|
 .@@@.|
 
-[$D7 multiplication sign]
+[$D7 multiplication]
 .....|
 @...@|
 .@.@.|
@@ -1975,3 +1984,21 @@
 .@@@@|
 ....@|
 @@@@.|
+
+; alternative zeroes
+[$9E alt zero]
+.@@@.|
+@...@|
+@.@.@|
+@.@.@|
+@.@.@|
+@...@|
+.@@@.|
+[$9F alt zero]
+.@@@.|
+@...@|
+@...@|
+@.@.@|
+@...@|
+@...@|
+.@@@.|

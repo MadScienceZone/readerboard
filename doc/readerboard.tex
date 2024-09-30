@@ -53,10 +53,16 @@ representation as to suitability or fitness for any purpose whatsoever, and disc
 warranty to the full extent permitted by applicable law.  It is explicitly not designed for use where the safety
 of persons, animals, property, or anything of real value depends on the correct operation of the software.
 
+As an educational exercise, it is assumed that the user has the necessary skill to appropriately set up, build,
+and use this project. Do not proceed to use, whether exactly as provided in the repository or with modifications
+of your own, unless you know exactly what you're doing and have verified that your actions and the product
+materials are suitable for your purpose and function as expected.
+
 \strut\vfill
 
 \begin{center}\bfseries
-	For readerboard hardware (\acronym{PCB}) version 3.2.2, schematic version 3.2.3, and firmware version 0.0.0.
+	For Readerboard hardware (\acronym{PCB}) version 3.3, %schematic version 3.3.0, 
+	Busylight hardware version 2.1 (light tree version 1.1), and firmware version 2.1.3.
 \end{center}
 
 \strut\vfill
@@ -93,17 +99,17 @@ for the full set of licensing terms.
 %
 \chapter{Hardware}
 \epigraph{People who are really serious about software should make their own hardware.}{---Alan Kay}
-\LJversal{A}{s a hobby project,} the design of the hardware and software for the readerboard
+\LJversal{A}{s a hobby project,} the design of the hardware and software for the read\-erboard
 project ``grew in the telling'' as new ideas sprang to mind. As of this writing, there are three
 different models of hardware prototypes which were designed and created.
 
-\section{Version 1.0.1}
-The initial prototype was a fairly large board, approximately 20\sfrac{5}{8}$\times$6\sfrac{5}{8}$''$
-with an \acronym{LED} pitch of \sfrac{1}{3}$''$.
+\section{Version 1}
+The initial prototype (\acronym{PCB} 1.0.1) was a fairly large board, approximately 20\sfrac{5}{8}$\times$6\sfrac{5}{8}$''$
+with an \led\ pitch of \sfrac{1}{3}$''$.
 
 It requires an Arduino Mega 2560 or Arduino Due to drive it. A custom-made shield board attaches to
 the Arduino, which provides connectors for power and ribbon cables to drive the display (one to control
-the matrix, the other for the 8 status \acronym{LED}s which appear in a horizontal row along the bottom
+the matrix, the other for the 8 status \led s which appear in a horizontal row along the bottom
 right of the matrix).
 
 %One of the problems with this board is the use of the obsolete \acronym{TPIC6B595} chip. Later boards
@@ -113,40 +119,281 @@ right of the matrix).
 %to a pinout incompatibility between the two chips, the firmware also needs to be altered. As such, we don't
 %recommend going this route. It would be best to use the newer board with the chips it was designed for.
 
-\section{Version 2.0.0}
-This version is based on the 1.0.1 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
-with an \acronym{LED} pitch of \sfrac{1}{4}$''$. It also replaces the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
-It also relocates the ribbon cable which connects the Arduino controller to the \acronym{LED} matrix, moves the
-eight status \acronym{LED}s to a vertical column to the right of the matrix, and switches to resistor arrays
+\section{Version 2}
+This version was based on the 1.0 design, but shrunk to a board size of about 18\sfrac{3}{16}$\times$5\sfrac{3}{16}$''$
+with an \led\ pitch of \sfrac{1}{4}$''$. It also replaced the obsolete \acronym{TPIC6B595} with the newer \acronym{STPIC6D595} chip.
+Further, it relocated the ribbon cable which connects the Arduino controller to the \led\ matrix, moved the
+eight status \led s to a vertical column to the right of the matrix, and switched to resistor arrays
 for the matrix current limiting resistors, instead of the individual discrete resistors used on the 1.0.1 board.
 
-\section{Version 2.1.0}
-Version 2.1.0 is a significant change to the 2.0.0 board in terms of how it interfaces with the Arduino, although it has the same size and physical
-layout as the 2.0.0 board.
+\section{Version 2}
+Version 2.1 was a significant change to the 2.0 board in terms of how it interfaces with the Arduino, although it had the same size and physical
+layout as the 2.0 board.
 
 This one eliminates the need for the ribbon cables and shield board. Instead, the Arduino controller mounts
 directly to the back of the display board. This means that the lower portion of the left edge of the enclosure
 has all of the external connections in one place, including power, \acronym{RS-485} in and out, and the 
 \acronym{USB} connector(s) on the Arduino itself.
 
-\section{Version 3.2.1}
-The current version of the hardware expands on the version 2.1.0 design by replacing the single-color \acronym{LED}s with
-\acronym{RGB} \acronym{LED}s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
-green, and blue \acronym{LED} elements.
+\section{Version 3}
+Revision 3.2 of the hardware expands on the version 2.1 design by replacing the single-color \led s with
+\acronym{RGB} \led s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
+green, and blue \led\ elements.
+
+Note that the discrete status \led s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \led\
+on the bottom (canonically green) and L$_7$ is on top (white).
+
+\subsection{Version 3.3 (current model)}
+The current version of the hardware (3.3.0) corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
+connectors on the Arduino board and adjusting the mounting holes slightly. It also corrects the mislabeled L$_0$--L$_7$ \led s
+
+It also adds a R51 for Arduino Due reset circuits, J3 to manually reset the Arduino, and J4, R52, R53, and U16 to support the addition of a external
+\acronym{EEPROM} chip for microcontrollers (such as the Due) which don't have one onboard.
 
 \section{Firmware Implications}
-The boards for versions 1.0.1 and 2.0.0 were compatible and used the same Arduino shield. Thus, they
-use the same firmware images. The 2.1.0 board, however, which integrates the Arduino directly instead
-of using a separate shield with ribbon cables, assigns signals to different I/O pins, and as such
-needs a different firmware image. 
+The boards before \acronym{PCB} revision 3.3.0 are not supported by the firmware as currently stored in the project repository. They were prototype ideas
+which were never built, so this shouldn't be a problem. 
 
-Both images are generated from the same source files, with compile-time switches to make one or the other.
+There are compile-time switches documented starting on p.~\pageref{config-fw} which adjust the firmware
+image for different microcontrollers, default settings---or the only settings if your hardware does not
+include an \acronym{EEPROM} memory---and possibly, in the future, different board revisions.
 
-Version 3.2.1 expands the number of logical rows due to the \acronym{RGB} implementation, which requires
-a matching firmware implementation and changes to the protocol to support the new color data.
+\section{Construction}
+Once you have created a printed circuit board (\acronym{PCB}) from the fabrication files included with the
+readerboard Git repository and obtained the parts as listed in Figure~\ref{fig:bom}, carefully solder the components
+in place. 
 
-At this point in development it is unclear whether we'll continue making the different versions
-available using compile-time switches or if we'll just support this version going forward.
+{\bfseries Warning! Danger! Only perform the assembly operation if you are qualified to do so. Soldering electronic components
+may be hazardous due to the high temperatures, sharp objects, electrical voltages, potentially toxic materials,
+and other dangers. This requires skill and expertise as well as personal protection equipment to perform safely.}
+Please also observe all precautions to avoid damaging the electronic components themselves from harm due to
+heat or static electricity discharge.
+\newcommand\mouser[1]{{\sffamily\footnotesize#1}}
+\begin{table}
+	\begin{tabular}{lrll}\toprule
+		{\bfseries Part No.}&{\bfseries Qty}&{\bfseries Mouser}&{\bfseries Description}\\\midrule
+		&1&&Printed circuit board rev 3.2.2\\
+		&1&&Arduino Due or Mega 2560\\
+		C0--9,11,12&12&\mouser{810-FA18X7R1H10400}&0.1 $\mu$F capacitor\\
+		C10&1&\mouser{667-ECA-1HM100I}&10 $\mu$F electrolytic capacitor\\
+		D0--511&512&&\led, 5mm, \acronym{RGB}, common cathode\\
+		D512&1&&\led, 5mm, green\\
+		D513--14&2&&\led, 5mm, yellow\\
+		D515--16&2&&\led, 5mm, red\\
+		D517--18&2&&\led, 5mm, blue\\
+		D519&1&&\led, 5mm, white\\
+		J0&1&&Arduino stacking pin set\\
+		J1&1&&8-position Euro-style terminal block\\
+		J2,3&2&&2-position jumper header\\
+		J4&1&&3-position jumper header\\
+		P0--3&3&&2-position jumper shunt\\
+		Q0--23&24&\mouser{942-IRF9530NPBF}&\mc{IRF9530} p-channel \acronym{MOSFET}\\
+		R0--7,35--51&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
+		R8--23&16&&4$\times$360$\Omega$ resistor array, isolated\\
+		R24,29--31&4&\mouser{603-MFR-25FTE52-300R}&300$\Omega$ resistor\\
+		R25--28&4&&360$\Omega$ resistor\\
+		R32--34,52--53&5&\mouser{603-MFR-25FRF5210K}&10K resistor\\
+		R$_{\text{TERM}}$&1&&120$\Omega$ resistor\\
+		U0,12,13&3&\mouser{595-CD74HCT238PWR}&\mc{CD74HCT238PWR} non-inverting 3-to-8 decoder\\
+		U1,2,14,15&4&&\mc{ULN2803CDWR} octal NPN Darlington array\\
+		U3--10&8&&\mc{STPIC6D595MTR} power 8-bit shift register\\
+		U11&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		U16&1&&\mc{AT24C256} \acronym{EEPROM}\\
+		%X0&1&&\mc{AT24C256} \acronym{EEPROM} module\\
+		&24&&\mc{TO}-220 heat sinks for Q0--23 (optional)\\
+		&1&&9V 2A DC power supply\\
+		\bottomrule
+	\end{tabular}
+	\caption{Bill of Materials\label{fig:bom}}
+\end{table}
+
+\subsection{Suggested Order}
+For best results, solder components in a way that allows best access to the solder points without some parts getting
+in the way of connecting subsequent ones. For example:
+
+\begin{enumerate}
+	\item Solder all the surface mount chips first: U0--U15 (and optionally, U16).
+		\begin{itemize}
+			\item U0, U12, U13: CD74HCT238PWR
+			\item U1, U2, U14, U15: ULN2803CDWR (ULN2803A SOP-18 packages may be used if aligned to the top 18 pads, leaving the bottom two empty, if they have otherwise identical pinouts and characteristics)
+			\item U3--U10: STPIC6D595MTR
+			\item U11: THVD1439DR (Note that this chip is oriented 180$^{\circ}$ from the other chips on the board, with pin~1 to the lower right.)
+			\item If needed for your microcontroller (Arduino Due, usually), solder U16: AT24C256 \acronym{EEPROM} chip.
+		\end{itemize}
+	\item Solder the discrete resistors: R0--R7, R24--R50 (and optionally, R52 and R53). See below first to ensure the correct values are used
+		for R24--R31 based on your choice of corresponding \led s.
+		\begin{itemize}
+			\item R0--R7, R35--50: 1K
+			\item R24, R29--R31: 300$\Omega$
+			\item R25--R28: 360$\Omega$
+			\item R32--R34: 10K
+			\item If U16 is installed, solder in R52--R53: 10K
+		\end{itemize}
+	\item Solder the 0.1$\mu$F capacitors: C0--C9, C11--C12.
+	\item Solder the resistor arrays: R8--R23.
+	\item Solder the \acronym{RGB} \led s D0--D511. Ensure that the common cathode goes to pin~2 so that pins 1, 3, and 4
+		are respectvely the red, green, and blue anodes.
+	\item Solder the single-color \led s D512--D519 in the colors of your choice, being mindful of the polarity. The anode has a square pin on the \acronym{PCB}. Our recommendation:
+		\begin{itemize}
+			\item D512 (bottom): green (with R24=300$\Omega$)\footnote{Resistor values based on typical \led\ voltage and current ratings. Check to see what is appropriate for your components.}
+			\item D513: yellow (with R25=360$\Omega$)
+			\item D514: yellow (with R26=360$\Omega$)
+			\item D515: red (with R27=360$\Omega$)
+			\item D516: red (with R28=360$\Omega$)
+			\item D517: blue (with R29=300$\Omega$)
+			\item D518: blue (with R30=300$\Omega$)
+			\item D519 (top): white (with R31=300$\Omega$)
+		\end{itemize}
+	\item \strong{If you are using an Arduino Due:} solder R51 (1K).
+	\item \strong{If you are using an Arduino Mega 2560:} Solder the 10$\mu$F capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
+	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
+		Ensure the pins extend down and out the back of the board.
+	\item Solder the 2-pin headers J2 and J3, and the 3-pin header J4.
+	\item Solder the terminal block J1.
+\end{enumerate}
+
+
+\subsection{Option: Using Single-Color LEDs}
+If you don't need \acronym{RGB} \led s for your application, the same \acronym{PCB}
+may be used with single-color 5mm \led s instead. Simply solder them onto the board so
+that their cathode is on pin~2 and the anode is on pin~4 of the \led\ footprint. This
+means the \led s will electrically all be connected to the blue circuit. 
+
+Since they won't be used, omit parts U0, U2, U12, U14, C0, C11, Q0--Q15, R0--R7, and R35--R42.
+
+Set the firmware value \z{HW\_MODEL} to \z{MODEL\_3xx\_MONOCHROME} and recompile the firmware. This
+changes the behavior of the controller so that it understands it can only drive one color which
+is attached to the blue color plane. Now, all colors (other than ``off'') will turn the \led s
+on.
+
+\section{Busylight Devices}
+The readerboard units are designed to be compatible with another project by the author. The ``Busylight''
+is a small stand-alone indicator which can be used to indicate simple statuses like room occupancy or
+whether someone is busy, free, on a phone call, etc.
+
+The busylight can drive up to seven \led s. If directly connected to a host computer
+via \acronym{USB}, it can be powered entirely from the \acronym{USB} port. Starting with version 2,
+it can also receive commands via \acronym{RS-485} network. In that case it can be powered by a 9\,V
+supply over the same \acronym{CAT5}, \acronym{CAT5e}, or \acronym{CAT6} cable carrying the serial
+communications.
+
+\subsection{Firmware}
+Starting with revision 2 of the Busylight, it is driven by a firmware image compiled from the same
+source code as the Readerboard units. Setting the compiler preprocessor symbol
+\z{HW\_MODEL} to \z{MODEL\_BUSYLIGHT\_2} will cause the Arduino compiler to prepare the image
+for a Busylight, excluding the code that drives the readerboard-specific functions.
+In such firmware images, \z{HW\_MC} should be set to \z{HW\_MC\_PRO} since the Busylight is
+based on the SparkFun Arduino-compatible Pro Micro microcontroller.
+
+Also set the \z{SERIAL\_VERSION\_STAMP} symbol to reflect the device serial number, hardware and firmware
+revision numbers. See Chapter~\ref{chap:firmware} starting on p.~\pageref{chap:firmware} for more information
+about preparing firmware images.
+
+\subsection{Construction}
+Once you have created a printed circuit board (\acronym{PCB}) from the fabrication
+files included with the Git repository and obtained the parts
+as listed in Figure \ref{fig:busylightbom}, carefully solder the components in place.
+
+\strong{Warning! Danger! Only perform the assembly operation if you
+are qualified to do so. Soldering electronic components may be
+hazardous due to the high temperatures, sharp objects, electrical
+voltages, potentially toxic materials, and other dangers. This requires skill and expertise as well as personal protection equipment
+to perform safely.} Please also observe all precautions to avoid damaging
+the electronic components themselves from harm due to heat or static electricity discharge.
+\begin{table}
+    \begin{center}
+	\begin{tabular}{lrll}\toprule
+		{\bfseries Part No.}&{\bfseries Qty}&&{\bfseries Description}\\\midrule
+		&1&&Printed circuit board rev 2.1\\
+		&7&&\led\ tier printed circuit board rev 1.1\\
+		&7&&\led\ ring printed circuit board (if desired)\\
+		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C\\
+		&1&&Arduino stacking pin set\\
+		C0&1&&0.1 $\mu$F capacitor\\
+		J0&1&&8-pin DIN connector, \acronym{PCB} mount\\
+		J1&1&&16-pin Euro-style terminal block\\
+		P0&1&&8-pin DIN plug\\
+		R0--2&3&&10K resistor\\
+		U0&1&&\mc{ULN2003A} NPN Darlington array\\
+		U1&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		  &14&&5-pin bussed resistor network (2/\led\ tier)*\\
+		  &56&&\led, 5\,mm or 3\,mm, through-hole (8/\led\ tier)$\dagger$\\
+		  &1&&\sfrac14$''$ screw rod\\
+		  &1&&Enclosure$\ddagger$\\
+		  &8&&Nylon spacers between (and above and below) the tiers\\
+		  &2&&\sfrac14$''$ hex nuts\\
+		\bottomrule
+		\multicolumn{4}{p{.9\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
+		for the LEDs to be used on that tier. Assuming a 5\,V supply and
+		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and yellow LEDs and 100$\Omega$ or larger
+		for blue, green, and white LEDs. Check your LED datasheet to confirm.
+
+		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$yellow, 2$\times$red,
+		and 2$\times$blue).
+
+		\noindent$\ddagger$One idea for an inexpensive enclosure is a clear plastic tube storage container with an inside
+		diameter large enough to hold the LED tier boards.}
+	\end{tabular}
+	    \caption{Bill of Materials (Busylight)\label{fig:busylightbom}}
+    \end{center}
+\end{table}
+
+\subsection{Suggested Order}
+For best results, solder components in a way that allows best access to the
+solder points without some parts getting in the way of connecting subsequent ones. For example:
+\begin{enumerate}
+	\item Solder the surface mount components:
+		\begin{itemize}
+			\item U0 \acronym{ULN2003A} 7-circuit \acronym{NPN} Darlington transistor array.
+				Note that the board was designed for narrow \acronym{SOIC-16} packages but
+				there is an additional column of pads for a wider version of this chip.
+			\item U1 \acronym{THVD1439} \acronym{RS-485} driver/receiver.
+		\end{itemize}
+	\item Solder through-hole components:
+		\begin{itemize}
+			\item R0--R2 10K resistors
+			\item C0 0.1\,$\mu$F capacitor
+		\end{itemize}
+	\item Solder the sockets:
+		\begin{itemize}
+			\item J0 8-pin DIN socket
+			\item J1 16-circuit Euro-style terminal block (alternatively you may choose to
+				directly solder the \acronym{CAT6} wires into the holes on the \acronym{PCB}.
+			\item Arduino stacking pins.
+		\end{itemize}
+	\item Place the microcontroller board onto the stacking pins.
+	\item Build each \led\ tier of 8 \led s:
+		\begin{itemize}
+			\item Solder eight 3\,mm \led s around the edge of the board with their leads straddling
+				the edge, so the anode is on the side of the \acronym{PCB} labelled ``anode side'' and the
+				cathode is on the ``cathode side.'' Solder the leads to the exposed pads and trim the
+				leads so they don't extend past the pads.
+			\item Solder the two resistor arrays, making sure to select the correct values for the specific
+				\led s used on this tier board.
+		\end{itemize}
+	\item Assemble the tier stack by threading the tiers onto the \sfrac14$''$ threaded rod with nylon spacers between them,
+		secured in place with hex nuts on either end of the stack. The following assumes the use of a length of \acronym{CAT6}
+		cable between the \acronym{PCB} and the light tree stack.
+		\begin{itemize}
+			\item Solder one end of the cable to P0, the 8-bin \acronym{DIN} plug. Suggested color assignments:
+				\begin{itemize}
+					\item Pin 1 (sixth tier/blue): blue	
+					\item Pin 2 (third tier/yellow): brown/white
+					\item Pin 3 (fifth tier/red): orange/white
+					\item Pin 4 (fourth tier/red): orange
+					\item Pin 5 (seventh tier/blue): blue/white
+					\item Pin 6 (second tier/yellow): brown
+					\item Pin 7 (+V supply): green
+					\item Pin 8 (bottom tier/green): green/white
+				\end{itemize}
+			\item Strip the insulation from the green wire to the height of the assembled tier tree.
+				As each tier is added, thread this bare wire through the ``V+'' hole of each tier, soldering it to
+				each tier along the way.
+			\item Attach the wire for each tier to its ``GND'' hole.
+			\item Thread the remaining wires through the larger holes to pass them up to the next tiers.
+		\end{itemize}
+\end{enumerate}
+
 
                                                       
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -172,36 +419,75 @@ In addition to plain, printable 7-bit \ascii\ characters, a few control codes ar
 recognized as described below. String data may include any 8-bit value except as otherwise
 indicated.
 
-\section{JSON}
+%\section{JSON}
+%The organization of the rest of this chapter is oriented toward a description of the
+%protocol used to control the hardware directly over a \acronym{USB} or \acronym{RS-485}
+%connection. However, you can set up a central server which is connected to all the
+%readerboard signs and busylight indicators in a small area (via \acronym{USB} or \acronym{RS-485}).
+%This allows clients to send commands to the server over the network for control of the readerboards.
+%
+%The protocol between clients and servers uses messages which are simple \acronym{JSON} representations
+%of the underlying hardware protocol, which is more convenient for network clients and servers to use.
+%Since this mirrors the hardware protocol, those \acronym{JSON} objects will be listed below as well.
+%
+%As a general rule, these messages are each terminated with a newline, and may not contain newlines otherwise.
+%
+%Clients and servers \MUST\ accept \acronym{UTF-8} but \SHOULD\ emit 7-bit \acronym{ASCII} with standard \acronym{JSON} escape
+%codes for codepoints greater than 127.
+\section{Web Service API}
 The organization of the rest of this chapter is oriented toward a description of the
 protocol used to control the hardware directly over a \acronym{USB} or \acronym{RS-485}
 connection. However, you can set up a central server which is connected to all the
 readerboard signs and busylight indicators in a small area (via \acronym{USB} or \acronym{RS-485}).
 This allows clients to send commands to the server over the network for control of the readerboards.
 
-The protocol between clients and servers uses messages which are simple \acronym{JSON} representations
-of the underlying hardware protocol, which is more convenient for network clients and servers to use.
-Since this mirrors the hardware protocol, those \acronym{JSON} objects will be listed below as well.
+The protocol between clients and servers uses messages which are simple \acronym{HTTP} requests
+posted to the server's listening port \acronym{URL}. If the server were configured to run
+on \z{example.org} on port \z{43210}, then all client requests to that server would begin with
 
-As a general rule, these messages are each terminated with a newline, and may not contain newlines otherwise.
+\begin{Coding}
+	|http://example.org:43210/readerboard/v1/|\Var*{message}|?a=|\Var*{targets}
+\end{Coding}
 
-Clients and servers \MUST\ accept \acronym{UTF-8} but \SHOULD\ emit 7-bit \acronym{ASCII} with standard \acronym{JSON} escape
-codes for codepoints greater than 127.
+\subsection{Message Data Fields}
+As a general rule, if a message expects a field that is not provided, a suitable ``zero'' value will be assumed
+for that field. Any extra fields sent that were not expected are silently ignored.
 
-\subsection{Message Type}
-Every message has a field called \z{"m"} which contains the message type as a string. Each message contains
-additional fields as needed for its message type. Any expected fields which are missing are assumed to contain
-the ``zero'' value for their type (\z{false}, \z0, \z{""}, etc.) and unexpected fields which are presented are
-silently ignored.
+Boolean fields may have values \z{true} or \z{false}; if they are presented without a value, they are considered to be
+\z{true}, and if completely missing they are assumed to be \z{false}. Thus,
+
+\begin{Coding}
+	\dots|/readerboard/v1/|\Var*{message}|?a=|\Var*{targets}|&status=true|
+\end{Coding}
+
+\noindent is equivalent to
+
+\begin{Coding}
+	\dots|/readerboard/v1/|\Var*{message}|?a=|\Var*{targets}|&status|
+\end{Coding}
+
+\noindent and
+
+\begin{Coding}
+	\dots|/readerboard/v1/|\Var*{message}|?a=|\Var*{targets}|&status=false|
+\end{Coding}
+
+\noindent is equivalent to
+
+\begin{Coding}
+	\dots|/readerboard/v1/|\Var*{message}|?a=|\Var*{targets}
+\end{Coding}
+
 \subsection{Message Target Addresses}
-Every message also has a field called \z{"a"} which is a list of target readerboards to which the message
-applies. This is always a list even if it has a single target.
+Every message also has a field called ``\z{a}'' which is a comma-separated list of target readerboards to which the message
+applies.
 
-So, for example, the message containing \z{"a":[2]} would cause the server to transmit the corresponding command to the readerboard with address 2 directly connected to it via \acronym{USB}, or
-would transmit to the \acronym{RS-485} network the command starting with the hex byte \z{92}.
+So, for example, the message containing \z{a=2} would cause the server to transmit the corresponding command to the readerboard with address 2 directly connected to it via \acronym{USB}, or
+would transmit to the \acronym{RS-485} network the command starting with the hex byte \z{92}$_{16}$. (Why that byte value is sent will make sense after you read the protocol
+description that follows.)
 
-If multiple devices are targeted, say with a message containing the \acronym{JSON} field \z{"a":[2,5,37]} with address 15 (e.g., \z{F}$_{16}$) configured as the global address \Var{ad$_G$},
-it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF 03 02 05 25}.
+If multiple devices are targeted, e.g., with a message containing the field \z{a=2,5,37} with address 15 (i.e., \z{0F}$_{16}$) configured as the global address \Var{ad$_G$},
+it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF}$_{16}$ \z{03}$_{16}$ \z{02}$_{16}$ \z{05}$_{16}$ \z{25}$_{16}$.
 \section{USB vs. RS-485}
 The protocol used to send commands to the readerboard is different depending on
 whether the host is sending directly to a single readerboard over a \acronym{USB}
@@ -228,10 +514,10 @@ expect to see the start of another command. Thus, \z{\textasciicircum D} may not
 appear in any transmitted data except to terminate commands.
 
 Commands which contain arbitrary-size data fields, such as text strings or lists of
-\acronym{LED}s to light in sequence, end such fields with a terminator byte. In most cases
+\led s to light in sequence, end such fields with a terminator byte. In most cases
 this may be
 either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagrams below
 simply as ``\z{\$}''. In cases where a dollar-sign could be part of the data, then
 only an escape character may be used to terminate the field, in which case the protocol
 description will show the terminator as ``\z{ESC}''.
@@ -307,6 +593,35 @@ range 0--63 may be used.
 %where \Var*{ad$_G$} is the ``global'' device address which signals readerboards
 %generally (see the \z= command below).
 
+\subsubsection{Response Headers}
+For commands which send a response back to the computer, the RS-485 data stream begins with the header
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z1}&
+		\bitbox[tbl]{1}{\z1}&
+		\bitbox[tb]{1}{\z0}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad}}
+	\end{bytefield}
+\end{center}
+where \Var*{ad} is the device address of the responding unit if \Var*{ad} $<$ 16. For devices with
+higher-numbered addresses, the following extended format is used instead:
+\begin{center}
+	\begin{bytefield}[endianness=big]{8}
+		\bitheader{0-7} \\
+		\bitbox{1}{\z1}&
+		\bitbox[tbl]{1}{\z1}&
+		\bitbox[tb]{1}{\z1}&
+		\bitbox[tbr]{1}{\z1}&
+		\bitbox{4}{\Var*{ad}$_G$}\\
+		\bitbox{1}{\z0}&
+		\bitbox{7}{1}\\
+		\bitbox{1}{\z0}&
+		\bitbox{1}{\z0}&
+		\bitbox{6}{\Var*{ad}}
+	\end{bytefield}
+\end{center}
 \subsubsection{All Off}
 As a special case, the single byte
 \begin{center}
@@ -326,9 +641,13 @@ all \led s.
 No other command bytes need to follow; this byte is sufficient to turn off
 the sign(s).
 
-The corresponding \acronym{JSON} message is
+%The corresponding \acronym{JSON} message is
+%\begin{Coding}
+%|{"m":"off","a":[|\Var*{ad}|]}|
+%\end{Coding}
+The corresponding \acronym{HTTP} message is
 \begin{Coding}
-|{"m":"off","a":[|\Var*{ad}|]}|
+	|/readerboard/v1/alloff?a=|\Var*{ad}
 \end{Coding}
 
 \subsubsection{Subsequent Command Bytes}
@@ -570,38 +889,61 @@ The remaining commands are used for management of the matrix display. All comman
 			\multicolumn{1}{c}{\bfseries Description}&
 			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
 			\z{strobe}&\z{*} & Strobe \led s in Sequence & [1]\\
-			\z{query}&\z{?} & Query discrete \led\ status & [1] [2] [4] [5]\\
+			\z{busy}&\z{?} & Query discrete \led\ status & [1] [2]\\
 			\z{flash}&\z{F} & Flash \led s in Sequence & [1]\\
 			\z{light}&\z{L} & Light one or more \led s steady & [3]\\
 			\z{light}&\z{S} & Light one \led\ steady & [1]\\
-			\z{off}&\z{X} & All \led s off & [1] [5]\\
+			\z{off}&\z{X} & All \led s off & [1]\\
 			\midrule
 			&\z{\textasciicircum D} & Abort/terminate command & \\
+			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
-			&\z{=} & Set operational parameters & [4]\\
+			&\z{=} & Set operational parameters &\\
+			&\z{=\#}&Set serial number & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
 			\z{clear}&\z{C} & Clear matrix display & \\
 			\z{graph}&\z{H} & Add histogram/bargraph data point & \\
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
-			\z{query}&\z{Q} & Query matrix display status & [2] [4] [6]\\
+			\z{query}&\z{Q} & Query full device status & [2]\\
 			\z{text}&\z{T} & Display text on display & \\
 			\bottomrule
-			\multicolumn{4}{l}{\footnotesize [1] Busylight compatibile command}\\
-			\multicolumn{4}{l}{\footnotesize [2] Sends response (\acronym{USB} only)}\\
-			\multicolumn{4}{l}{\footnotesize [3] Busylight extension (not in original Busylight)}\\
-			\multicolumn{4}{l}{\footnotesize [4] \acronym{USB} only}\\
-			\multicolumn{4}{l}{\footnotesize [5] Only if field \z{"status"} is \z{true}}\\
-			\multicolumn{4}{l}{\footnotesize [6] Only if field \z{"status"} is omitted or \z{false}}\\
+			\multicolumn{4}{p{\textwidth}}{\tiny[1] Busylight compatibile command
+
+			\noindent[2] Sends response
+
+			\noindent[3] Busylight extension (not in original Busylight)
+
+			\noindent[4] \acronym{USB} only
+
+			\noindent[5] Must be targeted to a specific device at a time; does not respond on the global address}
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
 \end{table}
 
-Although the rev 2 hardware supports the ability to enable the RS-485 transmitter and send data back onto the network,
-this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
-at all times.
+%Although starting with the revision 2 hardware, the readerboard supports the ability to enable the RS-485 transmitter and send data back onto the network,
+%this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
+%at all times. {\color{red} This is expected to change with the next revision of the firmware which allows responding over the RS-485 network.}
+
+\section{\z{\%}---Run Full Lamp Test Pattern}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
+	\bitheader{0} \\
+	\bitbox{1}{\z{\%}} 
+\end{bytefield}
+\\
+%|{"m":"clear","a":[|\Var*{ad$_0$}|,|\dots|]}|
+\begin{Coding}
+	|/readerboard/v1/test?a=|\Var*{ad}
+\end{Coding}
+\end{center}
+
+Displays various test patterns on the display to show that each element of each \led\ is working correctly
+individually and in concert with others.
+
+While running the test pattern set, the device is not responsive to other inputs or background operations.
 
 \section{\z{*}---Strobe Lights in Sequence}
 \begin{center}
@@ -622,8 +964,9 @@ at all times.
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z\$}
 \end{bytefield}
+%%%%%%%%%	|{"m":"strobe","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
 \begin{Coding}
-	|{"m":"strobe","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
+|/readerboard/v1/strobe?a=|\Var*{ad}|&l=|\Var*{led$_0$}\Var*{led$_1$}\dots\Var*{led$_{n-1}$}
 \end{Coding}
 \end{center}
 
@@ -634,7 +977,6 @@ there is no \led\ illuminated at that point in the sequence.
 This command functions identically to the \z{F} command (see below), except that the lights
 are ``strobed'' (flashed very briefly with a pause between each light in the sequence).
 
-\newpage
 \section{\z<---Scroll Text Across Display}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
@@ -650,8 +992,9 @@ are ``strobed'' (flashed very briefly with a pause between each light in the seq
 	\bitbox{5}{\Var*{string}}&
 	\bitbox{1}{\z{ESC}}
 \end{bytefield}
+%|{"m":"scroll","a":[|\Var*{ad$_0$}|,|\dots|],"loop":|\Var*{bool}|,"t":|\Var*{string}|}|
 \begin{Coding}
-	|{"m":"scroll","a":[|\Var*{ad$_0$}|,|\dots|],"loop":|\Var*{bool}|,"t":|\Var*{string}|}|
+	|/readerboard/v1/scroll?a=|\Var*{ad}|&loop=|\Var*{bool}|&t=|\Var*{string}
 \end{Coding}
 \end{center}
 
@@ -662,21 +1005,28 @@ repeatedly scrolls across the screen in an endless loop.
 The text is rendered in the current font and may contain any 8-bit bytes except as otherwise
 noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
 future control codes which may be added to the protocol). The string is terminated by an
-escape character (hex byte \z{1B}), indicated in the protocol description as \z{ESC}.
+escape character (hex byte \z{1B}$_{16}$), indicated in the protocol description as \z{ESC}.
 
-The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
+The string may include control codes as listed in Table~\ref{tbl:controlcodes}. These allow
+for special effects such as color and font changes to appear mid-message. They also include
+the three-character sequence \z{\textasciicircum X}\Var*{hh} to add any arbitrary 8-bit codepoint
+specified as the 2-digit hex value \Var*{hh} to compensate for interference from your terminal
+program or transport protocols which may, e.g., encode non-7-bit-\acronym{ASCII} characters
+to a multi-byte \acronym{UTF-8} representation which the readerboard doesn't grok.
 \begin{table}
 	\begin{center}
 		\begin{tabular}{lll}\toprule
 			\multicolumn{1}{c}{\bfseries Code} &
 			\multicolumn{1}{c}{\bfseries Hex} &
 			\multicolumn{1}{c}{\bfseries Description} \\\midrule
+			\z{\textasciicircum @} & \z{00} & Never allowed in strings (null byte)\\
 			\z{\textasciicircum C}\Var*{pos} & \z{03}\Var*{pos} & Move current column cursor to \Var*{pos}\\
 			\z{\textasciicircum D} & \z{04} & Never allowed in strings (command terminator)\\
 			\z{\textasciicircum F}\Var*{digit} & \z{06}\Var*{digit} & Switch current font\\
 			\z{\textasciicircum H}\Var*{pos} & \z{08}\Var*{pos} & Move cursor left \Var*{pos} columns\\
 			\z{\textasciicircum K}\Var*{rgb} & \z{0B}\Var*{rgb} & Change color to \Var*{rgb}\\
 			\z{\textasciicircum L}\Var*{pos} & \z{0C}\Var*{pos} & Move cursor right \Var*{pos} columns\\
+			\z{\textasciicircum X}\Var*{hex} & \z{18}\Var*{hex} & Specify character code as 2-digit hex value\\
 			\z{\textasciicircum [} & \z{1B} & Never allowed in strings (string terminator)\\
 			\bottomrule
 		\end{tabular}
@@ -704,8 +1054,8 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 This command sets a few operational parameters for the sign. Once set, these will be persistent across
 power cycles and reboots.
 
-If the \Var*{ad} parameter is ``\z{\_}'' then the RS-485 interface is disabled entirely. Otherwise it is a
-value from 0--15 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
+If the \Var*{ad} parameter is ``\z{.}'' then the RS-485 interface is disabled entirely. Otherwise it is a
+value from 0--63 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
 this sign's address to \Var*{ad}.
 
 The baud rate for the \acronym{USB} and RS-485 interfaces is set by the \Var*{uspd} and \Var*{rspd} values
@@ -717,12 +1067,13 @@ readerboards should pay attention to the start of the command because it might
 target them either as part of a list of specific readerboards or because the
 command is intended for all readerboards at once. This is encoded in the 
 same way as \Var*{ad}.
-If you only have one readerboard or do no wish to assign a global address,
+If you only have one readerboard or do not wish to assign a global address,
 just set \Var*{ad$_G$} to the same value as \Var*{ad}.
 
 This command may only be sent over the \acronym{USB} port.
 
-By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 port disabled.
+By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 port disabled, but these
+defaults may be changed when compiling the firmware for specific devices.
 \begin{table}
 	\begin{center}
 		\begin{tabular}{crl}\toprule
@@ -746,6 +1097,33 @@ By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 por
 	\end{center}
 \end{table}
 
+\section{\z{=\#}---Set Serial Number}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-3} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize\dots}\\
+	\bitbox{1}{\strut\z{=}} &
+	\bitbox{1}{\strut\z{\#}} &
+	\bitbox{3}{\strut\Var*{Serial}}&
+	\bitbox{1}{\strut\z{\$}} &
+	\bitbox{1}{\strut\z{\#}} &
+	\bitbox{1}{\strut\z{=}} &
+\end{bytefield}
+\end{center}
+
+To avoid recompiling the firmware image for every single device, the serial number
+may be set in the field using this command. The serial number is stored in
+\acronym{EEPROM}, so it won't be persistent on units that are not equipped with
+\acronym{EEPROM}.
+
+This command may only be sent over the \acronym{USB} port.
+
+The serial number may be arbitrary alphanumeric text of up to six characters.
+Numbers \z{RB0000}--\z{RB0299} and \z{B00000}--\z{B00299} are reserved for use by the author.
+
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
@@ -754,12 +1132,16 @@ By default, an unconfigured readerboard is set to 9,600 baud with the RS-485 por
 \end{bytefield}
 \\
 \begin{Coding}
-	|{"m":"query","a":[|\Var*{ad$_0$}|,|\dots|],"status":true}|
+	|/readerboard/v1/busy?a=|\Var*{ad}
 \end{Coding}
 \end{center}
 
 This command causes the sign to send a status report back to the host to indicate
-what the discrete \led s are currently showing. This response has the form:
+what the discrete \led s (usually showing a person's ``busy'' status) are currently showing. 
+
+This cannot be sent to the global device address.
+
+This response has the form:
 
 \medskip
 
@@ -776,10 +1158,10 @@ what the discrete \led s are currently showing. This response has the form:
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} \\
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{F}} &
-	\bitbox{7}{flasher status (see below)} \\
-	\bitbox{1}{\z{\$}} &
+	\bitbox{6}{flasher status (see below)} &
+	\bitbox{1}{\z{\$}} \\
 	\bitbox{1}{\z{S}} &
-	\bitbox{7}{strober status (see below)} \\
+	\bitbox{6}{strober status (see below)} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
@@ -843,6 +1225,20 @@ The status message sent to the host is terminated by a newline character (hex by
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 \begin{table}
 	\begin{center}
+		\begin{bytefield}[endianness=big,bitwidth=0.11111\textwidth]{8}
+			\bitheader{0-7}\\
+			\bitbox{1}{\z0} &
+			\bitbox{1}{\z0} &
+			\bitbox{1}{\z1} &
+			\bitbox{1}{\z1} &
+			\bitbox{4}{\Var*{n} \quad($n<16$)} \\
+			\bitbox{1}{\z0} &
+			\bitbox{1}{\z1} &
+			\bitbox{6}{\Var*{n}--16 \quad($n\ge16$)}
+		\end{bytefield}
+
+		\medskip
+
 		\begin{tabular}{cc|cc}\toprule
 			\multicolumn{1}{c}{\bfseries Value} &
 			\multicolumn{1}{c}{\bfseries Code} &
@@ -864,7 +1260,7 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 	\end{center}
 \end{table}
 
-This command may only be sent on the \acronym{USB} port.
+%This command may only be sent on the \acronym{USB} port.
 
 \section{\z{@}---Set Column Cursor Position}
 \begin{center}
@@ -874,12 +1270,14 @@ This command may only be sent on the \acronym{USB} port.
 	\bitbox{1}{\Var*{pos}} 
 \end{bytefield}
 \\
+%|{"m":"move","a":[|\Var*{ad$_0$}|,|\dots|],"pos":|\Var*{col}|}|
 \begin{Coding}
-	|{"m":"move","a":[|\Var*{ad$_0$}|,|\dots|],"pos":|\Var*{col}|}|
+	|/readerboard/v1/move?a=|\Var*{ad}|&pos=|\Var*{pos}
 \end{Coding}
 \end{center}
 
-Sets the column cursor position to the value indicated by \Var*{pos}. See Table~\ref{tbl:int063}. (The \acronym{JSON} message uses integer values for \Var*{col} without the encoding used for \Var*{pos}.)
+Sets the column cursor position to the value indicated by \Var*{pos}. See Table~\ref{tbl:int063}. 
+%(The \acronym{JSON} message uses integer values for \Var*{col} without the encoding used for \Var*{pos}.)
 
 \section{\z{A}---Select Font}
 \begin{center}
@@ -889,8 +1287,9 @@ Sets the column cursor position to the value indicated by \Var*{pos}. See Table~
 	\bitbox{1}{\Var*{digit}} 
 \end{bytefield}
 \\
+%|{"m":"font","a":[|\Var*{ad$_0$}|,|\dots|],"idx":|\Var*{digit}|}|
 \begin{Coding}
-	|{"m":"font","a":[|\Var*{ad$_0$}|,|\dots|],"idx":|\Var*{digit}|}|
+	|/readerboard/v1/font?a=|\Var*{ad}|&idx=|\Var*{digit}
 \end{Coding}
 \end{center}
 
@@ -921,7 +1320,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
 			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
-			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&!&\z"&\#&\$&\%&\&&\z'&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&(&)&*&+&,&-&.&/&\\\hline
 			\emph{06x}&0&1&2&3&4&5&6&7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
@@ -939,9 +1338,9 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{22x}&$\le$&$\ge$&$\approx$&$\Gamma$&$\Delta$&$\Xi$&$\Pi$&$\Sigma$&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&$\Omega$&$\pi$&$\rho$&$\sigma$&---&\textperthousand&\tUnused&\tUnused&\\\hline
 			\emph{24x}&&!`&\textcent&\textsterling&\textcurrency&\textyen&\textbrokenbar&\S&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
-			\emph{25x}&\tUnused&\textcopyright&\textordfeminine&\guillemotleft&$\neg$&-&\textregistered&\tUnused&\\\hline
+			\emph{25x}&``&\textcopyright&\textordfeminine&\guillemotleft&$\neg$&-&\textregistered&\tUnused&\\\hline
 			\emph{26x}&$^\circ$&$\pm$&$^2$&$^3$&\tUnused&$\mu$&\P&$\bullet$&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
-			\emph{27x}&\tUnused&$^1$&\textordmasculine&\guillemotright&1/4&1/2&3/4&?`&\\\hline
+			\emph{27x}&`&$^1$&\textordmasculine&\guillemotright&1/4&1/2&3/4&?`&\\\hline
 			\emph{30x}&\`A&\'A&\^A&\~A&\"A&\AA&\AE&\c C&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
 			\emph{31x}&\`E&\'E&\^E&\"E&\`I&\'I&\^I&\"I&\\\hline
 			\emph{32x}&\DH&\~N&\`O&\'O&\^O&\~O&\"O&$\times$&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
@@ -966,27 +1365,27 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
 			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
-			\emph{03x}&\tUnused&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{04x}&&\bfseries!&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
-			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&\tUnused&\\\hline
+			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{04x}&&\bfseries!&$\square$&$\blacksquare$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&thin .&\\\hline
 			\emph{06x}&\bfseries 0&\bfseries 1&\bfseries 2&\bfseries 3&\bfseries 4&\bfseries 5&\bfseries 6&\bfseries 7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
-			\emph{07x}&\bfseries 8&\bfseries 9&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{07x}&\bfseries 8&\bfseries 9&\bfseries :&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{10x}&\textcopyright&\bfseries A&\bfseries B&\bfseries C&\bfseries D&\bfseries E&\bfseries F&\bfseries G&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
 			\emph{11x}&\bfseries H&\bfseries I&\bfseries J&\bfseries K&\bfseries L&\bfseries M&\bfseries N&\bfseries O&\\\hline
 			\emph{12x}&\bfseries P&\bfseries Q&\bfseries R&\bfseries S&\bfseries T&\bfseries U&\bfseries V&\bfseries W&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
 			\emph{13x}&\bfseries X&\bfseries Y&\bfseries Z&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{14x}&\tUnused&\faArrowLeft&\faArrowRight&\faArrowUp&\faArrowDown&$\nwarrow$&$\nearrow$&$\searrow$&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
+			\emph{14x}&\textregistered&\faArrowLeft&\faArrowRight&\faArrowUp&\faArrowDown&$\nwarrow$&$\nearrow$&$\searrow$&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
 			\emph{15x}&$\swarrow$&$\leftarrow$&$\rightarrow$&$\uparrow$&$\downarrow$&\raise1ex\hbox{\rule{1ex}{1ex}}\rule{1ex}{1ex}&\rule{1em}{1em}&\tUnused&\\\hline
 			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
-			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
-			\emph{21x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
-			\emph{23x}&NM&WC&1Q&WG&FM&WG&3Q&WC&\\\hline
+			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
+			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&{\tiny wide} \OE&{\tiny wide} \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
+			\emph{23x}&\multicolumn{8}{c|}{The phases of the moon}&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
 			\emph{25x}&\tSpecial\tiny{TS8}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-%			\emph{26x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
-%			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{26x}&\multicolumn{8}{c|}{The eight trigrams 0--7}&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
+			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 %			\emph{30x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
 %			\emph{31x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 %			\emph{32x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
@@ -1016,13 +1415,15 @@ for a complete font glyph listing with codepoint assignments.
 	\bitbox{1}{\z{C}} 
 \end{bytefield}
 \\
+%|{"m":"clear","a":[|\Var*{ad$_0$}|,|\dots|]}|
 \begin{Coding}
-	|{"m":"clear","a":[|\Var*{ad$_0$}|,|\dots|]}|
+	|/readerboard/v1/clear?a=|\Var*{ad}
 \end{Coding}
 \end{center}
 
 Clears the matrix display so that no \led s are illuminated. Does not affect
 the discrete \led s.
+
 
 \section{\z{F}---Flash Lights in Sequence}
 \begin{center}
@@ -1043,8 +1444,9 @@ the discrete \led s.
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z\$}
 \end{bytefield}
+%|{"m":"flash","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\Var*{led$_2$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
 \begin{Coding}
-	|{"m":"flash","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\Var*{led$_2$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
+	|/readerboard/v1/flash?a=|\Var*{ad}|&l=|\Var*{led$_0$}\Var*{led$_1$}\Var*{led$_2$}\dots\Var*{led$_{n-1}$}
 \end{Coding}
 \end{center}
 
@@ -1062,14 +1464,14 @@ corresponding position in the sequence.
 			\multicolumn{1}{c}{\bfseries Code*}&
 			\multicolumn{1}{c}{\bfseries Light}&
 			\multicolumn{1}{c}{\bfseries Color}\\\midrule
-			\z{W} & L$_0$ & white \\
-			\z{B} & L$_1$ & blue \\
-			\z{b} & L$_2$ & blue \\
-			\z{R} & L$_3$ & red \\
-			\z{r} & L$_4$ & red \\
-			\z{Y} & L$_5$ & yellow \\
-			\z{y} & L$_6$ & yellow \\
-			\z{G} & L$_7$ & green \\
+			\z{W} & L$_7$ & white \\
+			\z{B} & L$_6$ & blue \\
+			\z{b} & L$_5$ & blue \\
+			\z{R} & L$_4$ & red \\
+			\z{r} & L$_3$ & red \\
+			\z{Y} & L$_2$ & yellow \\
+			\z{y} & L$_1$ & yellow \\
+			\z{G} & L$_0$ & green \\
 			\z{\_}& --- & (no \led/off) \\
 			\z0--\z9&L$_0$--L$_9$&\led\ installed at physical position 0--9\\
 			\bottomrule
@@ -1089,7 +1491,7 @@ Setting an empty
 sequence (no codes at all) stops the flasher's operation.
 
 The sequence is terminated by either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}), indicated in the protocol diagram above
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
 simply as ``\z{\$}''.
 			
 This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
@@ -1102,8 +1504,9 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 	\bitbox{1}{\Var*{n}} 
 \end{bytefield}
 \\
+%|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|}|
 \begin{Coding}
-	|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|}|
+	|/readerboard/v1/graph?a=|\Var*{ad}|&v=|\Var*{n}
 \end{Coding}
 \end{center}
 
@@ -1121,9 +1524,11 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 	\bitbox[tb]{1}{\Var*{rgb$_6$}} &
 	\bitbox[tbr]{1}{\Var*{rgb$_7$}} 
 \end{bytefield}
+%	|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|,"colors":[|\Var*{rgb$_0$}|,|\Var*{rgb$_1$}|,|
+%	\Var*{rgb$_2$}|,|\Var*{rgb$_3$}|,|\Var*{rgb$_4$}|,|\Var*{rgb$_5$}|,|\Var*{rgb$_6$}|,|\Var*{rgb$_7$}|]}|
 \begin{Coding}
-	|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|,"colors":[|\Var*{rgb$_0$}|,|\Var*{rgb$_1$}|,|
-	\Var*{rgb$_2$}|,|\Var*{rgb$_3$}|,|\Var*{rgb$_4$}|,|\Var*{rgb$_5$}|,|\Var*{rgb$_6$}|,|\Var*{rgb$_7$}|]}|
+	|/readerboard/v1/graph?a=|\Var*{ad}|&v=|\Var*{n}|&colors=|\Var*{rgb$_0$}\Var*{rgb$_1$}\Var*{rgb$_2$}\Var*{rgb$_3$}
+	\Var*{rgb$_4$}\Var*{rgb$_5$}\Var*{rgb$_6$}\Var*{rgb$_7$}
 \end{Coding}
 \end{center}
 
@@ -1137,10 +1542,12 @@ stacked up from the bottom row (a value of 0 results in no lights, up to 8 which
 column of eight lights; a value of 9 is treated as if it were 8). All existing matrix data
 are scrolled left one column.
 
-In the second form, it takes eight \Var*{rgb} values (q.v.) which give the color to light up
-each row in the bar-graph column.
+In the second form, it takes eight \Var*{rgb} values (see Table~\ref{tbl:rgbcolors}) which give the color to light up
+each row in the bar-graph column. For consistency with other drawing commands, \Var*{rgb$_0$} refers to the topmost
+\led\ in the column.
 
-In \acronym{JSON}, the values of \Var*{n} and \Var*{rgb$_n$} are sent as integer values.
+%In \acronym{JSON}, the values of \Var*{n} and \Var*{rgb$_n$} are sent as integer values.
+In \acronym{HTTP}, the value of \Var*{n} is sent as an integer value.
 
 \section{\z{I}---Draw Bitmap Image}
 \begin{center}
@@ -1158,34 +1565,42 @@ In \acronym{JSON}, the values of \Var*{n} and \Var*{rgb$_n$} are sent as integer
 	\bitbox{2}{\Var*{G coldata}\dots} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{2}{\Var*{B coldata}\dots} &
+	\bitbox{1}{\z{\$}} \\
+	\bitbox{2}{\Var*{flashdata}\dots} &
 	\bitbox{1}{\z{\$}} &
 \end{bytefield}
+%	|{"m":"bitmap","a":[|\Var*{ad$_0$}|,|\dots|],"merge":|\Var*{bool}|,"pos":|\Var*{col}|,|\\
+%	|"trans":|\Var*{trans}|,"image":[[|\Var*{R coldata$_0$}|,|\Var*{R coldata$_1$}|,|\dots|,|\\
+%	\Var*{R coldata$_{n-1}$}|],[|\Var*{G coldata$_0$}|,|\Var*{G coldata$_1$}|,|\dots|,|\\
+%	\Var*{G coldata$_{n-1}$}|],[|\Var*{B coldata$_0$}|,|\Var*{B coldata$_1$}|,|\dots|,|\Var*{B coldata$_{n-1}$}|]]}|
 \begin{Coding}
-	|{"m":"bitmap","a":[|\Var*{ad$_0$}|,|\dots|],"merge":|\Var*{bool}|,"pos":|\Var*{col}|,|\\
-	|"trans":|\Var*{trans}|,"image":[[|\Var*{R coldata$_0$}|,|\Var*{R coldata$_1$}|,|\dots|,|\\
-	\Var*{R coldata$_{n-1}$}|],[|\Var*{G coldata$_0$}|,|\Var*{G coldata$_1$}|,|\dots|,|\\
-	\Var*{G coldata$_{n-1}$}|],[|\Var*{B coldata$_0$}|,|\Var*{B coldata$_1$}|,|\dots|,|\Var*{B coldata$_{n-1}$}|]]}|
+	|/readerboard/v1/bitmap?a=|\Var*{ad}|&merge=|\Var*{bool}|&pos=|\Var*{pos}\\
+	|&trans=|\Var*{trans}|&image=|\Var*{R coldata}\dots\z{\$}\Var*{G coldata}\dots\z{\$}\Var*{B coldata}\dots\z{\$}\Var*{flashdata}
 \end{Coding}
 \end{center}
 
 Draws an arbitrary bitmap image onto the matrix display starting at column
 \Var*{pos}, encoded as per Table~\ref{tbl:int063}. A \Var*{pos} value of
 ``\z{\textasciitilde}'' represents the current column cursor position.
-(In \acronym{JSON}, since \Var*{col} is an integer value, this is represented
-by a value of $-1$ for \Var*{col}.)
+%(In \acronym{JSON}, since \Var*{col} is an integer value, this is represented
+%by a value of $-1$ for \Var*{col}.)
 
 Each column data, from left to right, are given by \Var*{coldata} values,
 each of which is a two-digit \ascii\ hexadecimal value with the 
 least-significant bit representing the top row of the matrix.
-(In \acronym{JSON}, these are simply plain decimal integer values.)
+%(In \acronym{JSON}, these are simply plain decimal integer values.)
 
 The column data values are terminated by either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}), indicated in the protocol diagram above
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
 simply as ``\z{\$}''. 
 
+They may be short (or entirely empty if the corresponding color plane has no pixels set).
+
 The first set of column data provide the bits for the red color plane. After the terminating
-byte, two more sets of column data are sent, each with identical format to the first, to provide
-the bits for the green and blue color planes, respectively.
+byte (\z{\$} or \z{ESC}), two more sets of column data are sent, each with identical format to the first, to provide
+the bits for the green and blue color planes, respectively. The final plane, \Var*{flashdata},
+causes the corresponding pixel to flash for any bits set to 1. Monochrome boards accept only
+two color bitplanes: the bitmap of pixels to light and then the flash plane.
 
 The column cursor is moved to be after the end of the image.
 
@@ -1226,8 +1641,9 @@ to the display. See Table~\ref{tbl:transitions}.
 	\bitbox{1}{\Var*{rgb}} %&
 %	\bitbox{1}{\z{\$}} 
 \end{bytefield}
+%|{"m":"color","a":[|\Var*{ad$_0$}|,|\dots|],"color":|\Var*{rgb}|}|
 \begin{Coding}
-	|{"m":"color","a":[|\Var*{ad$_0$}|,|\dots|],"color":|\Var*{rgb}|}|
+	|/readerboard/v1/color?a=|\Var*{ad}|&color=|\Var*{rgb}
 \end{Coding}
 \end{center}
 
@@ -1235,20 +1651,40 @@ This command sets the color which all future commands will use by default (altho
 some of them allow for the specification of colors directly on an \emph{ad hoc} basis,
 which does not affect the current default color).
 
-The \Var*{rgb} value is a digit in the range 0--7, with the meanings defined in Table~\ref{tbl:rgbcolors}.
+The \Var*{rgb} value is a value encoded as defined in Table~\ref{tbl:rgbcolors}.
 Note that anything drawn in black simply turns off the corresponding pixels.
 \begin{table}
 	\begin{center}
-	\begin{tabular}{cl}\toprule
-		\bfseries Code & \bfseries Color \\\midrule
-		\z0&black\\
-		\z1&red\\
-		\z2&green\\
-		\z3&yellow\\
-		\z4&blue\\
-		\z5&magenta\\
-		\z6&cyan\\
-		\z7&white\\\bottomrule
+		\begin{bytefield}[bitwidth=0.11111\textwidth]{8}
+			\bitbox[]{1}{\scriptsize7}&
+			\bitbox[]{1}{\scriptsize6}&
+			\bitbox[]{1}{\scriptsize5}&
+			\bitbox[]{1}{\scriptsize4}&
+			\bitbox[]{1}{\scriptsize3}&
+			\bitbox[]{1}{\scriptsize2}&
+			\bitbox[]{1}{\scriptsize1}&
+			\bitbox[]{1}{\scriptsize0}\\
+			\bitbox[ltb]{1}{\z0}
+			\bitbox[tb]{1}{\z0}
+			\bitbox[tb]{1}{\z1}
+			\bitbox[rtb]{1}{\z1}
+			\bitbox{1}{\Var*{flash}}
+			\bitbox{1}{\Var*{blue}}
+			\bitbox{1}{\Var*{green}}
+			\bitbox{1}{\Var*{red}}\\
+		\end{bytefield}
+
+	\begin{tabular}{cl|cl}\toprule
+		\multicolumn{1}{c}{\bfseries Code} & \multicolumn{1}{l}{\bfseries Color} &
+		\multicolumn{1}{c}{\bfseries Code} & \multicolumn{1}{l}{\bfseries Color} \\\midrule
+		\z0&off&\z8& off\\
+		\z1&red&\z9&flashing red\\
+		\z2&green&\z:&flashing green\\
+		\z3&yellow&\z;&flashing yellow\\
+		\z4&blue&\z<&flashing blue\\
+		\z5&magenta&\z=&flashing magenta\\
+		\z6&cyan&\z>&flashing cyan\\
+		\z7&white&\z?&flashing white\\\bottomrule
 	\end{tabular}
 	\caption{Color codes for \Var*{rgb} parameters\label{tbl:rgbcolors}}
 	\end{center}
@@ -1274,13 +1710,16 @@ Note that anything drawn in black simply turns off the corresponding pixels.
 	\bitbox[tb]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z{\$}} 
 \end{bytefield}
+%	|{"m":"light","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\Var*{led$_2$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
 \begin{Coding}
-	|{"m":"light","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\Var*{led$_2$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
+	|/readerboard/v1/light?a=|\Var*{ad}|&l=|\Var*{led$_0$}\Var*{led$_1$}\Var*{led$_2$}\dots\Var*{led$_{n-1}$}
 \end{Coding}
 \end{center}
 
 This command is identical to the \z{S} command (see below), except that multiple
 discrete \led s can be specified, all of which are illuminated simultaneously.
+%Also, unlike \z{S}, the \led s specified are \emph{added to} the ones which may already
+%be lit. To clear the existing \led s first, issue the \z{X} command ahead of \z{L}.
 See Table~\ref{tbl:lightcodes}. Note that if a strobe sequence is running (via a previous \z{*} command), it remains running.
 
 The list of \Var*{led} values is terminated by either a dollar sign (\z{\$}) character
@@ -1294,13 +1733,17 @@ or an escape byte (hex value \z{1B}), represented in the protocol diagram as ``\
 \end{bytefield}
 \\
 \begin{Coding}
-	|{"m":"query","a":[|\Var*{ad$_0$}|,|\dots|],"status":false}|
+	|/readerboard/v1/query?a=|\Var*{ad}
 \end{Coding}
 \end{center}
 
 This command causes the sign to send a status report back to the host to indicate
-the general status of the device except for the discrete \led\ display which
-may be queried using the \z? command. The response has the form:
+the general status of the device, including the discrete \led\ display which
+may be queried using the \z? command. 
+
+This command cannot be addressed to the global address.
+
+The response has the form:
 
 \medskip
 
@@ -1323,38 +1766,64 @@ may be queried using the \z? command. The response has the form:
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
 	\bitbox{1}{\Var*{ad$_G$}}&
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{V}} \\
+	\bitbox{1}{\Var*{EE}}&
+	\bitbox{1}{\z{\$}} \\
+	\bitbox{1}{\z{V}} &
 	\bitbox{2}{\Var*{hwversion}}
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{R}} &
 	\bitbox{2}{\Var*{romversion}}&
 	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}& 
-	\bitbox{1}{\Var*{serial}} \\
+	\bitbox{1}{\z{S}}\\ 
+	\bitbox{1}{\Var*{serial}}& 
 	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{M}} &
+	\bitbox{1}{\z{L}} &
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
+	\bitbox[tb]{1}{\Var*{led$_3$}} &
+	\bitbox[tb]{1}{\Var*{led$_4$}} &
+	\bitbox[tb]{1}{\Var*{led$_5$}} \\
+	\bitbox[tb]{1}{\strut$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{F}} &
+	\bitbox{5}{flasher status (q.v.)} \\
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{S}} &
+	\bitbox{5}{strober status (q.v.)} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{M}} \\
 	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
+%	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}\\
+%	\bitbox[tb]{1}{}\\
+	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}&
 	\bitbox{1}{\z{\$}}&
 	\bitbox[tbl]{2}{\Var*{G coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} &
+%	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} \\
+%	\bitbox[tb]{1}{}\\
 	\bitbox[tbr]{2}{\Var*{G coldata$_{63}$}}&
-	\bitbox{1}{\z{\$}}\\
+	\bitbox{1}{\z{\$}}&
 	\bitbox[tbl]{2}{\Var*{B coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
+%	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
 	\bitbox[tb]{1}{$\cdots$} &
+%	\bitbox[tb]{1}{}\\
 	\bitbox[tbr]{2}{\Var*{B coldata$_{63}$}}&
+	\bitbox{1}{\z{\$}}\\
+	\bitbox[tbl]{2}{\Var*{flashdata$_{0}$}}&
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{2}{\Var*{flashdata$_{63}$}}&
+	\bitbox{1}{\z{\$}}&
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
 
-The \Var*{model} field may be ``\z{L}'' for the legacy hardware the author still has
-lying around (but this shouldn't be something anyone else would need to see),
-``\z{M}'' for the current 64$\times$8 matrix display hardware, or
+The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author still has
+%lying around (but this shouldn't be something anyone else would need to see),
+``\z{B}'' for the stand-alone busylight modules which only include discrete busy status lights,
+``\z{M}'' for 64$\times$8 matrix display hardware with monochrome \led s, or
 ``\z{C}'' for 64$\times$8 \acronym{RGB} color display boards.
 
 \Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
@@ -1366,55 +1835,69 @@ thus those strings may not contain dollar signs).
 The \Var*{serial} field is a variable-width alphanumeric string which was set when the firm\-ware was
 compiled. It should be a unique serial number for the device (although that depends on
 some effort on the part of the person compiling the firmware to insert that serial number
-each time). Serial numbers 0--299 are reserved for the original author's use. This string is also
+each time). Serial numbers \z{RB0000}--\z{RB0299} are reserved for the original author's use. This string is also
 terminated with a dollar sign.
+
+The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acronym{EEPROM} chip or module,
+``\z{I}'' if using the \acronym{EEPROM} memory on the Arduino controller board, or ``\z{\_}'' if there
+is no \acronym{EEPROM} memory at all (and thus, configuration settings made with the \z= commaand
+are not persistent).
+
+The discrete light, flasher, and strober fields (starting, respectively, with \z{L}, \z{F}, and \z{S},
+are as documented above for the \z{?} (\z{busy}) command. Busylight units stop here and don't include
+the image bitmap data that readerboards report.
 
 The \Var*{coldata} bytes are sent just as with the \z{I} command, as hexadecimal values indicating
 the \led s lit on the matrix display, with \Var*{coldata$_0$} being the leftmost column of the display
 and \Var*{coldata$_{63}$} being the rightmost. In each column, the least significant bit indicates
 the \led\ on the top row.
 
-The \Var*{ad}, \Var*{uspd}, and \Var*{rspd} values are as last set by the \z= command (or the factory
+Note that monochrome boards only send a single color plane of data plus the flash plane.
+
+The \Var*{ad}, \Var*{ad$_G$}, \Var*{uspd}, and \Var*{rspd} values are as last set by the \z= command (or the factory
 defaults if they were never changed).
 
-The status message sent to the host is terminated by a newline character (hex byte \z{0A}),
+The status message sent to the host is terminated by a newline character (hex byte \z{0A}$_{16}$),
 indicated in the protocol description above as ``\z{\textbackslash n}''.
 
-\subsection{Busylight Device Query Response}
-If a dedicated (non-readerboard) busylight device is sent the
-\z{Q} command, it responds with the following information.
-\begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
-%	\bitheader{0-8} \\
-	\bitbox[]{1}{\scriptsize0}&
-	\bitbox[]{1}{\scriptsize1}&
-	\bitbox[]{1}{\scriptsize2}&
-	\bitbox[]{1}{\scriptsize3}&
-	\bitbox[]{1}{\scriptsize4}&
-	\bitbox[]{1}{\scriptsize5}&
-	\bitbox[]{1}{\scriptsize6}&
-	\bitbox[]{1}{\scriptsize7}&
-	\bitbox[]{1}{\scriptsize8}\\
-	\bitbox{1}{\z{Q}} &
-	\bitbox{1}{\z{B}} &
-	\bitbox{1}{\z{=}} &
-	\bitbox{1}{\Var*{ad}}&
-	\bitbox{1}{\Var*{uspd}}&
-	\bitbox{1}{\Var*{rspd}}&
-	\bitbox{1}{\Var*{ad$_G$}}&
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{V}} \\
-	\bitbox{2}{\Var*{hwversion}}
-	\bitbox{1}{\z\$}&
-	\bitbox{1}{\z{R}} &
-	\bitbox{2}{\Var*{romversion}}&
-	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}& 
-	\bitbox{1}{\Var*{serial}} \\
-	\bitbox{1}{\z{\$}} &
-	\bitbox{1}{\z{\textbackslash n}}
-\end{bytefield}
-\end{center}
+%\subsection{Busylight Device Query Response}
+%If a dedicated (non-readerboard) busylight device is sent the
+%\z{Q} command, it responds with the following information.
+%\begin{center}
+%\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
+%%	\bitheader{0-8} \\
+%	\bitbox[]{1}{\scriptsize0}&
+%	\bitbox[]{1}{\scriptsize1}&
+%	\bitbox[]{1}{\scriptsize2}&
+%	\bitbox[]{1}{\scriptsize3}&
+%	\bitbox[]{1}{\scriptsize4}&
+%	\bitbox[]{1}{\scriptsize5}&
+%	\bitbox[]{1}{\scriptsize6}&
+%	\bitbox[]{1}{\scriptsize7}&
+%	\bitbox[]{1}{\scriptsize8}\\
+%	\bitbox{1}{\z{Q}} &
+%	\bitbox{1}{\z{B}} &
+%	\bitbox{1}{\z{=}} &
+%	\bitbox{1}{\Var*{ad}}&
+%	\bitbox{1}{\Var*{uspd}}&
+%	\bitbox{1}{\Var*{rspd}}&
+%	\bitbox{1}{\Var*{ad$_G$}}&
+%	\bitbox{1}{\z{I}} &
+%	\bitbox{1}{\z{\$}} \\
+%	\bitbox{1}{\z{V}} &
+%	\bitbox{2}{\Var*{hwversion}}
+%	\bitbox{1}{\z\$}&
+%	\bitbox{1}{\z{R}} &
+%	\bitbox{2}{\Var*{romversion}}&
+%	\bitbox{1}{\z{\$}}& 
+%	\bitbox{1}{\z{S}}\\
+%	\bitbox{1}{\Var*{serial}} &
+%	\bitbox{1}{\z{\$}} &
+%	\bitbox{1}{\z{\textbackslash n}}
+%\end{bytefield}
+%\end{center}
+
+For Busylight devices, serial numbers \z{B0000}--\z{B0299} are reserved for use by the original author.
 
 \section{\z{S}---Light Single \led}
 \begin{center}
@@ -1424,8 +1907,9 @@ If a dedicated (non-readerboard) busylight device is sent the
 	\bitbox{1}{\Var*{led}} 
 \end{bytefield}
 \\
+%	|{"m":"light","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led}|]}|
 \begin{Coding}
-	|{"m":"light","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led}|]}|
+	|/readerboard/v1/light?a=|\Var*{ad}|&l=|\Var*{led}
 \end{Coding}
 \end{center}
 
@@ -1454,16 +1938,18 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 	\bitbox{1}{\z{ESC}}
 \end{bytefield}
 \\
+%	|{"m":"text","a":[|\Var*{ad$_0$}|,|\dots|],"merge":|\Var*{bool}|,|\\
+%	|"align":|\Var*{align}|,"trans":|\Var*{trans}|,"t":|\Var*{string}|}|
 \begin{Coding}
-	|{"m":"text","a":[|\Var*{ad$_0$}|,|\dots|],"merge":|\Var*{bool}|,|\\
-	|"align":|\Var*{align}|,"trans":|\Var*{trans}|,"t":|\Var*{string}|}|
+	|/readerboard/v1/text?a=|\Var*{ad}|&merge=|\Var*{bool}\\
+	|&align=|\Var*{align}|&trans=|\Var*{trans}|&t=|\Var*{string}
 \end{Coding}
 \end{center}
 
 Displays the text \Var*{string} at the current cursor position. The cursor position is
 then moved past the text to be ready for the next string to be printed.
 
-The \Var*{align} code indicates how the text is aligned on the display (TBD).
+The \Var*{align} code indicates how the text is aligned on the display (TBD). {\color{red} Not currently implemented.}
 
 The \Var*{trans} code specifies the transition effect to be used to add this string to the
 display as shown in Table~\ref{tbl:transitions}.
@@ -1484,8 +1970,9 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 	\bitbox{1}{\z{X}} 
 \end{bytefield}
 \\
+%	|{"m":"off","status":true}|
 \begin{Coding}
-	|{"m":"off","status":true}|
+	|/readerboard/v1/off?a=|\Var*{ad}
 \end{Coding}
 \end{center}
 
@@ -1493,13 +1980,195 @@ Turns off the flasher, strober, and all discrete \led s.
 
 This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 
+\chapter{Server-Only Commands}
+\epigraph{The enjoyment of one’s tools is an essential ingredient of successful work.}{---Donald E. Knuth}
+\LJversal{F}{or the most part} the server exists as a way to host readerboards and busylights from a central machine
+while allowing users on other networked machines to post messages to them. It also provides a solution to the lack
+of an ability for signs to coordinate content with each other. If you use the server's \acronym{API} to tell a
+set of target signs to change their display contents, that will change whatever the sign was doing to what you
+are now telling it to do, even if other users had put their own messages on it.
+
+This chapter describes server-side coordination between users in a network environment by providing a set of
+commands which clients can post to the server to request information to be displayed for them alongside other
+content other users have posted. It also provides some services to keep boards updated with information
+known to the server which the devices don't themselves track, such as time of day.
+
+\section{\z{post}---Post a Message to the Displays}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/post?a=|\Var*{ad}|&t=|\Var*{text}|&id=|\Var*{id}|&trans=|\Var*{trans}\\
+		|&until=|\Var*{datetime}|&hold=|\Var*{duration}|&color=|\Var*{rgb}|&visible=|\Var*{duration}\\
+		|&show=|\Var*{duration}|&repeat=|\Var*{duration}
+	\end{Coding}
+\end{center}
+
+Adds a text message to the display list.  The message may include the special tokens listed in
+Table~\ref{tbl:msgcodes}. The server will maintain the list of posted images
+and will update the devices as needed to display dynamic content.
+
+If any lower-level display matrix commands are received that directly manipulate
+the matrix, the display of posted messages is suspended in favor of the directly
+set content. When a \z{clear} command is received, then display of the posted
+message list will resume.
+
+The \Var*{id} value must be unique but the server doesn't assign these in order
+to keep the \acronym{API} simple. Thus, it is recommended that you assign these as
+\acronym{UUID}s or other scheme to keep them from colliding.
+
+If \z{trans} is given, this message will be introduced using the specified
+transition effect, specified by name or number (see Table~\ref{tbl:transcodes}).
+\begin{table}
+	\begin{center}
+	    \begin{tabular}{cl|cl}\toprule
+		    \bfseries Code & \bfseries Name & \bfseries Code & \bfseries Name\\\midrule
+		    \z.&\z{none}& \z{R}&\z{wipe-right}\\
+		    \z>&\z{scroll-right}& \z{U}&\z{wipe-up}\\
+		    \z<&\z{scroll-left}& \z{D}&\z{wipe-down}\\
+		    \z{\textasciicircum}&\z{scroll-up}& \z{|}&\z{wipe-horiz}\\
+		    \z{v}&\z{scroll-down}& \z{-}&\z{wipe-vert}\\
+		    \z{L}&\z{wipe-left}& \z{?}&\z{random}\\\bottomrule
+	    \end{tabular}
+	    \caption{Transition codes for use in \z{post} command\label{tbl:transcodes}}
+	\end{center}
+\end{table}
+
+If \z{until} is given, the message will automatically unpost when the specified
+date and time is reached. \Var*{Datetime} has one of the formats:
+\begin{center}
+	\begin{Coding}
+		[\Var*{day}|@|][\Var*{hour}]|:|\Var*{min}[|:|\Var*{sec}]\\
+		\Var*{day}\\
+		\Var*{duration}
+	\end{Coding}
+\end{center}
+In the first form, an absolute time is specified for the message's expiration. In the second form,
+a day of the week is specified without a time (defaulting the time to 00:00:00), and in the third
+form, a relative duration since posting is given.
+
+If \Var*{day} is specified, it gives the day of the week. \Var*{Hour} and \Var*{sec}
+default to the current hour and \z{00} respectively, so ``\z{until=monday}'' shows
+the message until the beginning of Monday; ``\z{until=tuesday@12:00}'' expires at noon
+on Tuesday, ``\z{until=:30}'' expires after half-past the current hour, ``\z{until=17:00}'' expires
+at 5:00 PM, and ``\z{until=30m}''
+expires after 30 minutes have passed since posting.
+
+If \z{hold} is given, the message will remain on-screen for the specified time
+duration before moving on to the next posted message.
+
+If \z{color} is given, the current color will be changed to the specified value
+before writing the message; otherwise (or additionally) color codes may be
+added in-line in the message text. (See Table~\ref{tbl:colorcodes} for the codes you
+can use here.)
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cl|cl}\toprule
+			\bfseries Code & \bfseries Name & \bfseries Code & \bfseries Name \\\midrule
+			\z{0}&\z{off} & \z{8}&\z{flashing-off}* \\
+			\z{1}&\z{red} & \z{9}&\z{flashing-red} \\
+			\z{2}&\z{green} & \z{10} or \z{:}&\z{flashing-green} \\
+			\z{3}&\z{yellow} & \z{11} or \z{;}&\z{flashing-yellow} \\
+			\z{4}&\z{blue} & \z{12} or \z{<}&\z{flashing-blue} \\
+			\z{5}&\z{magenta} & \z{13} or \z{=}&\z{flashing-magenta} \\
+			\z{6}&\z{cyan} & \z{14} or \z{>}&\z{flashing-cyan} \\
+			\z{7}&\z{white} & \z{15} or \z{?}&\z{flashing-white} \\\bottomrule
+			\multicolumn{4}{l}{\tiny *Included for technical completeness but actually using this code would be silly.}
+		\end{tabular}\\
+		\caption{Color codes for use with the \z{post} command\label{tbl:colorcodes}}
+	\end{center}
+\end{table}
+
+The \z{show} value gives a time duration during which the message will be visible on the sign.
+After this time has elapsed, it will be hidden (but not necessarily removed from the queue).
+If the \z{repeat} value is also specified, then the message will reappear after the specified
+duration has elapsed since it was hidden.
+
+The \z{visible} parameter controls absolute time ranges outside of which the message will be unconditionally
+hidden. Hidden messages automatically reappear at the start of any of these visible time ranges.
+The value is a pair of date strings in any of the forms allowed for \z{until}, separated by a hyphen (`\z{-}').
+Multiple such pairs may appear, separated by commas (`\z{,}').
+
+\begin{table}
+	\begin{center}
+		\begin{tabular}{ll}\toprule
+			\bfseries Code&\bfseries Description\\\midrule
+			\z{\{big\}}&Display letters and numbers in large font\\
+			\z{\{color}\Var*{n}\z{\}}& Switch to color number \Var*{n} (as \z{\textasciicircum K}\Var*{n})\\
+			\z{\{}\Var*{colorname}\z{\}}& Switch to color by name\\
+			\z{\{date\}}&Date as ``\Var*{dd}\z-\Var*{mmm}\z-\Var*{yyyy}''\\
+			\z{\{font}\Var*{n}\z{\}}& Switch to font number \Var*{n} (as \z{\textasciicircum F}\Var*{n})\\
+			\z{\{normal\}}&Stop displaying numbers in large font\\
+			\z{\{mdy\}}&Date as ``\Var*{mm}\z/\Var*{dd}\z/\Var*{yyyy}''\\
+			\z{\{pom\}}&Phase of the moon (as a symbol)\\
+			\z{\{time12\}}&Time as ``\Var*{hh}\z:\Var*{mm} \z{AM}/\z{PM}'' on 12-hour clock*\\
+			\z{\{time24\}}&Time as ``\Var*{hh}\z:\Var*{mm}'' on 24-hour clock$\dagger$\\
+			\z{\{ymd\}}&Date as ``\Var*{yyyy}\z-\Var*{mm}\z-\Var*{dd}''\\
+			\z{\{@}[$\pm$]\Var*{n}\z{\}}&Reposition cursor to column \Var*{n}$\ddagger$\\
+			\z{\{\#}\Var*{n}\z{\}}&Insert character with codepoint \Var*{n} (decimal)\\
+			\z{\{\#\$}\Var*{h}\z{\}}&Insert character with codepoint \Var*{h} (hex)\\
+			\z{\{\$}\Var*{name}\z{\}}&User variable \Var*{name}\\
+			\z{\{\{}&Literal ``\z{\{}''\\
+			\z{\}\}}&Literal ``\z{\}}''\\
+			\bottomrule
+			\multicolumn{2}{p{.9\textwidth}}{\tiny *Hour is space-padded (e.g., ``\z{\textvisiblespace 3:15}'')
+
+			\noindent $\dagger$Hour is zero-padded (e.g., ``\z{03:15}'')
+
+			\noindent $\ddagger$\z-\Var*{n} and \z+\Var*{n} move left or right by \Var*{n} columns}
+		\end{tabular}\\
+		\caption{Special Codes in Post Messages\label{tbl:msgcodes}}
+	\end{center}
+\end{table}
+
+\section{\z{postlist}---Report of Message Queue}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/postlist?a=|\Var*{ad}|&id=|\Var*{id}
+	\end{Coding}
+\end{center}
+
+Returns a JSON-formatted list of the messages in the display queue. If \Var*{ad} is missing or is the
+global address, the messages for all devices will be returned; otherwise the list is filtered to include
+only messages targetted at the listed devices.
+
+If \z{id} is given, only that message is included in the report; if the \Var*{id} value starts with a slash
+(`\z{/}') then the remaining characters are interpreted as a regular expression. Only messages whose \Var*{id} values match the
+regular expression are included in the report.
+
+\section{\z{unpost}---Remove a Posted Message}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/unpost?a=|\Var*{ad}|&id=|\Var*{id}
+	\end{Coding}
+\end{center}
+
+Remove the message with the given \Var*{id} from the display list.
+If \Var*{ad} is missing or is the global address, the message is removed for all devices. Otherwise,
+it is only removed for the listed target devices.
+
+If the \Var*{id} value starts with a slash
+(`\z{/}') then the remaining characters are interpreted as a regular expression. All messages whose \Var*{id} values match the
+regular expression are unposted. Thus, ``\z{id=/.*}'' deletes the entire message queue.
+
+\section{\z{update}---Update Dynamic Content}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/update?|\Var*{name$_0$}|=|\Var*{value$_0$}|&|\Var*{name$_1$}|=|\Var*{value$_1$}\dots
+	\end{Coding}
+\end{center}
+
+For each \Var*{name} and \Var*{value} pair, define or update the corresponding
+user variable (usable in posted messages as \z{\{\$}\Var*{name}\z{\}}). The
+updated value will be displayed from this point until it is updated again.
+
 \chapter{Pinouts}
 \epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
 \LJversal{T}{his chapter describes} each connector used by the readerboard devices and what signals are present
-on which pins.
+on which pins. Note that this begins with the current hardware revision, which is most likely the only part you need
+to know about. Following that are the connector descriptions for older, legacy versions of the hardware. Be careful to
+know which version you need to refer to.
 
-\section{Connectors for Version 3.1.0 Boards}
-\subsection{Arduino Bus Connectors [3.1.0 J0]}
+\section{Connectors for Version 3.3 Boards}
+\subsection{Arduino Bus Connectors [J0]}
 Two parallel rows of stacking pins, for a total of 50 pins, extend out of the back of the readerboard \acronym{PCB}.
 An Arduino Mega 2560 or Due microcontroller board is connected to these pins.
 
@@ -1508,11 +2177,11 @@ for initial configuration and/or to use it as a directly-connected singleton dev
 devices in use, it may be preferable to switch to the \acronym{RS-485} network after initial configuration of the
 device.)
 
-\subsection{Power / RS-485 (8-pin terminal) [3.1.0 J1]}
-The single external connector on version 2.1.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
-and ground on pins 3 and 4 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
-communications will be used, the incoming signal is received on pins 1, 2, and 5 while the outgoing signal is on
-pins 6, 7, and 8. (In actuality, the ``input'' and ``output'' sense is arbitrary and either set of A and B signals
+\subsection{Power / RS-485 (8-pin terminal) [J1]}
+The single external connector on version 3.3.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
+and ground on pins 8 and 7 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
+communications will be used, the incoming signal is received on pins 1, 2, and 6 while the outgoing signal is on
+pins 3, 4, and 5. (In actuality, the ``input'' and ``output'' sense is arbitrary and either set of A and B signals
 may be used as input or output.) 
 
 If this device is the last in the RS-485 network chain, insert a 120$\Omega$ resistor between the A and B terminals
@@ -1522,17 +2191,28 @@ the RS-485 network at that point.
 	\begin{tabular}{rl|rl}
 		1&A (Data in +)    &5&GND\\
 		2&B (Data in --)   &6&GND\\
+		3&A (Data out +)   &7&GND\\
+		4&B (Data out --)  &8&+9\,V DC in
+	\end{tabular}
+\end{center}
+
+The pinout of J1 for revision 3.2.2 boards is different:
+\begin{center}
+	\begin{tabular}{rl|rl}
+		1&A (Data in +)    &5&GND\\
+		2&B (Data in --)   &6&GND\\
 		3&+9\,V DC in      &7&A (Data out +)\\
 		4&GND              &8&B (Data out --)\\
 	\end{tabular}
 \end{center}
 
+{\color{gray}
 \section{Connectors for Legacy Boards}
-\subsection{Connectors for Version 2.1.0 Boards}
-\subsubsection{Power / RS-485 (8-pin terminal) [2.1.0 J0]}
-This is wired the same as J1 on the 3.1.0 boards.
+\subsection{Connectors for Version 2.1 Boards}
+\subsubsection{Power / RS-485 (8-pin terminal) [J0]}
+This is wired the same as J1 on the revision 3.2 boards.
 \subsection{Earlier Boards}
-\subsubsection{Matrix Control (24-pin ribbon cable) [1.0.1 J1, 2.0.0 J1]}
+\subsubsection{Matrix Control (24-pin ribbon cable) [J1]}
 %
 %   . . . . . . . . . . . . .
 %   . . . . . . . . . . . . .
@@ -1557,7 +2237,7 @@ This is wired the same as J1 on the 3.1.0 boards.
 		\node [above] at (12,3) {\strut 24};
 	\end{tikzpicture}
 \end{center}
-For readerboards before version 2.1.0, this 24-position ribbon cable carries signals to directly drive the 64$\times$8 \acronym{LED}
+For readerboards before version 2.1.0, this 24-position ribbon cable carries signals to directly drive the 64$\times$8 \led\
 matrix.  The other end of this cable mates with J0 on the shield board. The pinout of its \acronym{IDC} header  is:
 \begin{center}
 	\begin{tabular}{rl|rl|rl|rl}
@@ -1569,7 +2249,7 @@ matrix.  The other end of this cable mates with J0 on the shield board. The pino
 		6&D3     &12&D0                            &18&Gnd     &24&R0\\
 	\end{tabular}
 \end{center}
-\subsubsection{Discrete LEDs (10-pin ribbon cable) [1.0.1 J2, 2.0.0 J2]}
+\subsubsection{Discrete LEDs (10-pin ribbon cable) [J2]}
 %
 %   . . . . . . . . . . . . .
 %   . . . . . . . . . . . . .
@@ -1594,7 +2274,7 @@ matrix.  The other end of this cable mates with J0 on the shield board. The pino
 		\node [above] at (5,3) {\strut 10};
 	\end{tikzpicture}
 \end{center}
-For readerboards before version 2.1.0, this 10-position ribbon cable carries signals to directly drive the 64$\times$8 \acronym{LED}
+For readerboards before version 2.1.0, this 10-position ribbon cable carries signals to directly drive the 64$\times$8 \led\
 matrix.  The other end of the cable mates with J1 on the shield board. The pinout of its \acronym{IDC} header  is:
 \begin{center}
 	\begin{tabular}{rl|rl}
@@ -1605,9 +2285,9 @@ matrix.  The other end of the cable mates with J1 on the shield board. The pinou
 		5&L1 &10&L4\\
 	\end{tabular}
 \end{center}
-\subsubsection{Board Power (3-pin screw terminal) [1.0.1 J0, 2.0.0 J0]}
+\subsubsection{Board Power (3-pin screw terminal) [J0]}
 This 3-position screw terminal block provides power to the readerboard. Note that the +5\,V supply is also connected
-to pins 13--16, and Ground to pins 17--20 of J1, the only power required here is the +9\,V input that drives the \acronym{LED}s themselves.
+to pins 13--16, and Ground to pins 17--20 of J1, the only power required here is the +9\,V input that drives the \led s themselves.
 \begin{center}
 	\begin{tabular}{rl}
 		1&+5\,V DC in\\
@@ -1644,13 +2324,316 @@ those terminals to terminate the network at that point.
 		6&A (Data Out +)\\
 	\end{tabular}
 \end{center}
+}
+
+\chapter{Installing the Readerboard Unit}
+\chapter{Using the Readerboard}
+\chapter{Font Glyphs}\label{chap:fonts}
+\input{../firmware/readerboard/fonts.tex}
+\section{Font Definition Files}
+In the \z{firmware/readerboard} directory there are a set of files with \z{.font} suffixes,
+which define the fonts that the readerboard can employ when writing text to the matrix.
+If you edit these files, or add more fonts, make the appropriate adjustments to the
+\z{Makefile} and run \z{make} in that directory to regenerate the glyph images on the
+preceding pages of this document, and the source files where the glyphs are actually
+stored in the device firmware. Then recompile the firmware image and flash it onto
+the hardware devices.
+
+Each file defines up to 256 glyphs with codepoint values 0--255. The firmware will not
+allow some codepoints to be printed (see above, Tables~\ref{tbl:controlcodes}, \ref{tbl:font0}, and \ref{tbl:font2} on pp.~\pageref{tbl:controlcodes}--\pageref{tbl:font2}), so to avoid reserved codes we recommend using codepoints $\ge$ 32. 
+
+Any line which begins (possibly after leading whitespace) with a semicolon (`\z;') is a comment and is ignored completely.
+
+Each glyph definition begins with a line enclosed in square brackets, in the form
+\begin{center}
+	\begin{Coding}
+		|[|\Var*{codepoint} \Var*{description}|]|
+	\end{Coding}
+\end{center}
+Where \Var*{codepoint} is either the codepoint expressed as a decimal integer (e.g., ``\z{42}'') or
+a dollar sign followed by the codepoint as a hex integer (e.g., ``\z{\$2B}''), and
+\Var*{description} is an arbitrary text description of the character being defined.
+
+For example:
+\begin{SourceCode}
+[$25 percent]
+@@..@|
+@@..@|
+...@.|
+..@..|
+.@...|
+@..@@|
+@..@@|
+
+[$2E period]
+..||||
+..||||
+..||||
+..||||
+..||||
+@@||||
+@@||||
+\end{SourceCode}
+
+As a special case, a glyph introduced with the heading
+\begin{center}
+	\begin{Coding}
+		|[default]|
+	\end{Coding}
+\end{center}
+is defined to be the default glyph to be used if the user
+tries to print a glyph that is not defined in the font. Only
+one default glyph may be defined in the entire set of fonts.
+
+The non-blank lines which follow the bracketed header line define
+the bitmap for the glyph. In this definition, positions which are off
+are noted with `\z{.}' or `\z{|}', while positions where the \led\ is
+on are noted with `\z{@}'.
+
+Any completely blank columns to the right of all lit pixels should be
+represented by `\z{|}' rather than `\z{.}'. This will make note of the drawn
+width of the character but the columns to the right which consist of `\z{|}'
+characters are not actually stored in the firmware bitmap image, thus conserving
+\acronym{ROM} space.
+
+If fewer than eight rows are specified, it is assumed that the rows that are present
+start at the top of the display, and the remaining unspecified rows are all off.
+
+\subsection{Character Aliases}
+If a character glyph is to be identical to another glyph, there is no point
+in storing two or more identical bitmaps in the \acronym{ROM}. In such a case,
+rather than presenting the duplicate bitmap, the character definition
+is simply
+\begin{center}
+	\begin{Coding}
+		|->|\Var*{codepoint}\\
+		or\\
+		|->|\Var*{codepoint}|,|\Var*{font index}
+	\end{Coding}
+\end{center}
+In the first case, the glyph for the indicated codepoint will be reused for this character,
+such as the case in Font~\#0 where the prime character (hex \z{\$87}) looks identical to
+the single-quote character (hex \z{\$27}). Only the single-quote glyph is actually specified
+in \z{standard.font}, so the prime character is defined only as
+\begin{SourceCode}
+[$87 prime]
+->$27
+\end{SourceCode}
+
+In the second case, the glyph to be duplicated comes from a different font file entirely.
+For example, many characters in Font~\#1 (\z{stand\-ard\-\_var\-i\-able.font}) have the same glyphs
+as Font~\#0, such as:
+\begin{SourceCode}
+[$23 pound sign]
+->$23,0
+\end{SourceCode}
+
+\chapter{Preparing and Updating Firmware Images}\label{chap:firmware}
+The firmware that runs on the readerboard hardware (or, more precisely, the Arduino single-board
+computer attached to the circuit board) is located in the \z{firmware/readerboard} directory of the
+readerboard project repository.
+
+After updating the code from the repository if necessary, perform the following steps to configure and
+prepare the firmware image:
+
+{\bfseries Step 1: Configuration.}\label{config-fw}
+Edit a few lines near the top of \z{readerboard.h}:
+\begin{SourceCode}
+// BEGIN CONFIGURATION SECTION
+// TODO: Set these before compiling for a particular hardware 
+//       configuration
+#define HW_MODEL (MODEL_3xx_RGB)
+#define HW_MC (HW_MC_DUE)
+#define HAS_I2C_EEPROM (false)
+\end{SourceCode}
+
+These values should come already set up for the latest hardware model (in this example,
+the revision 3 \acronym{RGB} models which incorporate the Arduino directly onto
+the main circuit board). If your hardware uses a different design, %such as one
+%of the older legacy boards, 
+\z{HW\_MODEL} needs to be changed to another supported hardware
+name (see Table~\ref{tab:hwmodel}).
+
+Also, \z{HW\_MC} needs to be set to the model of Arduino microcontroller you will be
+using to control this unit.
+
+If using an \acronym{EEPROM} chip or module external to the Arduino via the I$^2$C bus, such as 
+chip U16 which is recommended for use with the Arduino Due, then set
+\z{HAS\_I2C\_EEPROM} to \z{true}. If using no \acronym{EEPROM} or the one built-in to the
+Arduino, leave this set to \z{false}.
+
+The supported values for these two configuration settings are listed in
+Table~\ref{tab:hwmodel}.
+\begin{table}
+	\begin{center}
+		\begin{tabular}{lp{3in}}\toprule
+			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MODEL} (Readerboard Hardware Model):}\\
+			\z{MODEL\_3xx\_RGB}&\acronym{PCB} revision 3.0 and later with \acronym{RGB} \led s installed.\\
+			\z{MODEL\_3xx\_MONOCHROME}&\acronym{PCB} revision 3.0 and later with single-color \led s installed with their
+				anodes soldered into pin 4 (the blue circuit).\\
+			\z{MODEL\_BUSYLIGHT\_1}&\acronym{PCB} revision 1.\Var{x} Busylight module.\\
+			\z{MODEL\_BUSYLIGHT\_2}&\acronym{PCB} revision 2.\Var{x} Busylight module.\\
+			\midrule
+			\multicolumn{2}{c}{\bfseries Values for \z{HW\_MC} (Microcontroller Installed):}\\
+			\z{HW\_MC\_MEGA\_2560}&Arduino Mega 2560.\\
+			\z{HW\_MC\_DUE}&Arduino Due.\\
+			\z{HW\_MC\_PRO}&SparkFun Arduino-compatible Pro Micro.\\
+			\bottomrule
+		\end{tabular}
+		\caption{Firmware Configuration Values\label{tab:hwmodel}}
+	\end{center}
+\end{table}
+
+\begin{SourceCode}
+// TODO: Set these default settings (this will be the "factory
+//	 default settings"). On Due-based systems without 
+//       EEPROM chip U16 installed, this is the only way to 
+//       make these settings at all. If the EEPROM is installed
+//       (or one is built-in to the microcontroller), this is
+//       just the default that can be overridden by configuring
+//       the unit since the new configuration values can be
+//       saved in EEPROM.
+//
+// Default baud rate. Allowed values are '0'=300, '1'=600, 
+// '2'=1200, '3'=2400, '4'=4800, '5'=9600, '6'=14400,
+// '7'=19200, '8'=28800, '9'=31250, 'A'=38400, 'B'=57600,
+// 'C'=115200.
+#define EE_DEFAULT_USB_SPEED  ('5')
+#define EE_DEFAULT_485_SPEED ('5')
+\end{SourceCode}
+These values determine the default baud rate to use for the \acronym{USB} direct
+connection and \acronym{RS-485} network. Note that the value is a character literal.
+
+\begin{SourceCode}
+// Default device address (may be any value from 0-63 except
+// the global address, or EE_ADDRESS_DISABLED if you won't be 
+// using RS-485 at all.)
+#define EE_DEFAULT_ADDRESS (EE_ADDRESS_DISABLED)
+//
+// Default global device address (may be any value from 0-15).
+#define EE_DEFAULT_GLOBAL_ADDRESS (15)
+\end{SourceCode}
+With \z{EE\_DEFAULT\_ADDRESS} set to \z{EE\_ADDRESS\_DISABLED},
+the \acronym{RS-485} interface will be disabled. Otherwise the value
+set for this symbol is an integer in the range 0--63 which will be
+the device address recognized in commands received over the
+\acronym{RS-485} network.
+
+Set \z{EE\_DEFAULT\_GLOBAL\_ADDRESS} to the default global device address you
+wish the unit to recognize. This must be in the range 0--15.
+
+\begin{SourceCode}
+//
+// TODO: Adjust these for the colors of discrete status LEDs on
+//       this unit. These can be used for color values in
+//       commands sent to the device.
+#define STATUS_LED_COLOR_L0 ('G')
+#define STATUS_LED_COLOR_L1 ('y')
+#define STATUS_LED_COLOR_L2 ('Y')
+#define STATUS_LED_COLOR_L3 ('r')
+#define STATUS_LED_COLOR_L4 ('R')
+#define STATUS_LED_COLOR_L5 ('b')
+#define STATUS_LED_COLOR_L6 ('B')
+#define STATUS_LED_COLOR_L7 ('W')
+\end{SourceCode}
+These are set for the standard color assignments for the discrete status \led s, allowing for
+the use of these single-letter color codes to refer to the status \led s. If you build a
+unit with different colors, you may assign appropriate color codes here.
+
+\begin{SourceCode}
+#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
+#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$"
+//                             \___/  \___/
+//                               |      |
+//                  Hardware version    |
+//                         Firmware version
+\end{SourceCode}
+
+The \z{BANNER\_FIRMWARE\_VERS} value should match the version of the firm\-ware source code you are compiling.
+
+Likewise, \z{BANNER\_HARDWARE\_VERS} gives the revision of the \acronym{PCB} in use.
+
+%Set the \z{BANNER\_SERIAL\_NUMBER} value to the serial number for your specific device. Serial numbers under 300 are
+%reserved for the project author's use. If building your own device, assign a serial number that makes sense to you.
+%It will help you manage your collection of devices best if you give them unique serial numbers since those can be
+%queried by software.
+
+These should be 10-character text strings. They will be displayed briefly when the sign is booted.
+
+Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous two values while still preserving
+the format ``\z{V}\dots\z{\$R}\dots\z{\$}''. This string will be sent verbatim as part
+of the device's response to being queried for its configuration and status.
+
+%An example of a properly configured file looks like this:
+%\begin{SourceCode}
+%#define BANNER_HARDWARE_VERS "HW 3.2.3  "
+%#define BANNER_FIRMWARE_VERS "FW 1.2.0  "
+%#define BANNER_SERIAL_NUMBER "S/N R1024 "
+%#define SERIAL_VERSION_STAMP "V3.2.3$R1.2.0$SR1024$"
+%//                             \___/  \___/  \___/
+%//                               |      |      |
+%//                  Hardware version    |      |
+%//                         Firmware version    |
+%//                                 Serial number
+%\end{SourceCode}
+%
+%{\bfseries Step 2: Set Hardware Model}.
+%A little further down \z{readerboard.h}, there is a pair of lines like:
+%\begin{SourceCode}
+%#define HW_MODEL (MODEL_3xx_RGB)
+%#define HW_MC (HW_MC_DUE)
+%\end{SourceCode}
+
+If, and \strong{only if}, you are making a custom firmware image for a board with no \acronym{EEPROM}
+storage capability, uncomment and adjust the \z{BESPOKE\_SERIAL\_NUMBER} definition with the serial
+number of this device. For example:
+\begin{SourceCode}
+#define BESPOKE_SERIAL_NUMBER "RB1234"
+\end{SourceCode}
+
+{\bfseries Step 2: Make.}
+		Run the \z{make} program. This will build the font tables from the various
+		\z{*.font} files into the firmware code so the target device will be able to
+		generate characters from those fonts.
+
+		Customizing and extending the fonts is described in Chapter~\ref{chap:fonts}.
+
+{\bfseries Step 3: Compile.}
+		Using your Arduino compiler tools, compile the \z{readerboard.ino} file and upload it
+		to your readerboard hardware. This step assumes you have set up your own Arduino
+		development environment and is beyond the scope of this document to help you with.
+
+{\bfseries Step 4: Serial Number.}
+		Run the \z{setsn} command to field-configure the device's serial number. For example:
+\begin{SourceCode}
+% setsn -port /dev/ttyACM0 -sn RB1234 -model rb
+\end{SourceCode}
+%\chapter{Future Ideas}
+%Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
+%is set on the color code, to allow arbitrary parts of the matrix to flash.
 
 \chapter{Schematics and Diagrams}
-The following page includes the schematics for the current 3.2.1 version of the readerboard \acronym{PCB}
-and the board assembly diagram, showing where the components are placed.
+The following pages include the schematics for the current 3.3.0 version of the readerboard \acronym{PCB}
+and the board assembly diagram, showing where the components are placed, and the same for the 2.2.0 version
+of the Busylight circuit board and 1.1 light tree tier boards for use with the Busylight units.
+
+Two versions of the light tree octagons are provided. Version 1.1 uses through-hole resistors, while
+version 1.1-S uses surface-mount resistors.
 \newpage
-\noindent\includegraphics[height=.7\textheight,angle=90]{../hardware/matrix64x8_rgb_300_schematic.png}
-\noindent\includegraphics[height=\textheight]{../hardware/matrix64x8_rgb_300_assembly.png}
+\noindent\includegraphics[width=\textheight,angle=90]{images/readerboard_schematic.png}
+\noindent\includegraphics[width=\textheight,angle=90]{images/busylight_schematic.png}
+\noindent\includegraphics[height=\textheight]{images/readerboard-assembly-0.png}
+\noindent\includegraphics[height=\textheight]{images/readerboard-assembly-1.png}
+\newpage
+\noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-0.png}
+\noindent\includegraphics[width=.48\textwidth]{images/busylight_assembly-1.png}
+\newpage
+\noindent\includegraphics[width=.48\textwidth]{images/lighttree-assembly-0.png}
+\noindent\includegraphics[width=.48\textwidth]{images/lighttree-assembly-1.png}
+
+\noindent\includegraphics[width=.48\textwidth]{images/lighttree-assembly-S-0.png}
+\noindent\includegraphics[width=.48\textwidth]{images/lighttree-assembly-S-1.png}
 \indexintoc
 
 \printindex

@@ -1,4 +1,4 @@
-/*
+  /*
  * Readerboard firmware
  *
  * Commands to control the readerboard via USB serial connection.
@@ -9,5 +9,5 @@
 #ifndef READERBOARD_COMMANDS
 #define READERBOARD_COMMANDS
 extern void setup_commands(void);
-extern void receive_serial_data(void);
+extern void receive_serial_data(serial_source_t source);
 #endif

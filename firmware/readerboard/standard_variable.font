@@ -72,7 +72,7 @@
 [$20 space]
 ->$20,0
 
-[$21 exclamation point]
+[$21 !]
 @|
 @|
 @|
@@ -97,7 +97,7 @@
 .@.|
 @..|
 
-[$28 left parenthesis]
+[$29 )]
 @..|
 .@.|
 ..@|
@@ -106,7 +106,7 @@
 .@.|
 @..|
 
-[$29 right parenthesis]
+[$28 (]
 ..@|
 .@.|
 @..|
@@ -174,7 +174,7 @@
 @@|
 ..|
 
-[$3B semi-colon]
+[$3B ;]
 ..|
 @@|
 @@|
@@ -228,9 +228,21 @@
 [$4C L]
 ->$4C,0
 [$4D M]
-->$4D,0
+@.....@|
+@@...@@|
+@.@.@.@|
+@..@..@|
+@.....@|
+@.....@|
+@.....@|
 [$4E N]
-->$4E,0
+@....@|
+@@...@|
+@.@..@|
+@..@.@|
+@...@@|
+@....@|
+@....@|
 [$4F O]
 ->$4F,0
 [$50 P]
@@ -248,14 +260,20 @@
 [$56 V]
 ->$56,0
 [$57 W]
-->$57,0
+@.....@|
+@.....@|
+@.....@|
+@..@..@|
+@.@.@.@|
+@@...@@|
+@.....@|
 [$58 X]
 ->$58,0
 [$59 Y]
 ->$59,0
 [$5A Z]
 ->$5A,0
-[$5B left square bracket]
+[$5B left bracket]
 @@@|
 @..|
 @..|
@@ -267,7 +285,7 @@
 [$5C backslash]
 ->$5C,0
 
-[$5D right square bracket]
+[$5D right bracket]
 @@@|
 ..@|
 ..@|
@@ -360,10 +378,10 @@
 ->$79,0
 [$7A z]
 ->$7A,0
-[$7B open curly brace]
+[$7B open brace]
 ->$7B,0
 
-[$7C vertical bar]
+[$7C |]
 @|
 @|
 @|
@@ -373,24 +391,32 @@
 @|
 @|
 
-[$7D close curly brace]
+[$7D close brace]
 ->$7D,0
 [$7E tilde]
 ->$7E,0
 [$7F delete]
 ->$7F,0
-[$80 open double quote]
+[$80 open dbl quote]
 ->$80,0
-[$81 close double quote]
+[$A8 open dbl quote]
+->$A8,0
+[$81 close dbl quote]
 ->$81,0
 
-[$82 open single quote]
+[$82 ']
+.@|
+@.|
+@@|
+@@|
+
+[$B8 ']
 @@|
 @@|
 @.|
 .@|
 
-[$83 close single quote]
+[$83 `]
 @@|
 @@|
 .@|
@@ -407,7 +433,7 @@
 [$88 double prime]
 ->$88,0
 
-[$89 double exclamation point]
+[$89 double !]
 @.@|
 @.@|
 @.@|
@@ -427,10 +453,16 @@
 [$8E down arrow]
 ->$8E,0
 [$8F not equals]
-->$8F,0
-[$90 less than or equal to]
+......@|
+.....@.|
+@@@@@@@|
+...@...|
+@@@@@@@|
+.@.....|
+@......|
+[$90 less or equal]
 ->$90,0
-[$91 greater than or equal to]
+[$91 greater/equal]
 ->$91,0
 [$92 approximation]
 ->$92,0
@@ -469,14 +501,10 @@
 .@.@@.@@|
 @..@@.@@|
 
-;[$9E undefined]
-;->$9E,0
-;[$9F undefined]
-;->$9F,0
 [$A0 (unicode space)]
 ->$A0,0
 
-[$A1 inverted exclamation point]
+[$A1]
 .|
 @|
 .|
@@ -495,7 +523,7 @@
 [$A5 yen]
 ->$A5,0
 
-[$A6 broken bar]
+[$A6]
 @|
 @|
 @|
@@ -532,14 +560,14 @@
 [$B1 plusminus]
 ->$B1,0
 
-[$B2 superscript 2]
+[$B2 sup 2]
 @@@|
 ..@|
 @@@|
 @..|
 @@@|
 
-[$B3 superscript 3]
+[$B3 sup 3]
 @@@|
 ..@|
 @@@|
@@ -554,7 +582,7 @@
 [$B6 pilcrow]
 ->$B6,0
 
-[$B7 middle dot]
+[$B7 mid dot]
 ...|
 ...|
 @@@|
@@ -565,7 +593,7 @@
 ;[$B8 (unicode cedilla)]
 ;->$B8,0
 
-[$B9 superscript 1]
+[$B9 sup 1]
 .@.|
 @@.|
 .@.|
@@ -588,7 +616,7 @@
 ->$BD,0
 [$BE 3/4]
 ->$BE,0
-[$BF inverted question mark]
+[$BF inverted ?]
 ->$BF,0
 [$C0 A grave]
 ->$C0,0
@@ -603,7 +631,13 @@
 [$C5 A circle]
 ->$C5,0
 [$C6 AE ligature]
-->$C6,0
+..@@@@@@@|
+.@..@....|
+@...@....|
+@@@@@@@@.|
+@...@....|
+@...@....|
+@...@@@@@|
 [$C7 C cedilla]
 ->$C7,0
 [$C8 E grave]
@@ -633,7 +667,7 @@
 .@.|
 @@@|
 
-[$CE I circumflex]
+[$CE I circ]
 .@.|
 @.@|
 @@@|
@@ -665,7 +699,7 @@
 ->$D5,0
 [$D6 O umlaut]
 ->$D6,0
-[$D7 multiplication sign]
+[$D7 multiplication] 
 ->$D7,0
 [$D8 slashed O]
 ->$D8,0
@@ -696,7 +730,13 @@
 [$E5 a circle]
 ->$E5,0
 [$E6 ae ligature]
-->$E6,0
+.........|
+.........|
+.@@@.@@@.|
+....@...@|
+.@@@@@@@.|
+@...@....|
+.@@@@@@@@|
 [$E7 c cedilla]
 ->$E7,0
 [$E8 e grave]
@@ -776,3 +816,8 @@
 ->$FE,0
 [$FF y umlaut]
 ->$FF,0
+; alternative zeroes
+[$9E alt zero]
+->$9E,0
+[$9F alt zero]
+->$9F,0
