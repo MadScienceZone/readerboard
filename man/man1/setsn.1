@@ -1,22 +1,36 @@
-.TH RBSERVER 1 "Readerboard/Busylight Project" 29-Sep-2024
+.TH SETSN 1 "Readerboard/Busylight Project" 29-Sep-2024
 .SH NAME
-rbserver \- Central service to manage readerboards and busylights
+setsn \- Field program a new serial number into a device
 .SH SYNOPSIS
 .na
-.B rbserver
-.RB [ \-conf
-.IR configfile ]
+.B setsn
+.RB [ \-model
+.IR type ]
+.B \-port
+.I name
+.B \-sn
+.I serialno
+.B \-speed
+.I rate
 .ad
 .SH DESCRIPTION
 .LP
-This program opens connections to all the readerboards and busylight units described in its configuration file
-and sends commands to them in order to maintain centrally-controlled messages and status indicators on them.
-It opens an HTTP web service endpoint which provides a simple-to-use interface for other users on the network
-to request display changes on the managed devices.
+After flashing a new firmware image onto a new Readerboard or Busylight device, use this program to
+configure a unique serial number into its EEPROM.
 .SH OPTIONS
 .TP
-.BI "\-conf " configfile
-Read the server configuration from the named file. This is a required parameter.
+.BI "\-model " type
+Specifies the hardware type being programmed. The value of
+.I type
+may be
+.BR rb
+(the default),
+.BR mono ,
+or
+.BR busylight .
+While not strictly required, specifying this parameter may make it easier for
+.B setsn
+to correctly verify that 
 .SH CONFIGURATION
 .LP
 The configuration file is a JSON object with the following fields. All fields have string values unless otherwise indicated.
