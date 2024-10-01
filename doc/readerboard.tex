@@ -1993,6 +1993,20 @@ commands which clients can post to the server to request information to be displ
 content other users have posted. It also provides some services to keep boards updated with information
 known to the server which the devices don't themselves track, such as time of day.
 
+\section{\z{current}---Report Current Display State}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/current?a=|\Var*{ad}
+	\end{Coding}
+\end{center}
+
+Returns a \acronym{JSON}-formatted report as an object with device \acronym{ID}s as the keys
+and values matching the result of the \z{busy} command,
+which gives the server's understanding of what should be displayed on the device(s).
+This differs from \z{busy} in that this does not go through the time and effort to poll each
+device to ask about the hardware status. It merely reports what the server last told the
+devices to display.
+
 \section{\z{post}---Post a Message to the Displays}
 \begin{center}
 	\begin{Coding}

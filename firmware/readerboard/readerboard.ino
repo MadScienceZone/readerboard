@@ -159,32 +159,32 @@ const int PIN_R1    = 67;   // row address 1
 const int PIN_R2    = 68;   // row address 2
 const int PIN_R4    = 69;   // row address 4
 const int PIN_R3    = 19;   // row address 3
-const int PIN_L0    =  2;   // discrete LED 0 (bottom) (green)
-const int PIN_L1    =  3;   // discrete LED 1 (yellow)
-const int PIN_L2    =  4;   // discrete LED 2 (yellow)
-const int PIN_L3    =  5;   // discrete LED 3 (red)
-const int PIN_L4    =  9;   // discrete LED 4 (red)
-const int PIN_L5    =  8;   // discrete LED 5 (blue)
-const int PIN_L6    =  7;   // discrete LED 6 (blue)
-const int PIN_L7    =  6;   // discrete LED 7 (top) (white)
+const int PIN_L0    =  2;   // discrete LED 0 (bottom)
+const int PIN_L1    =  3;   // discrete LED 1 
+const int PIN_L2    =  4;   // discrete LED 2
+const int PIN_L3    =  5;   // discrete LED 3
+const int PIN_L4    =  9;   // discrete LED 4
+const int PIN_L5    =  8;   // discrete LED 5
+const int PIN_L6    =  7;   // discrete LED 6
+const int PIN_L7    =  6;   // discrete LED 7 (top) 
 const int PIN_DE    = 16;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   = 17;   // RS-485 ~receiver enable (0=enabled)
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_1xx
-const int PIN_L0    = 16;   // discrete LED 0 (bottom) (green)
-const int PIN_L1    = 14;   // discrete LED 1 (yellow)
-const int PIN_L2    =  9;   // discrete LED 2 (yellow)
-const int PIN_L3    =  8;   // discrete LED 3 (red)
-const int PIN_L4    =  6;   // discrete LED 4 (red)
-const int PIN_L5    =  7;   // discrete LED 5 (blue)
-const int PIN_L6    = 10;   // discrete LED 6 (blue)
+const int PIN_L0    = 16;   // discrete LED 0 (bottom)
+const int PIN_L1    = 14;   // discrete LED 1 
+const int PIN_L2    =  9;   // discrete LED 2 
+const int PIN_L3    =  8;   // discrete LED 3 
+const int PIN_L4    =  6;   // discrete LED 4 
+const int PIN_L5    =  7;   // discrete LED 5 
+const int PIN_L6    = 10;   // discrete LED 6 (top)
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_2xx
-const int PIN_L0    = 16;   // discrete LED 0 (bottom) (green)
-const int PIN_L1    = 14;   // discrete LED 1 (yellow)
-const int PIN_L2    =  9;   // discrete LED 2 (yellow)
-const int PIN_L3    =  8;   // discrete LED 3 (red)
-const int PIN_L4    =  6;   // discrete LED 4 (red)
-const int PIN_L5    =  7;   // discrete LED 5 (blue)
-const int PIN_L6    = 10;   // discrete LED 6 (blue)
+const int PIN_L0    = 16;   // discrete LED 0 (bottom)
+const int PIN_L1    = 14;   // discrete LED 1 
+const int PIN_L2    =  9;   // discrete LED 2 
+const int PIN_L3    =  8;   // discrete LED 3 
+const int PIN_L4    =  6;   // discrete LED 4 
+const int PIN_L5    =  7;   // discrete LED 5 
+const int PIN_L6    = 10;   // discrete LED 6 (top)
 const int PIN_DE    =  2;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   =  3;   // RS-485 ~receiver enable (0=enabled)
 #else
@@ -194,14 +194,14 @@ const int PIN__RE   =  3;   // RS-485 ~receiver enable (0=enabled)
 #if IS_READERBOARD
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
 const byte discrete_led_labels[8] = {
-    STATUS_LED_COLOR_L0,
-    STATUS_LED_COLOR_L1,
-    STATUS_LED_COLOR_L2,
-    STATUS_LED_COLOR_L3,
-    STATUS_LED_COLOR_L4,
-    STATUS_LED_COLOR_L5,
-    STATUS_LED_COLOR_L6,
-    STATUS_LED_COLOR_L7,
+    R_STATUS_LED_COLOR_L0,
+    R_STATUS_LED_COLOR_L1,
+    R_STATUS_LED_COLOR_L2,
+    R_STATUS_LED_COLOR_L3,
+    R_STATUS_LED_COLOR_L4,
+    R_STATUS_LED_COLOR_L5,
+    R_STATUS_LED_COLOR_L6,
+    R_STATUS_LED_COLOR_L7,
 };
 const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5, PIN_D6, PIN_D7};
 #else
@@ -216,13 +216,13 @@ const byte discrete_led_labels[7] = {
     'r',
     'B',
 # else
-    STATUS_LED_COLOR_L0,
-    STATUS_LED_COLOR_L1,
-    STATUS_LED_COLOR_L2,
-    STATUS_LED_COLOR_L3,
-    STATUS_LED_COLOR_L4,
-    STATUS_LED_COLOR_L5,
-    STATUS_LED_COLOR_L6,
+    B_STATUS_LED_COLOR_L0,
+    B_STATUS_LED_COLOR_L1,
+    B_STATUS_LED_COLOR_L2,
+    B_STATUS_LED_COLOR_L3,
+    B_STATUS_LED_COLOR_L4,
+    B_STATUS_LED_COLOR_L5,
+    B_STATUS_LED_COLOR_L6,
 # endif
 };
 #endif
@@ -900,6 +900,7 @@ void flag_ready(void)
 
 void flag_test(void)
 {
+#if IS_READERBOARD
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
         digitalWrite(discrete_led_set[i], HIGH);
         delay(100);
@@ -908,6 +909,12 @@ void flag_test(void)
         digitalWrite(discrete_led_set[i], LOW);
         delay(100);
     }
+#else
+    for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
+        digitalWrite(discrete_led_set[i], LOW);
+    }
+#endif
+
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
         digitalWrite(discrete_led_set[i], HIGH);
         delay(100);

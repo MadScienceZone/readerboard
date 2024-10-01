@@ -1051,6 +1051,9 @@ func WrapInternalHandler(f func([]int, url.Values) error, config *ConfigData) fu
 	}
 }
 
+func Current(_ []int, _ url.Values) error {
+	return fmt.Errorf("not yet implemented")
+}
 func Post(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }

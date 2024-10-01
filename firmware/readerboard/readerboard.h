@@ -62,14 +62,25 @@ Libraries Required:
 //
 // TODO: Adjust these for the colors of discrete status LEDs on this unit. These
 //       can be used for color values in commands sent to the device.
-#define STATUS_LED_COLOR_L0 ('G')
-#define STATUS_LED_COLOR_L1 ('y')
-#define STATUS_LED_COLOR_L2 ('Y')
-#define STATUS_LED_COLOR_L3 ('r')
-#define STATUS_LED_COLOR_L4 ('R')
-#define STATUS_LED_COLOR_L5 ('b')
-#define STATUS_LED_COLOR_L6 ('B')
-#define STATUS_LED_COLOR_L7 ('W')
+//
+//       READERBOARDS (8 LIGHTS)
+#define R_STATUS_LED_COLOR_L0 ('G')
+#define R_STATUS_LED_COLOR_L1 ('y')
+#define R_STATUS_LED_COLOR_L2 ('Y')
+#define R_STATUS_LED_COLOR_L3 ('r')
+#define R_STATUS_LED_COLOR_L4 ('R')
+#define R_STATUS_LED_COLOR_L5 ('b')
+#define R_STATUS_LED_COLOR_L6 ('B')
+#define R_STATUS_LED_COLOR_L7 ('W')
+//
+//       BUSYLIGHTS (7 LIGHTS)
+#define B_STATUS_LED_COLOR_L0 ('G')
+#define B_STATUS_LED_COLOR_L1 ('y')
+#define B_STATUS_LED_COLOR_L2 ('Y')
+#define B_STATUS_LED_COLOR_L3 ('r')
+#define B_STATUS_LED_COLOR_L4 ('R')
+#define B_STATUS_LED_COLOR_L5 ('B')
+#define B_STATUS_LED_COLOR_L6 ('W')
 //
 // TODO: Adjust these for your version and serial number
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
