@@ -117,33 +117,21 @@ func TestSketchImage(t *testing.T) {
 				".G..b.",
 				"G....b"}, false},
 		// 8
-		{ImageBitmap{2, 6, [][]byte{
-			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
-			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
-			true,
-			[]string{
-				"@@@@@@",
-				"......",
-				"@....@",
-				".@..@.",
-				"..@@..",
-				"..@@..",
-				".@..@.",
-				"@....@"}, false},
-		// 9
-		{ImageBitmap{2, 6, [][]byte{
-			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
+		{ImageBitmap{4, 6, [][]byte{
+			{0x01, 0x01, 0x31, 0x31, 0x01, 0x01},
+			{0x80, 0x40, 0x30, 0x30, 0x08, 0x04},
+			{0x04, 0x08, 0x30, 0x31, 0x40, 0x80},
 			{0x01, 0x01, 0x01, 0x30, 0x40, 0x80}}},
 			true,
 			[]string{
-				"\033[1;5m#\033[0m\033[1;5m#\033[0m\033[1;5m#\033[0m@@@",
+				"\033[5;31mr\033[0m\033[5;31mr\033[0m\033[5;31mr\033[0m\033[35mM\033[0m\033[31mR\033[0m\033[31mR\033[0m",
 				"......",
-				"@....@",
-				".@..@.",
-				"..@\033[1;5m#\033[0m..",
-				"..@\033[1;5m#\033[0m..",
-				".@..\033[1;5m#\033[0m.",
-				"@....\033[1;5m#\033[0m"}, false},
+				"\033[34mB\033[0m....\033[32mG\033[0m",
+				".\033[34mB\033[0m..\033[32mG\033[0m.",
+				"..\033[37mW\033[0m\033[5;37mw\033[0m..",
+				"..\033[37mW\033[0m\033[5;37mw\033[0m..",
+				".\033[32mG\033[0m..\033[5;34mb\033[0m.",
+				"\033[32mG\033[0m....\033[5;34mb\033[0m"}, false},
 	} {
 		sketch, err := SketchImage(tcase.input, tcase.color)
 		if err != nil {
@@ -159,5 +147,115 @@ func TestSketchImage(t *testing.T) {
 		}
 	}
 }
+
 func TestImageFromASCII(t *testing.T) {
+	for i, tcase := range []struct {
+		expected      ImageBitmap
+		input         []string
+		depth         int
+		errorExpected bool
+	}{
+		{ImageBitmap{0, 0, nil}, nil, 2, false},
+		{ImageBitmap{0, 0, nil}, nil, 1, true},
+		{ImageBitmap{2, 6, [][]byte{
+			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
+			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
+			[]string{
+				"@@@@@@",
+				"......",
+				"@....@",
+				".@..@.",
+				"..@@..",
+				"..@@..",
+				".@..@.",
+				"@....@"}, 2, false},
+		// 2
+		{ImageBitmap{2, 6, [][]byte{
+			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
+			{0x01, 0x01, 0x01, 0x30, 0x40, 0x80}}},
+			[]string{
+				"###@@@",
+				"......",
+				"@....@",
+				".@..@.",
+				"..@#..",
+				"..@#..",
+				".@..#.",
+				"@....#"}, 2, false},
+		// 3
+		{ImageBitmap{2, 6, [][]byte{
+			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
+			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
+			[]string{
+				"@@@@@@",
+				"......",
+				"@....@",
+				".@..@.",
+				"..@@..",
+				"..@@..",
+				".@..@.",
+				"@....@"}, 2, false},
+		// 4
+		{ImageBitmap{4, 6, [][]byte{
+			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
+			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
+			[]string{
+				"@@@@@@",
+				"......",
+				"@....@",
+				".@..@.",
+				"..@@..",
+				"..@@..",
+				".@..@.",
+				"@....@"}, 2, true},
+		// 6
+		{ImageBitmap{4, 6, [][]byte{
+			{0x01, 0x01, 0x31, 0x31, 0x01, 0x01},
+			{0x80, 0x40, 0x30, 0x30, 0x08, 0x04},
+			{0x04, 0x08, 0x30, 0x31, 0x40, 0x80},
+			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
+			[]string{
+				"RRRMRR",
+				"......",
+				"B....G",
+				".B..G.",
+				"..WW..",
+				"..WW..",
+				".G..B.",
+				"G....B"}, 4, false},
+		// 7
+		{ImageBitmap{4, 6, [][]byte{
+			{0x01, 0x01, 0x31, 0x31, 0x01, 0x01},
+			{0x80, 0x40, 0x30, 0x30, 0x08, 0x04},
+			{0x04, 0x08, 0x30, 0x31, 0x40, 0x80},
+			{0x01, 0x01, 0x01, 0x30, 0x40, 0x80}}},
+			[]string{
+				"rrrMRR",
+				"......",
+				"B....G",
+				".B..G.",
+				"..Ww..",
+				"..Ww..",
+				".G..b.",
+				"G....b"}, 4, false},
+	} {
+		img, err := ImageFromASCII(tcase.input, tcase.depth)
+		if err != nil {
+			if !tcase.errorExpected {
+				t.Fatalf("test case %d error: %v", i, err)
+			}
+			continue
+		} else if tcase.errorExpected {
+			t.Fatalf("test case %d expected to throw an error but it didn't.", i)
+		}
+		if img.Depth != tcase.expected.Depth ||
+			img.Width != tcase.expected.Width {
+			t.Errorf("test case %d returned %q but expected %q", i, img, tcase.expected)
+		}
+		for k, plane := range img.Planes {
+			if slices.Compare(plane, tcase.expected.Planes[k]) != 0 {
+				t.Errorf("test case %d returned %q but expected %q (plane %d)", i, img, tcase.expected, k)
+			}
+		}
+	}
 }
