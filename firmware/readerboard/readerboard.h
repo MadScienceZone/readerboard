@@ -30,11 +30,22 @@ Libraries Required:
 #define HW_MC_DUE (1)
 #define HW_MC_PRO (2)
 
+#define EE_ADDRESS_DISABLED (0xff) /* use this as the address if the RS-485 interface is not used */
+
+
+//_____________________________________________________________________________
+//   ____ ___  _   _ _____ ___ ____ _   _ ____      _  _____ ___ ___  _   _ 
+//  / ___/ _ \| \ | |  ___|_ _/ ___| | | |  _ \    / \|_   _|_ _/ _ \| \ | |
+// | |  | | | |  \| | |_   | | |  _| | | | |_) |  / _ \ | |  | | | | |  \| |
+// | |__| |_| | |\  |  _|  | | |_| | |_| |  _ <  / ___ \| |  | | |_| | |\  |
+//  \____\___/|_| \_|_|   |___\____|\___/|_| \_\/_/   \_\_| |___\___/|_| \_|
+//_____________________________________________________________________________
+//                                                                          
 // BEGIN CONFIGURATION SECTION
 // TODO: Set these before compiling for a particular hardware configuration
 #define HW_MODEL (MODEL_3xx_RGB)
 #define HW_MC (HW_MC_DUE)
-//#define HW_MODEL (MODEL_BUSYLIGHT_1)
+//#define HW_MODEL (MODEL_BUSYLIGHT_2)
 //#define HW_MC (HW_MC_PRO)
 #define HAS_I2C_EEPROM (false)
 
@@ -51,7 +62,6 @@ Libraries Required:
 #define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
 #define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
 //
-#define EE_ADDRESS_DISABLED (0xff) /* use this as the address if the RS-485 interface is not used */
 
 // Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
 // you won't be using RS-485 at all.)
@@ -85,9 +95,9 @@ Libraries Required:
 // TODO: Adjust these for your version and serial number
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.1.3  "
+#define BANNER_FIRMWARE_VERS "FW 2.1.4  "
 #endif
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.4$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
@@ -101,10 +111,15 @@ Libraries Required:
 //#define BESPOKE_SERIAL_NUMBER "RBXXXX"
 //
 // END CONFIGURATION SECTION
+//______________________________________________________________________________
 
-// some definitions for known devices and their hardware configurations
+//
+// You should not need to change anything below this point.
+// 
+
+// Some definitions for known prototype devices and their nonstandard hardware configurations
 //#define SN_B0001
-#define SN_RB0000
+//#define SN_RB0000
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
