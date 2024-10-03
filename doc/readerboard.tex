@@ -183,7 +183,7 @@ heat or static electricity discharge.
 		C10&1&\mouser{667-ECA-1HM100I}&10 $\mu$F electrolytic capacitor\\
 		D0--511&512&&\led, 5mm, \acronym{RGB}, common cathode\\
 		D512&1&&\led, 5mm, green\\
-		D513--14&2&&\led, 5mm, yellow\\
+		D513--14&2&&\led, 5mm, amber (yellow)\\
 		D515--16&2&&\led, 5mm, red\\
 		D517--18&2&&\led, 5mm, blue\\
 		D519&1&&\led, 5mm, white\\
@@ -242,8 +242,9 @@ in the way of connecting subsequent ones. For example:
 	\item Solder the single-color \led s D512--D519 in the colors of your choice, being mindful of the polarity. The anode has a square pin on the \acronym{PCB}. Our recommendation:
 		\begin{itemize}
 			\item D512 (bottom): green (with R24=300$\Omega$)\footnote{Resistor values based on typical \led\ voltage and current ratings. Check to see what is appropriate for your components.}
-			\item D513: yellow (with R25=360$\Omega$)
-			\item D514: yellow (with R26=360$\Omega$)
+			\item D513: amber\footnote{In deference to the effort my high school drama teacher went through to get us to refer to any yellow stage lights and gels as ``amber'' and the
+				preference to using ``amber'' for signal lamp colors in other contexts and regions, both terms will be used interchangeably in this project.} (with R25=360$\Omega$)
+			\item D514: amber (with R26=360$\Omega$)
 			\item D515: red (with R27=360$\Omega$)
 			\item D516: red (with R28=360$\Omega$)
 			\item D517: blue (with R29=300$\Omega$)
@@ -331,10 +332,10 @@ the electronic components themselves from harm due to heat or static electricity
 		\bottomrule
 		\multicolumn{4}{p{\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
 		for the LEDs to be used on that tier. Assuming a 5\,V supply and
-		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and yellow LEDs and 100$\Omega$ or larger
+		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and amber LEDs and 100$\Omega$ or larger
 		for blue, green, and white LEDs. Check your LED datasheet to confirm.
 
-		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$yellow, 2$\times$red,
+		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$amber, 2$\times$red,
 		blue, and white).
 
 		\noindent$\ddagger$One idea for an inexpensive enclosure is a clear plastic tube storage container with an inside
@@ -384,11 +385,11 @@ solder points without some parts getting in the way of connecting subsequent one
 			\item Solder one end of the cable to P0, the 8-bin \acronym{DIN} plug. Suggested color assignments:
 				\begin{itemize}
 					\item Pin 1 (sixth tier/blue): blue	
-					\item Pin 2 (third tier/yellow): brown/white
+					\item Pin 2 (third tier/amber): brown/white
 					\item Pin 3 (fifth tier/red): orange/white
 					\item Pin 4 (fourth tier/red): orange
 					\item Pin 5 (seventh tier/white): blue/white
-					\item Pin 6 (second tier/yellow): brown
+					\item Pin 6 (second tier/amber): brown
 					\item Pin 7 (+5\,V supply): green
 					\item Pin 8 (bottom tier/green): green/white
 				\end{itemize}
@@ -1486,8 +1487,8 @@ corresponding position in the sequence.
 			\z{b} & L$_5$ & blue \\
 			\z{R} & L$_4$ & red \\
 			\z{r} & L$_3$ & red \\
-			\z{Y} & L$_2$ & yellow \\
-			\z{y} & L$_1$ & yellow \\
+			\z{Y} & L$_2$ & amber \\
+			\z{y} & L$_1$ & amber \\
 			\z{G} & L$_0$ & green \\
 			\z{\_}& --- & (no \led/off) \\
 			\z0--\z9&L$_0$--L$_9$&\led\ installed at physical position 0--9\\
@@ -1697,7 +1698,7 @@ Note that anything drawn in black simply turns off the corresponding pixels.
 		\z0&off&\z8& off\\
 		\z1&red&\z9&flashing red\\
 		\z2&green&\z:&flashing green\\
-		\z3&yellow&\z;&flashing yellow\\
+		\z3&amber&\z;&flashing amber\\
 		\z4&blue&\z<&flashing blue\\
 		\z5&magenta&\z=&flashing magenta\\
 		\z6&cyan&\z>&flashing cyan\\
@@ -1997,6 +1998,14 @@ Turns off the flasher, strober, and all discrete \led s.
 
 This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____  _____ ______     _______ ____        ___  _   _ _  __   __
+% / ___|| ____|  _ \ \   / / ____|  _ \      / _ \| \ | | | \ \ / /
+% \___ \|  _| | |_) \ \ / /|  _| | |_) |____| | | |  \| | |  \ V / 
+%  ___) | |___|  _ < \ V / | |___|  _ <_____| |_| | |\  | |___| |  
+% |____/|_____|_| \_\ \_/  |_____|_| \_\     \___/|_| \_|_____|_|  
+% 
 \chapter{Server-Only Commands}
 \epigraph{The enjoyment of one’s tools is an essential ingredient of successful work.}{---Donald E. Knuth}
 \LJversal{F}{or the most part} the server exists as a way to host readerboards and busylights from a central machine
@@ -2097,7 +2106,7 @@ can use here.)
 			\z{0}&\z{off} & \z{8}&\z{flashing-off}* \\
 			\z{1}&\z{red} & \z{9}&\z{flashing-red} \\
 			\z{2}&\z{green} & \z{10} or \z{:}&\z{flashing-green} \\
-			\z{3}&\z{yellow} & \z{11} or \z{;}&\z{flashing-yellow} \\
+			\z{3}&\z{amber}/\z{yellow} & \z{11} or \z{;}&\z{flashing-amber}/\z{flashing-yellow} \\
 			\z{4}&\z{blue} & \z{12} or \z{<}&\z{flashing-blue} \\
 			\z{5}&\z{magenta} & \z{13} or \z{=}&\z{flashing-magenta} \\
 			\z{6}&\z{cyan} & \z{14} or \z{>}&\z{flashing-cyan} \\
@@ -2191,6 +2200,13 @@ For each \Var*{name} and \Var*{value} pair, define or update the corresponding
 user variable (usable in posted messages as \z{\{\$}\Var*{name}\z{\}}). The
 updated value will be displayed from this point until it is updated again.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____ ___ _   _  ___  _   _ _____ ____  
+% |  _ \_ _| \ | |/ _ \| | | |_   _/ ___| 
+% | |_) | ||  \| | | | | | | | | | \___ \ 
+% |  __/| || |\  | |_| | |_| | | |  ___) |
+% |_|  |___|_| \_|\___/ \___/  |_| |____/ 
+%                                         
 \chapter{Pinouts}
 %\epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
 \epigraph{The nicest thing about standards is that there are so many of them to choose from.}{---Andrew S. Tanenbaum}
@@ -2274,18 +2290,18 @@ voltages out to the light tree itself. The pinout used is:
 	\begin{center}
 		\includegraphics[width=1in]{images/din8.png}\\
 		{\tiny Image: adapted from original by Ancillalover, Wikimedia Commons, CC-BY-SA 4.0 int'l.}
-		\caption{DIN-9 Jack (looking into socket from front)\label{fig:din9}}
+		\caption{DIN-8 Jack (looking into socket from front)\label{fig:din9}}
 	\end{center}
 \end{figure}
 \begin{center}
 	\begin{tabular}{ccll}\toprule
 		\bfseries Pin & \bfseries Tier & \bfseries Light Color & \bfseries Wire Color\\\midrule
 		1&6&blue&blue\\
-		2&3&yellow&white/brown\\
+		2&3&amber&white/brown\\
 		3&5&red&white/orange\\
 		4&4&red&orange\\
 		5&7&white&white/blue\\
-		6&2&yellow&brown\\
+		6&2&amber&brown\\
 		7&&+5\,V power&green\\
 		8&1&green&white/green\\\bottomrule
 	\end{tabular}
@@ -2490,10 +2506,33 @@ those terminals to terminate the network at that point.
 \end{center}
 }
 
-\chapter{Installing the Readerboard Unit}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ___ _   _ ____ _____  _    _     _     ___ _   _  ____ 
+% |_ _| \ | / ___|_   _|/ \  | |   | |   |_ _| \ | |/ ___|
+%  | ||  \| \___ \ | | / _ \ | |   | |    | ||  \| | |  _ 
+%  | || |\  |___) || |/ ___ \| |___| |___ | || |\  | |_| |
+% |___|_| \_|____/ |_/_/   \_\_____|_____|___|_| \_|\____|
+%                                                         
+\chapter{Installing and Using the Readerboard and Busylight Units}
 \epigraph{See, unlike most hackers, I get little joy out of figuring out how to install the latest toy.}{---Jamie Zawinski}
-\chapter{Using the Readerboard}
+\section{Standalone Units}
+\section{Networked Units}
+\section{Compiling the Supporting Software}
+\section{Setting up \z{rbserver}}
+\section{Setting up Per-User Utilities}
+\subsection{\z{calmond}}
+\subsection{\z{micmond}}
+\subsection{Manual Status Updates}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  _____ ___  _   _ _____ ____  
+% |  ___/ _ \| \ | |_   _/ ___| 
+% | |_ | | | |  \| | | | \___ \ 
+% |  _|| |_| | |\  | | |  ___) |
+% |_|   \___/|_| \_| |_| |____/ 
+%                               
 \chapter{Font Glyphs}\label{chap:fonts}
+\epigraph{Helvetica is the sweatpants of typefaces.}{---John Boardley}
 \input{../firmware/readerboard/fonts.tex}
 \section{Font Definition Files}
 In the \z{firmware/readerboard} directory there are a set of files with \z{.font} suffixes,
@@ -2593,7 +2632,15 @@ as Font~\#0, such as:
 ->$23,0
 \end{SourceCode}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  _____ ___ ____  __  ____        ___    ____  _____ 
+% |  ___|_ _|  _ \|  \/  \ \      / / \  |  _ \| ____|
+% | |_   | || |_) | |\/| |\ \ /\ / / _ \ | |_) |  _|  
+% |  _|  | ||  _ <| |  | | \ V  V / ___ \|  _ <| |___ 
+% |_|   |___|_| \_\_|  |_|  \_/\_/_/   \_\_| \_\_____|
+%                                                     
 \chapter{Preparing and Updating Firmware Images}\label{chap:firmware}
+\epigraph{Software is a great combination between artistry and engineering.}{---Bill Gates}
 The firmware that runs on the readerboard hardware (or, more precisely, the Arduino single-board
 computer attached to the circuit board) is located in the \z{firmware/readerboard} directory of the
 readerboard project repository.
@@ -2795,8 +2842,16 @@ number of this device. For example:
 %Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
 %is set on the color code, to allow arbitrary parts of the matrix to flash.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____   ____ _   _ _____ __  __    _  _____ ___ ____ ____  
+% / ___| / ___| | | | ____|  \/  |  / \|_   _|_ _/ ___/ ___| 
+% \___ \| |   | |_| |  _| | |\/| | / _ \ | |  | | |   \___ \ 
+%  ___) | |___|  _  | |___| |  | |/ ___ \| |  | | |___ ___) |
+% |____/ \____|_| |_|_____|_|  |_/_/   \_\_| |___\____|____/ 
+%                                                            
 \chapter{Schematics and Diagrams}
-The following pages include the schematics for the current 3.3.0 version of the readerboard \acronym{PCB}
+\epigraph{Whether you draw diagrams that generate code or you type at a browser, you are coding.}{---Kent Beck}
+The following pages include the schematics for the current 3.3.1 version of the readerboard \acronym{PCB}
 and the board assembly diagram, showing where the components are placed, and the same for the 2.2.0 version
 of the Busylight circuit board and 1.1 light tree tier boards for use with the Busylight units.
 

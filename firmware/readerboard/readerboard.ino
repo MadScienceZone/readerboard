@@ -23,7 +23,10 @@
 #include <TimerEvent.h>
 #include "fonts.h"
 #include "readerboard.h"
-#if HW_MC != HW_MC_DUE
+#if HAS_I2C_EEPROM
+# include "I2C_eeprom.h"
+I2C_eeprom xEEPROM(0x50, I2C_DEVICESIZE_24LC256);
+#elif HW_MC != HW_MC_DUE
 # include <EEPROM.h>
 #endif
 #include "commands.h"
@@ -949,7 +952,16 @@ void strobe_status(void)
 
 void reset_eeprom_values(void)
 {
-#if HW_MC != HW_MC_DUE
+#if HAS_I2C_EEPROM
+    xEEPROM.writeByte(EE_ADDR_LAYOUT, EE_VALUE_LAYOUT);
+    xEEPROM.writeByte(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+    xEEPROM.writeByte(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+    xEEPROM.writeByte(EE_ADDR_DEVICE_ADDR, EE_DEFAULT_ADDRESS);
+    xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS);
+    xEEPROM.writeByte(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
+    xEEPROM.writeByte(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
+    xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0);
+#elif HW_MC != HW_MC_DUE
     EEPROM.write(EE_ADDR_LAYOUT, EE_VALUE_LAYOUT);
     EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
     EEPROM.write(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
@@ -963,32 +975,47 @@ void reset_eeprom_values(void)
 
 void store_serial_number(const char *sn)
 {
+#if HAS_I2C_EEPROM
+        xEEPROM.writeBlock(EE_ADDR_SERIAL_NO, (const byte *)sn, EE_LENGTH_SERIAL_NO);
+        strncpy(serial_number, sn, EE_LENGTH_SERIAL_NO);
+        serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+#else
     int i;
     for (i=0; i<EE_LENGTH_SERIAL_NO-1 && sn[i] != '\0'; i++) {
-#if HW_MC != HW_MC_DUE
+# if HW_MC != HW_MC_DUE
         EEPROM.write(EE_ADDR_SERIAL_NO+i, sn[i]);
-#endif
+# endif
         serial_number[i] = sn[i];
     }
     for (; i<EE_LENGTH_SERIAL_NO; i++) {
-#if HW_MC != HW_MC_DUE
+# if HW_MC != HW_MC_DUE
         EEPROM.write(EE_ADDR_SERIAL_NO+i, 0);
-#endif
+# endif
         serial_number[i] = '\0'; 
     }
+#endif
 }
 
 void save_eeprom(void)
 {
-#if HW_MC == HW_MC_MEGA_2560
+#if HAS_I2C_EEPROM
+    if (xEEPROM.readByte(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  xEEPROM.readByte(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  xEEPROM.readByte(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    xEEPROM.writeByte(EE_ADDR_USB_SPEED, USB_baud_rate_code);
+    xEEPROM.writeByte(EE_ADDR_485_SPEED, RS485_baud_rate_code);
+    xEEPROM.writeByte(EE_ADDR_DEVICE_ADDR, my_device_address);
+    xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, global_device_address);
+#elif HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"
 #elif HW_MC == HW_MC_DUE
-# if HAS_I2C_EEPROM
-#  error "Support for Due w/external EEPROM not implemented"
-# else
-#  warning "Arduino Due without external EEPROM module selected; cannot configure any system parameters!"
-#  warning "*** Configure desired parameters into this firmware image as the 'default' values ***"
-# endif
+# warning "Arduino Due without external EEPROM module is selected!"
+# warning "*** The unit will not be able to persistently store device settings or S/N."
+# warning "*** Configure any desired settings here in firmware as 'defaults'."
 #elif HW_MC == HW_MC_PRO
     if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
     ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
@@ -1020,15 +1047,35 @@ void setup_eeprom(void)
 #endif
 
 
-#if HW_MC == HW_MC_MEGA_2560
+#if HAS_I2C_EEPROM
+    if (xEEPROM.readByte(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  xEEPROM.readByte(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  xEEPROM.readByte(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    USB_baud_rate_code = xEEPROM.readByte(EE_ADDR_USB_SPEED);
+    RS485_baud_rate_code = xEEPROM.readByte(EE_ADDR_485_SPEED);
+    USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    if (USB_baud_rate == 0) {
+        xEEPROM.writeByte(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
+        USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    }
+    if (RS485_baud_rate == 0) {
+        xEEPROM.writeByte(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_485_SPEED;
+        RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    }
+
+    xEEPROM.readBlock(EE_ADDR_SERIAL_NO, (byte *)serial_number, EE_LENGTH_SERIAL_NO);
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+#elif HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"
 #elif HW_MC == HW_MC_DUE
-# if HAS_I2C_EEPROM
-#  error "Support for Due w/external EEPROM not implemented"
-# else
-#  warning "Arduino Due without external EEPROM module selected; cannot configure any system parameters!"
-#  warning "*** Configure desired parameters into this firmware image as the 'default' values ***"
-# endif
+# warning "Arduino Due without external EEPROM module selected"
 #elif HW_MC == HW_MC_PRO
     if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
     ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
@@ -1381,6 +1428,10 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
 //
 void setup(void)
 {
+#if HAS_I2C_EEPROM
+    Wire.begin();
+    xEEPROM.begin();
+#endif
     setup_pins();
     setup_eeprom();
     flasher.stop();
@@ -1457,6 +1508,21 @@ void setup(void)
 #endif
     flag_ready();
     flasher.stop();
+
+#ifdef SERIAL_DEBUG
+    Serial.write("EEPROM\r\n");
+#if HAS_I2C_EEPROM
+    byte block[64];
+    char bbuf[64];
+    Serial.write(xEEPROM.isConnected() ? "connected " : "MISSING ");
+    xEEPROM.readBlock(0, block, 64);
+    for (int i=0; i<64; i++) {
+        sprintf(bbuf, "%02X ", block[i]);
+        Serial.write(bbuf);
+    }
+    Serial.write("\r\n");
+#endif
+#endif
 }
 
 int parse_baud_rate_code(byte code)
@@ -1906,7 +1972,7 @@ byte decode_rgb(byte n)
 void debug_image_buffer(byte buf[N_ROWS][N_COLS])
 {
     char rbuf[16];
-    Serial.write("image buffer\n");
+    Serial.write("image buffer\r\n");
     for (int row=0; row<N_ROWS; row++) {
         sprintf(rbuf, "[%d] ", row);
         Serial.write(rbuf);
@@ -1931,16 +1997,16 @@ void debug_image_buffer(byte buf[N_ROWS][N_COLS])
                 default: Serial.write("?");break;
             }
         }
-        Serial.write('\n');
+        Serial.write("\r\n");
     }
 }
 
 void debug_hw_buffer(void)
 {
     char rbuf[16];
-    Serial.write("hardware buffer\n");
+    Serial.write("hardware buffer\r\n");
     for (int plane=0; plane < N_COLORS; plane++) {
-        Serial.write(plane==0? "RED\n":(plane==1? "GREEN\n":(plane==2? "BLUE\n":(plane==3? "FLASHING\n" : "UNKNOWN\n"))));
+        Serial.write(plane==0? "RED\r\n":(plane==1? "GREEN\r\n":(plane==2? "BLUE\r\n":(plane==3? "FLASHING\r\n" : "UNKNOWN\r\n"))));
         for (int row=0; row < N_ROWS; row++) {
             sprintf(rbuf, "[%d] ", row);
             Serial.write(rbuf);
@@ -1948,7 +2014,7 @@ void debug_hw_buffer(void)
                 sprintf(rbuf, " %02X", hw_buffer[plane][row][cblk]);
                 Serial.write(rbuf);
             }
-            Serial.write("\n");
+            Serial.write("\r\n");
         }
     }
 }
