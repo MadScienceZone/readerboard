@@ -110,6 +110,7 @@ func main() {
 	http.HandleFunc("/readerboard/v1/test", readerboard.WrapHandler(readerboard.Test, configData, true))
 	http.HandleFunc("/readerboard/v1/text", readerboard.WrapHandler(readerboard.Text, configData, true))
 	http.HandleFunc("/readerboard/v1/configure-device", readerboard.WrapHandler(readerboard.ConfigureDevice, configData, false))
+	http.HandleFunc("/readerboard/v1/diag-banners", readerboard.WrapHandler(readerboard.DiagBanners, configData, false))
 
 	http.HandleFunc("/readerboard/v1/query", readerboard.WrapReplyHandler(readerboard.Query, configData))
 	http.HandleFunc("/readerboard/v1/busy", readerboard.WrapReplyHandler(readerboard.QueryStatus, configData))

@@ -45,6 +45,7 @@ Libraries Required:
 // TODO: Set these before compiling for a particular hardware configuration
 #define HW_MODEL (MODEL_3xx_RGB)
 #define HW_MC (HW_MC_DUE)
+//#define HW_MC (HW_MC_MEGA_2560)
 //#define HW_MODEL (MODEL_BUSYLIGHT_2)
 //#define HW_MC (HW_MC_PRO)
 #define HAS_I2C_EEPROM (false)
@@ -95,9 +96,9 @@ Libraries Required:
 // TODO: Adjust these for your version and serial number
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.1.5  "
+#define BANNER_FIRMWARE_VERS "FW 2.1.8  "
 #endif
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.5$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.8$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
@@ -119,15 +120,15 @@ Libraries Required:
 
 // Some definitions for known prototype devices and their nonstandard hardware configurations
 //#define SN_B0001
-#define SN_RB0000
+//#define SN_RB0000
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
-# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.5$"
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.8$"
 # define HW_MC (HW_MC_PRO)
 #endif
 #ifdef SN_RB0000
-# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.5$"
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.8$"
 # define BANNER_HARDWARE_VERS "HW 3.2.2  "
 //# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)
@@ -231,6 +232,7 @@ extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
 extern void shift_left(byte buffer[N_ROWS][N_COLS]);
 extern void setup_buffers(void);
 extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false);
+extern void show_banner(void);
 #endif /* IS_READERBOARD */
 
 extern byte USB_baud_rate_code;

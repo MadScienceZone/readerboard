@@ -38,6 +38,7 @@ byte global_device_address =  EE_DEFAULT_GLOBAL_ADDRESS;
 int USB_baud_rate = 0;
 int RS485_baud_rate = 0;
 bool RS485_enabled = false;
+bool setup_completed = false;
 
 #if IS_READERBOARD
 void debug_image_buffer(byte buf[N_ROWS][N_COLS]);
@@ -950,17 +951,33 @@ void strobe_status(void)
 }
 #endif
 
+void signal_eeprom_access(byte color, int hold_time=500, bool showp=false)
+{
+#if IS_READERBOARD
+    render_text(image_buffer, N_COLS-7, 2, "\x8f", color, true);
+    commit_image_buffer(image_buffer);
+    if (!setup_completed) {
+        show_hw_buffer(hold_time);
+    } else if (showp) {
+        delay(hold_time);
+    }
+#endif
+}
+
 void reset_eeprom_values(void)
 {
+    signal_eeprom_access(3);
 #if HAS_I2C_EEPROM
-    xEEPROM.writeByte(EE_ADDR_LAYOUT, EE_VALUE_LAYOUT);
-    xEEPROM.writeByte(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
-    xEEPROM.writeByte(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
-    xEEPROM.writeByte(EE_ADDR_DEVICE_ADDR, EE_DEFAULT_ADDRESS);
-    xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS);
-    xEEPROM.writeByte(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
-    xEEPROM.writeByte(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
-    xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0);
+    if (xEEPROM.writeByte(EE_ADDR_LAYOUT, EE_VALUE_LAYOUT) != 0
+    || xEEPROM.writeByte(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED) != 0
+    || xEEPROM.writeByte(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED) != 0
+    || xEEPROM.writeByte(EE_ADDR_DEVICE_ADDR, EE_DEFAULT_ADDRESS) != 0
+    || xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS) != 0
+    || xEEPROM.writeByte(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL) != 0
+    || xEEPROM.writeByte(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL) != 0
+    || xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0) != 0) {
+        signal_eeprom_access(9, 5000, true);     /* signal error */
+    }
 #elif HW_MC != HW_MC_DUE
     EEPROM.write(EE_ADDR_LAYOUT, EE_VALUE_LAYOUT);
     EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
@@ -970,15 +987,22 @@ void reset_eeprom_values(void)
     EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SERIAL_NO, 0);
+#else
+    signal_eeprom_access(9, 5000, true);     /* signal error */
 #endif
 }
 
 void store_serial_number(const char *sn)
 {
+    signal_eeprom_access(3);
 #if HAS_I2C_EEPROM
-        xEEPROM.writeBlock(EE_ADDR_SERIAL_NO, (const byte *)sn, EE_LENGTH_SERIAL_NO);
-        strncpy(serial_number, sn, EE_LENGTH_SERIAL_NO);
-        serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    if (xEEPROM.writeBlock(EE_ADDR_SERIAL_NO, (const byte *)sn, EE_LENGTH_SERIAL_NO) != 0) {
+        signal_eeprom_access(9, 5000, true);     /* signal error */
+    }
+    strncpy(serial_number, sn, EE_LENGTH_SERIAL_NO);
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+#elif HW_MC == HW_MC_DUE
+    signal_eeprom_access(9, 5000, true);     /* signal error */
 #else
     int i;
     for (i=0; i<EE_LENGTH_SERIAL_NO-1 && sn[i] != '\0'; i++) {
@@ -999,6 +1023,7 @@ void store_serial_number(const char *sn)
 void save_eeprom(void)
 {
 #if HAS_I2C_EEPROM
+    signal_eeprom_access(2);
     if (xEEPROM.readByte(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
     ||  xEEPROM.readByte(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
     ||  xEEPROM.readByte(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
@@ -1006,13 +1031,18 @@ void save_eeprom(void)
         reset_eeprom_values();
     }
 
-    xEEPROM.writeByte(EE_ADDR_USB_SPEED, USB_baud_rate_code);
-    xEEPROM.writeByte(EE_ADDR_485_SPEED, RS485_baud_rate_code);
-    xEEPROM.writeByte(EE_ADDR_DEVICE_ADDR, my_device_address);
-    xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, global_device_address);
+    signal_eeprom_access(3);
+    if (xEEPROM.writeByte(EE_ADDR_USB_SPEED, USB_baud_rate_code) != 0
+    || xEEPROM.writeByte(EE_ADDR_485_SPEED, RS485_baud_rate_code) != 0
+    || xEEPROM.writeByte(EE_ADDR_DEVICE_ADDR, my_device_address) != 0
+    || xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, global_device_address) != 0) {
+        signal_eeprom_access(9, 5000, true);     /* signal error */
+    }
 #elif HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"
+    signal_eeprom_access(9, 5000, true);     /* signal error */
 #elif HW_MC == HW_MC_DUE
+    signal_eeprom_access(9, 5000, true);     /* signal error */
 # warning "Arduino Due without external EEPROM module is selected!"
 # warning "*** The unit will not be able to persistently store device settings or S/N."
 # warning "*** Configure any desired settings here in firmware as 'defaults'."
@@ -1048,6 +1078,7 @@ void setup_eeprom(void)
 
 
 #if HAS_I2C_EEPROM
+    signal_eeprom_access(2);
     if (xEEPROM.readByte(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
     ||  xEEPROM.readByte(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
     ||  xEEPROM.readByte(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
@@ -1060,12 +1091,18 @@ void setup_eeprom(void)
     USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
     RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
     if (USB_baud_rate == 0) {
-        xEEPROM.writeByte(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+        signal_eeprom_access(3);
+        if (xEEPROM.writeByte(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED) != 0) {
+            signal_eeprom_access(9, 5000, true);     /* signal error */
+        }
         USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
         USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
     }
     if (RS485_baud_rate == 0) {
-        xEEPROM.writeByte(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+        signal_eeprom_access(3);
+        if (xEEPROM.writeByte(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED) != 0) {
+            signal_eeprom_access(9, 5000, true);     /* signal error */
+        }
         USB_baud_rate_code = EE_DEFAULT_485_SPEED;
         RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
     }
@@ -1074,7 +1111,9 @@ void setup_eeprom(void)
     serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
 #elif HW_MC == HW_MC_MEGA_2560
 # error "Support for Mega 2560 not implemented"
+    signal_eeprom_access(9, 5000, true);     /* signal error */
 #elif HW_MC == HW_MC_DUE
+    signal_eeprom_access(9, 5000, true);     /* signal error */
 # warning "Arduino Due without external EEPROM module selected"
 #elif HW_MC == HW_MC_PRO
     if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
@@ -1449,35 +1488,8 @@ void setup(void)
     setup_485_serial();
 
     flag_init();
-
 #if IS_READERBOARD
-    char rbuf[32];
-	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
-	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
-    sprintf(rbuf, "S/N %s", serial_number);
-    display_text(1, rbuf, BIT_RGB_BLUE, 1500);
-	//display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
-    if (my_device_address == EE_ADDRESS_DISABLED) {
-        display_text(0, "ADDRESS \0133\234\234", BIT_RGB_RED, 3000);
-    } else {
-        sprintf(rbuf, "ADDRESS \0137%02d", my_device_address);
-        display_text(0, rbuf, BIT_RGB_RED, 3000);
-    }
-    sprintf(rbuf, "GLOBAL  \0137%02d", global_device_address);
-	display_text(0, rbuf, BIT_RGB_RED, 3000);
-    sprintf(rbuf, "USB \0137%6d", USB_baud_rate);
-	display_text(0, rbuf, BIT_RGB_RED, 3000);
-    if (my_device_address == EE_ADDRESS_DISABLED) {
-        display_text(0, "485    \0133OFF", BIT_RGB_RED, 3000);
-    } else {
-        sprintf(rbuf, "485 \0137%6d", RS485_baud_rate);
-        display_text(0, rbuf, BIT_RGB_RED, 3000);
-    }
-	display_text(1, "MadScience", BIT_RGB_GREEN,  1500);
-	display_text(1, "Zone \0062\100\00612024",  BIT_RGB_GREEN, 1500);
-//	clear_matrix();
-//	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
-    clear_all_buffers();
+    show_banner();
 #if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
     //                              //            _ _____
     //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -1491,9 +1503,9 @@ void setup(void)
     digitalWrite(PIN_R0, LOW);      //   X    X   1   1    1  1  0  0  0    |
     digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   1    1  1  0  0  0    clock idle
     digitalWrite(PIN_RCLK, LOW);    //   0    0   1   1    1  1  0  0  0    clock idle
-#else
-# error "hw control logic not set"
-#endif
+# else
+#  error "hw control logic not set"
+# endif
 #endif /* IS_READERBOARD */
 
 #ifdef START_TEST_PATTERN
@@ -1523,7 +1535,40 @@ void setup(void)
     Serial.write("\r\n");
 #endif
 #endif
+    setup_completed = true;
 }
+
+#if IS_READERBOARD
+void show_banner(void) {
+    char rbuf[32];
+	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
+	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
+    sprintf(rbuf, "S/N %s", serial_number);
+    display_text(1, rbuf, BIT_RGB_BLUE, 1500);
+	//display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        display_text(0, "ADDRESS \0133\234\234", BIT_RGB_RED, 3000);
+    } else {
+        sprintf(rbuf, "ADDRESS \0137%02d", my_device_address);
+        display_text(0, rbuf, BIT_RGB_RED, 3000);
+    }
+    sprintf(rbuf, "GLOBAL  \0137%02d", global_device_address);
+	display_text(0, rbuf, BIT_RGB_RED, 3000);
+    sprintf(rbuf, "USB \0137%6d", USB_baud_rate);
+	display_text(0, rbuf, BIT_RGB_RED, 3000);
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        display_text(0, "485    \0133OFF", BIT_RGB_RED, 3000);
+    } else {
+        sprintf(rbuf, "485 \0137%6d", RS485_baud_rate);
+        display_text(0, rbuf, BIT_RGB_RED, 3000);
+    }
+	display_text(1, "MadScience", BIT_RGB_GREEN,  1500);
+	display_text(1, "Zone \0062\100\00612024",  BIT_RGB_GREEN, 1500);
+//	clear_matrix();
+//	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
+    clear_all_buffers();
+}
+#endif
 
 int parse_baud_rate_code(byte code)
 {
@@ -1677,6 +1722,11 @@ void test_pattern(void)
 	flag_test();
 #if IS_READERBOARD
     clear_all_buffers();
+    //                                  //            _ _____
+    //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
+    digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
+    digitalWrite(PIN__SRCLR, HIGH);	    //   X    X   1   1    X  X  X  X  X    |
+    //
 	digitalWrite(PIN_D0, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
 	digitalWrite(PIN_D1, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0
 	digitalWrite(PIN_D2, HIGH);		//   0    0   1   1    1  1  0  0  0    shift "on" bit in column 0

@@ -906,6 +906,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
 			\z{configure-device}&\z{=} & Set operational parameters &\\
+			\z{diag-banners}&\z{=*=}&Display POST banners&\\
 			&\z{=\#}&Set serial number & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
@@ -1141,6 +1142,22 @@ This command may only be sent over the \acronym{USB} port.
 
 The serial number may be arbitrary alphanumeric text of up to six characters.
 Numbers \z{RB0000}--\z{RB0299} and \z{B00000}--\z{B00299} are reserved for use by the author.
+
+\section{\z{=*=}---Display POST Banners}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+	\bitheader{0-2} \\
+	\bitbox{1}{\strut\z{=}} &
+	\bitbox{1}{\strut\z{*}} &
+	\bitbox{1}{\strut\z{=}} 
+\end{bytefield}
+\\
+\begin{Coding}
+	|/readerboard/v1/diag-banners?a=|\Var*{ad}
+\end{Coding}
+\end{center}
+
+Causes the readerboard to display the same banners as it does during power-on self-test.
 
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
@@ -1397,7 +1414,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
 			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
-			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
+			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\strut$^{EE}$&\\\hline
 			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&{\tiny wide} \OE&{\tiny wide} \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&\multicolumn{8}{c|}{The phases of the moon}&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
@@ -2523,6 +2540,33 @@ those terminals to terminate the network at that point.
 \subsection{\z{calmond}}
 \subsection{\z{micmond}}
 \subsection{Manual Status Updates}
+\section{Diagnostic Displays}
+There are a few situations where the readerboards and busylights use their light displays to convey
+information about their own status.
+
+\subsection{EEPROM Access}
+When a readerboard accesses its \acronym{EEPROM}, a small superscripted ``\strut$^{EE}$'' is displayed
+in the upper-right corner of the matrix. The next update to the displayed matrix content will overwrite
+this indicator. The color of the indicator indicates the type or outcome of the operation:
+\begin{center}
+	\begin{tabular}{lll}\toprule
+		\bfseries RGB Units & \bfseries Monochrome Units & \bfseries Meaning\\\midrule
+		green & on & reading \\
+		yellow & on & writing \\
+		flashing red & flashing & error \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+\subsection{Protocol Errors}
+If the device receives garbled or otherwise incorrect commands over either \acronym{USB} or \acronym{RS-485},
+it lights the top discrete status \led\ and alternately strobes the fourth and fifth from the bottom. On units with our
+standard color scheme, this is the white and both red \led s. 
+
+These will be displayed until the next status \led\ command changes them.
+
+\subsection{POST}
+During power-on self-test when a readerboard is turned on, the top (usually white) \led\ is illuminated until the \acronym{POST} operation is completed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  _____ ___  _   _ _____ ____  
@@ -2647,7 +2691,10 @@ readerboard project repository.
 
 You'll need the following prerequisites in your Arduino development environment:
 \begin{itemize}
+	\item EEPROM v2.0
+	\item I2C\_EEPROM v1.8.5
 	\item TimerEvent v0.5.0
+	\item Wire v1.0
 \end{itemize}
 
 After pulling the latest code from the repository if necessary, perform the following steps to configure and

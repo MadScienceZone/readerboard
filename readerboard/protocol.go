@@ -695,6 +695,18 @@ func Scroll(r url.Values, hw HardwareModel) ([]byte, error) {
 	return append([]byte{'<', loop}, t...), nil
 }
 
+// Display POST banners again
+//
+//  /readerboard/v1/diag-banners
+//  -> = * =
+//
+func DiagBanners(_ url.Values, hw HardwareModel) ([]byte, error) {
+	if !IsReaderboardModel(hw) {
+		return nil, fmt.Errorf("diag-banners command not supported for hardware type %v", hw)
+	}
+	return []byte{'=', '*', '='}, nil
+}
+
 // Text displays a text message on the display.
 //
 //	/readerboard/v1/text?a=<targets>&t=<text>[&merge=<bool>][&align=<align>][&trans=<trans>]
