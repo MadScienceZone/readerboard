@@ -1,9 +1,6 @@
-//
 // Protocol support for busylight/readerboard device communications.
 // The protocol and command set are more thoroughly documented in the accompanying
 // doc/readerboard.pdf document.
-//
-//
 package readerboard
 
 import (
@@ -25,10 +22,8 @@ func encodeInt6(n int) byte {
 	return byte(n) + '0'
 }
 
-//
 // parseBaudRateCode reads a one-byte baud rate code and returns the baud rate it
 // represents.
-//
 func parseBaudRateCode(code byte) (int, error) {
 	switch code {
 	case '0':
@@ -95,12 +90,10 @@ func encodeBaudRateCode(speed int) (byte, error) {
 	}
 }
 
-//
 // Escape485 translates arbitrary 8-bit byte sequences to be sent over RS-485 so
 // they conform with the 7-bit data constraint imposed by the protocol.
 // Since the protocol uses the MSB to indicate the start of a new
 // command, that byte can't be escaped using this function since it MUST have its MSB set.
-//
 func Escape485(in []byte) []byte {
 	out := make([]byte, 0, len(in))
 	for _, b := range in {
@@ -119,10 +112,8 @@ func Escape485(in []byte) []byte {
 	return out
 }
 
-//
 // Unescape485 is the inverse of Escape485; it resolves the escape bytes in the byte sequence
 // passed to it, returning the original full-8-bit data stream as it was before escaping.
-//
 func Unescape485(in []byte) []byte {
 	out := make([]byte, 0, len(in))
 	literalNext := false
@@ -156,10 +147,8 @@ func Unescape485(in []byte) []byte {
 	return out
 }
 
-//
 // reqInit initializes, and reads the target list from, the client's posted data.
 // It returns a slice of integer device target numbers or an error if that couldn't happen.
-//
 func reqInit(r *http.Request, globalAddress int) ([]int, error) {
 	var targets []int
 
@@ -194,7 +183,6 @@ func reqInit(r *http.Request, globalAddress int) ([]int, error) {
 	return targets, nil
 }
 
-//
 // ledList extracts the LED list from the parameter "l" in the HTTP request.
 // This is expected to be a string of individual 7-bit ASCII characters whose meanings
 // are device dependent.
@@ -204,7 +192,6 @@ func reqInit(r *http.Request, globalAddress int) ([]int, error) {
 //
 // In order for this to work, the form data must already be in the http.Request field Form
 // which can be arranged by calling reqInit first.
-//
 func ledList(r url.Values) ([]byte, error) {
 	leds := r.Get("l")
 	llist := []byte(leds)
@@ -492,10 +479,10 @@ func posParam(r url.Values) (byte, error) {
 	return pos[0], nil
 }
 
-//
 // AllLightsOff turns all lights off on the specified device(s). This extinguishes the status LEDs
 // and the matrix.
-//    /readerboard/v1/alloff?a=<targets>
+//
+//	/readerboard/v1/alloff?a=<targets>
 //
 // This is a bit of a hack: the initial 0xff byte signals that this is an AllLightsOff
 // signal which can be very different on RS-485 networks; for direct connections this
@@ -508,11 +495,10 @@ func AllLightsOff(_ url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{0xff, 'C', 0x04, 'X'}, nil
 }
 
-//
 // Clear turns off all the LEDs in the display matrix.
-//    /readerboard/v1/clear?a=<targets>
-//    -> C
 //
+//	/readerboard/v1/clear?a=<targets>
+//	-> C
 func Clear(_ url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("clear command not supported for hardware type %v", hw)
@@ -520,10 +506,9 @@ func Clear(_ url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'C'}, nil
 }
 
-//
 // Test runs a test pattern on the target device.
-//    /readerboard/v1/test?a=<targets>
 //
+//	/readerboard/v1/test?a=<targets>
 func Test(_ url.Values, hw HardwareModel) ([]byte, error) {
 	if IsReaderboardModel(hw) || BusylightModelVersion(hw) > 1 {
 		return []byte{'%'}, nil
@@ -531,11 +516,10 @@ func Test(_ url.Values, hw HardwareModel) ([]byte, error) {
 	return nil, fmt.Errorf("test command not supported for hardware type %v", hw)
 }
 
-//
 // Flash sets a flash pattern on the busylight status LEDs.
-//    /readerboard/v1/flash?a=<targets>&l=<leds>
-//    -> F l0 l1 ... lN $
 //
+//	/readerboard/v1/flash?a=<targets>&l=<leds>
+//	-> F l0 l1 ... lN $
 func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
@@ -545,11 +529,10 @@ func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
 	return append([]byte{'F'}, l...), nil
 }
 
-//
 // Font selection to indexed font table.
-//    /readerboard/v1/font?a=<targets>&idx=<digit>
-//    -> A digit
 //
+//	/readerboard/v1/font?a=<targets>&idx=<digit>
+//	-> A digit
 func Font(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("font command not supported for hardware type %v", hw)
@@ -561,12 +544,11 @@ func Font(r url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'A', idx[0]}, nil
 }
 
-//
 // Graph plots a histogram graph data point on the display.
-//    /readerboard/v1/graph?a=<targets>&v=<n>[&colors=<rgb>...]
-//    -> H n
-//    -> H K rgb0 ... rgb7
 //
+//	/readerboard/v1/graph?a=<targets>&v=<n>[&colors=<rgb>...]
+//	-> H n
+//	-> H K rgb0 ... rgb7
 func Graph(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("graph command not supported for hardware type %v", hw)
@@ -596,11 +578,10 @@ func Graph(r url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'H', byte(value + '0')}, nil
 }
 
-//
 // Bitmap displays a bitmap image on the display
-//    /readerboard/v1/bitmap?a=<targets>[&merge=<bool]&pos=<pos>[&trans=<trans>]&image=<redcols>$<greencols>$<bluecols>$<flashcols>
-//    -> I M/. pos trans R0 ... RN $ G0 ... GN $ B0 ... BN $ F0 ... FN $
 //
+//	/readerboard/v1/bitmap?a=<targets>[&merge=<bool]&pos=<pos>[&trans=<trans>]&image=<redcols>$<greencols>$<bluecols>$<flashcols>
+//	-> I M/. pos trans R0 ... RN $ G0 ... GN $ B0 ... BN $ F0 ... FN $
 func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("bitmap command not supported for hardware type %v", hw)
@@ -654,11 +635,10 @@ func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
 	return append(append([]byte{'I', merge, pos, trans[0]}, []byte(image)...), '$'), nil
 }
 
-//
 // Color sets the current drawing color.
-//    /readerboard/v1/color?a=<targets>&color=<rgb>
-//    -> K rgb
 //
+//	/readerboard/v1/color?a=<targets>&color=<rgb>
+//	-> K rgb
 func Color(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("color command not supported for hardware type %v", hw)
@@ -676,11 +656,10 @@ func Color(r url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'K', color[0]}, nil
 }
 
-//
 // Move repositions the text cursor.
-//    /readerboard/v1/move?a=<targets>&pos=<pos>
-//    -> @ pos
 //
+//	/readerboard/v1/move?a=<targets>&pos=<pos>
+//	-> @ pos
 func Move(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("move command not supported for hardware type %v", hw)
@@ -692,20 +671,18 @@ func Move(r url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'@', pos}, nil
 }
 
-//
 // Off turns off the status LEDs.
-//    /readerboard/v1/off?a=<targets>
-//    -> X
 //
+//	/readerboard/v1/off?a=<targets>
+//	-> X
 func Off(r url.Values, _ HardwareModel) ([]byte, error) {
 	return []byte{'X'}, nil
 }
 
-//
 // Scroll scrolls a text message across the display.
-//    /readerboard/v1/scroll?a=<targets>&t=<text>[&loop=<bool>]
-//    -> < L/. text
 //
+//	/readerboard/v1/scroll?a=<targets>&t=<text>[&loop=<bool>]
+//	-> < L/. text
 func Scroll(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("scroll command not supported for hardware type %v", hw)
@@ -718,11 +695,22 @@ func Scroll(r url.Values, hw HardwareModel) ([]byte, error) {
 	return append([]byte{'<', loop}, t...), nil
 }
 
+// Display POST banners again
 //
+//  /readerboard/v1/diag-banners
+//  -> = * =
+//
+func DiagBanners(_ url.Values, hw HardwareModel) ([]byte, error) {
+	if !IsReaderboardModel(hw) {
+		return nil, fmt.Errorf("diag-banners command not supported for hardware type %v", hw)
+	}
+	return []byte{'=', '*', '='}, nil
+}
+
 // Text displays a text message on the display.
-//    /readerboard/v1/text?a=<targets>&t=<text>[&merge=<bool>][&align=<align>][&trans=<trans>]
-//    -> T M/. . trans text
 //
+//	/readerboard/v1/text?a=<targets>&t=<text>[&merge=<bool>][&align=<align>][&trans=<trans>]
+//	-> T M/. . trans text
 func Text(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("text command not supported for hardware type %v", hw)
@@ -781,11 +769,10 @@ func ConfigureDevice(r url.Values, hw HardwareModel) ([]byte, error) {
 	}
 }
 
-//
 // Light sets a static pattern on the busylight status LEDs.
-//    /readerboard/v1/light?a=<targets>&l=<leds>
-//    -> L l0 l1 ... lN $
 //
+//	/readerboard/v1/light?a=<targets>&l=<leds>
+//	-> L l0 l1 ... lN $
 func Light(r url.Values, hw HardwareModel) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
@@ -800,11 +787,10 @@ func Light(r url.Values, hw HardwareModel) ([]byte, error) {
 	return append([]byte{'L'}, l...), nil
 }
 
-//
 // Strobe sets a strobe pattern on the busylight status LEDs.
-//    /readerboard/v1/strobe?a=<targets>&l=<leds>
-//    -> * l0 l1 ... ln $
 //
+//	/readerboard/v1/strobe?a=<targets>&l=<leds>
+//	-> * l0 l1 ... ln $
 func Strobe(r url.Values, _ HardwareModel) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
@@ -959,7 +945,7 @@ func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareMode
 			}
 
 			stat := DeviceStatus{
-				DeviceModelClass: in[1],
+				DeviceModelClass: ModelClass(in[1]),
 				DeviceAddress:    parseAddress(in[3]),
 				GlobalAddress:    parseAddress(in[6]),
 			}
@@ -1051,6 +1037,9 @@ func WrapInternalHandler(f func([]int, url.Values) error, config *ConfigData) fu
 	}
 }
 
+func Current(_ []int, _ url.Values) error {
+	return fmt.Errorf("not yet implemented")
+}
 func Post(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }

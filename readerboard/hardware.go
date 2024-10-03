@@ -98,8 +98,45 @@ func EEPROMTypeName(e EEPROMType) string {
 	}
 }
 
+type ModelClass byte
+
+func (m ModelClass) MarshalJSON() ([]byte, error) {
+	return json.Marshal(ModelClassName(m))
+}
+
+func (m *ModelClass) UnmarshalJSON(j []byte) error {
+	var s string
+	if err := json.Unmarshal(j, &s); err != nil {
+		return err
+	}
+	switch s {
+	case "Busylight":
+		*m = 'B'
+	case "Readerboard_RGB":
+		*m = 'C'
+	case "Readerboard_Monochrome":
+		*m = 'M'
+	default:
+		return fmt.Errorf("unknown model class value")
+	}
+	return nil
+}
+
+func ModelClassName(m ModelClass) string {
+	switch m {
+	case 'B':
+		return "Busylight"
+	case 'C':
+		return "Readerboard_RGB"
+	case 'M':
+		return "Readerboard_Monochrome"
+	default:
+		return "Unknown"
+	}
+}
+
 type DeviceStatus struct {
-	DeviceModelClass byte
+	DeviceModelClass ModelClass
 	DeviceAddress    byte
 	GlobalAddress    byte
 	SpeedUSB         int
@@ -197,10 +234,10 @@ func (d *RS485Driver) AllLightsOffBytes(a []int, _ []byte) ([]byte, error) {
 // an RS-485 serial network. Bytes after the initial start-of-command byte are escaped.
 //
 // For RS-485 network-connected devices, a binary header is sent first:
-//    1001aaaa                               Single/global target with address in [0,15]
-//    1011gggg 00nnnnnn 00aaaa ... 00aaaa    Multiple targets or addresses >15
-//                      \_______n_______/
 //
+//	1001aaaa                               Single/global target with address in [0,15]
+//	1011gggg 00nnnnnn 00aaaa ... 00aaaa    Multiple targets or addresses >15
+//	                  \_______n_______/
 func (d *RS485Driver) Bytes(a []int, cmd []byte) ([]byte, error) {
 	output485 := Escape485(cmd)
 
@@ -253,10 +290,8 @@ func (d *RS485Driver) IsPortOpen() bool {
 	return d.isPortOpen
 }
 
-//
 // Attach creates an appropriate driver if one doesn't already exist. If there was already an open driver,
 // that is closed. Then the port is opened based on the description held in the NetworkDescription fields.
-//
 func (net *NetworkDescription) Attach(netID string, globalAddress int) error {
 	var err error
 

@@ -64,7 +64,7 @@ const PROGMEM unsigned char GlyphMetricDataFont2Lengths[184] = {
  6,  7,  6,  6,  6,  6,  7,  8,  6,  6,  6,  5,  5,  5,  5,  5,  8,  8,  8,  8, 
  8,  8,  8,  8,  8,  8,  8,  5,  5,  8,  8,  5,  8,  7,  7,  5,  5,  5,  4,  4, 
  8,  4,  4,  5,  5,  5,  7,  7,  5,  5,  5,  5,  6,  5,  5,  6,  5,  5,  7,  7, 
- 5,  8,  7,  5, 10, 10,  8,  8,  9,  9,  5,  5,  8,  8,  8,  8,  8,  8,  8,  8, 
+ 5,  8,  7,  7, 10, 10,  8,  8,  9,  9,  5,  5,  8,  8,  8,  8,  8,  8,  8,  8, 
  0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  5,  5,  5,  5,  5,  5,  8,  8,  8,  8, 
  8,  8,  8,  8, };
 const PROGMEM unsigned char GlyphMetricDataFont0Spaces[256] = {
@@ -103,7 +103,7 @@ const PROGMEM unsigned char GlyphMetricDataFont2Spaces[184] = {
  8,  9,  8,  8,  8,  8,  9, 10,  8,  8,  8,  6,  6,  6,  6,  6, 10,  8,  8,  8, 
  8,  8,  8,  8,  8,  8,  8,  5,  5,  8,  8,  6,  9,  7,  8,  6,  6,  6,  6,  6, 
  8,  6,  6,  6,  6,  5,  8,  8,  6,  6,  6,  6,  7,  6,  6,  8,  6,  6,  9,  9, 
- 6, 10,  7,  6, 11, 11,  9,  9, 10, 10,  6,  6,  9,  9,  9,  9,  9,  9,  9,  9, 
+ 6, 10,  7,  8, 11, 11,  9,  9, 10, 10,  6,  6,  9,  9,  9,  9,  9,  9,  9,  9, 
  6,  1,  2,  3,  4,  5,  6,  7,  8,  6,  6,  6,  6,  6,  6,  6,  9,  9,  9,  9, 
  9,  9,  9,  9, };
 const PROGMEM unsigned short GlyphMetricDataFont0Offsets[256] = {
@@ -175,7 +175,7 @@ const PROGMEM unsigned short GlyphMetricDataFont2Offsets[184] = {
  1338,     0,  1569,  1577,  1584,  1591,  1605,  1619,  1624,  1628, 
  1232,  1646,  1642,  1632,  1637,  1650,  1655,  1662,  1669,  1674, 
  1679,  1684,  1809,  1815,     0,  1820,  1799,  1804,  1826,  1833, 
- 1840,  1845,  1853,     0,  1689,  1699,  1709,  1717,  1596,  1610, 
+ 1840,  1845,  1853,  1924,  1689,  1699,  1709,  1717,  1596,  1610, 
     0,     0,  1725,  1733,  1741,  1749,  1757,  1765,  1773,  1781, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,  1860,  1868,  1876,  1884, 
@@ -184,7 +184,7 @@ const unsigned char * const GlyphMetricDataLengths[3] = {GlyphMetricDataFont0Len
 const unsigned char * const GlyphMetricDataSpaces[3] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces};
 const unsigned short * const GlyphMetricDataOffsets[3] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets};
 /* font bitmap data */
-const PROGMEM byte CharacterBitmap[1924] = {
+const PROGMEM byte CharacterBitmap[1931] = {
  0x3E, 0x22, 0x22, 0x22, 0x3E,
                                          // 0 - 4
                                          //     .....
@@ -3925,6 +3925,16 @@ const PROGMEM byte CharacterBitmap[1924] = {
                                          //     ........
                                          //     @@@..@@@
                                          //     ........
+ 0x1F, 0x15, 0x15, 0x00, 0x1F, 0x15, 0x15,
+                                         // 1924 - 1930
+                                         //     @@@.@@@
+                                         //     @...@..
+                                         //     @@@.@@@
+                                         //     @...@..
+                                         //     @@@.@@@
+                                         //     .......
+                                         //     .......
+                                         //     .......
 };
 
 
@@ -3942,7 +3952,7 @@ bool get_font_metric_data(byte font, byte codepoint, unsigned char *leng, unsign
 
 byte get_font_bitmap_data(unsigned short offset) 
 {
-    if (offset < 0 || offset >= 1924)
+    if (offset < 0 || offset >= 1931)
         return 0;
     return pgm_read_byte(CharacterBitmap + offset);
 }

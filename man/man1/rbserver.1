@@ -229,11 +229,11 @@ RRRR
 .ad
 To draw this on the readerboard starting at column 0, send the command
 .RS
-.BI bitmap&a= addresses &pos=0&image=3c24243c$00181800$00000000$00000000
+.BI bitmap?a= addresses &pos=0&image=3c24243c$001818$$
 .RE
 To make the green inner square flash, then the command would instead be
 .RS
-.BI bitmap&a= addresses &pos=0&image=3c24243c$00181800$00000000$00181800
+.BI bitmap?a= addresses &pos=0&image=3c24243c$001818$$001818
 .RE
 .RE
 .TP
@@ -402,6 +402,13 @@ command, as well as hardware and firmware revision numbers, serial number, conte
 .LP
 The following commands execute higher-level operations on the server which in turn affects how it manages the state of the connected
 devices rather than being commands that are sent directly to the devices themselves.
+.TP
+.BI current
+Returns a JSON object that describes the server's current notion of the status indicators on all the devices. This is similar to
+the
+.B busy
+command except it does not take the extra step of individually polling each device to query their status; it reports what state the
+server last told the devices to show.
 .TP
 .BI post ... &t= text &id= id \fR[\fP&trans= effect \fR][\fP&until= dt \fR][\fP&hold= d \fR][\fP&color= c \fR][\fP&visible= d \fR][\fP&show= d \fR][\fP&repeat= d \fR]\fP
 Add a new message to the display list for the specified target devices. They will display these messages until they expire.

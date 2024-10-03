@@ -61,8 +61,8 @@ materials are suitable for your purpose and function as expected.
 \strut\vfill
 
 \begin{center}\bfseries
-	For Readerboard hardware (\acronym{PCB}) version 3.3, %schematic version 3.3.0, 
-	Busylight hardware version 2.1 (light tree version 1.1), and firmware version 2.1.3.
+	For Readerboard hardware (\acronym{PCB}) version 3.3.1, 
+	Busylight hardware version 2.1 (light tree version 1.1), and firmware version 2.1.4.
 \end{center}
 
 \strut\vfill
@@ -143,12 +143,17 @@ green, and blue \led\ elements.
 Note that the discrete status \led s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \led\
 on the bottom (canonically green) and L$_7$ is on top (white).
 
-\subsection{Version 3.3 (current model)}
-The current version of the hardware (3.3.0) corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
+\subsection{Version 3.3.1 (current model)}
+Version 3.3.0 of the hardware corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
 connectors on the Arduino board and adjusting the mounting holes slightly. It also corrects the mislabeled L$_0$--L$_7$ \led s
 
-It also adds a R51 for Arduino Due reset circuits, J3 to manually reset the Arduino, and J4, R52, R53, and U16 to support the addition of a external
+Additionally, it adds R51 for Arduino Due reset circuits, J3 to manually reset the Arduino, and J4, R52, R53, and U16 to support the addition of a external
 \acronym{EEPROM} chip for microcontrollers (such as the Due) which don't have one onboard.
+
+This was further improved with revision 3.3.1 (the current version), which replaced terminal block J1 with a higher-density terminal
+which allows easier interconnection of two \acronym{CAT6} cables without the need for off-board splices. The power supply now connects to
+a new terminal block J5. The power to the \acronym{RS-485} transceiver chip is also now switchable to either 3.3\,V or 5\,V so it can be
+appropriately matched to the operating voltage of the Arduino board without damaging the Arduino's input ports.
 
 \section{Firmware Implications}
 The boards before \acronym{PCB} revision 3.3.0 are not supported by the firmware as currently stored in the project repository. They were prototype ideas
@@ -178,14 +183,15 @@ heat or static electricity discharge.
 		C10&1&\mouser{667-ECA-1HM100I}&10 $\mu$F electrolytic capacitor\\
 		D0--511&512&&\led, 5mm, \acronym{RGB}, common cathode\\
 		D512&1&&\led, 5mm, green\\
-		D513--14&2&&\led, 5mm, yellow\\
+		D513--14&2&&\led, 5mm, amber (yellow)\\
 		D515--16&2&&\led, 5mm, red\\
 		D517--18&2&&\led, 5mm, blue\\
 		D519&1&&\led, 5mm, white\\
 		J0&1&&Arduino stacking pin set\\
-		J1&1&&8-position Euro-style terminal block\\
+		J1&2&&8-position terminal block\\
 		J2,3&2&&2-position jumper header\\
 		J4&1&&3-position jumper header\\
+		J5&1&&2-position Euro-style terminal block\\
 		P0--3&3&&2-position jumper shunt\\
 		Q0--23&24&\mouser{942-IRF9530NPBF}&\mc{IRF9530} p-channel \acronym{MOSFET}\\
 		R0--7,35--51&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
@@ -236,8 +242,9 @@ in the way of connecting subsequent ones. For example:
 	\item Solder the single-color \led s D512--D519 in the colors of your choice, being mindful of the polarity. The anode has a square pin on the \acronym{PCB}. Our recommendation:
 		\begin{itemize}
 			\item D512 (bottom): green (with R24=300$\Omega$)\footnote{Resistor values based on typical \led\ voltage and current ratings. Check to see what is appropriate for your components.}
-			\item D513: yellow (with R25=360$\Omega$)
-			\item D514: yellow (with R26=360$\Omega$)
+			\item D513: amber\footnote{In deference to the effort my high school drama teacher went through to get us to refer to any yellow stage lights and gels as ``amber'' and the
+				preference to using ``amber'' for signal lamp colors in other contexts and regions, both terms will be used interchangeably in this project.} (with R25=360$\Omega$)
+			\item D514: amber (with R26=360$\Omega$)
 			\item D515: red (with R27=360$\Omega$)
 			\item D516: red (with R28=360$\Omega$)
 			\item D517: blue (with R29=300$\Omega$)
@@ -249,7 +256,7 @@ in the way of connecting subsequent ones. For example:
 	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
 		Ensure the pins extend down and out the back of the board.
 	\item Solder the 2-pin headers J2 and J3, and the 3-pin header J4.
-	\item Solder the terminal block J1.
+	\item Solder the terminal blocks J1 (which is actually a pair of 8-pin terminal blocks J1a and J1b), and J5.
 \end{enumerate}
 
 
@@ -307,7 +314,7 @@ the electronic components themselves from harm due to heat or static electricity
 		&1&&Printed circuit board rev 2.1\\
 		&7&&\led\ tier printed circuit board rev 1.1\\
 		&7&&\led\ ring printed circuit board (if desired)\\
-		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C\\
+		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C, \strong{5\,V version}\\
 		&1&&Arduino stacking pin set\\
 		C0&1&&0.1 $\mu$F capacitor\\
 		J0&1&&8-pin DIN connector, \acronym{PCB} mount\\
@@ -323,13 +330,13 @@ the electronic components themselves from harm due to heat or static electricity
 		  &8&&Nylon spacers between (and above and below) the tiers\\
 		  &2&&\sfrac14$''$ hex nuts\\
 		\bottomrule
-		\multicolumn{4}{p{.9\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
+		\multicolumn{4}{p{\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
 		for the LEDs to be used on that tier. Assuming a 5\,V supply and
-		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and yellow LEDs and 100$\Omega$ or larger
+		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and amber LEDs and 100$\Omega$ or larger
 		for blue, green, and white LEDs. Check your LED datasheet to confirm.
 
-		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$yellow, 2$\times$red,
-		and 2$\times$blue).
+		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$amber, 2$\times$red,
+		blue, and white).
 
 		\noindent$\ddagger$One idea for an inexpensive enclosure is a clear plastic tube storage container with an inside
 		diameter large enough to hold the LED tier boards.}
@@ -378,12 +385,12 @@ solder points without some parts getting in the way of connecting subsequent one
 			\item Solder one end of the cable to P0, the 8-bin \acronym{DIN} plug. Suggested color assignments:
 				\begin{itemize}
 					\item Pin 1 (sixth tier/blue): blue	
-					\item Pin 2 (third tier/yellow): brown/white
+					\item Pin 2 (third tier/amber): brown/white
 					\item Pin 3 (fifth tier/red): orange/white
 					\item Pin 4 (fourth tier/red): orange
-					\item Pin 5 (seventh tier/blue): blue/white
-					\item Pin 6 (second tier/yellow): brown
-					\item Pin 7 (+V supply): green
+					\item Pin 5 (seventh tier/white): blue/white
+					\item Pin 6 (second tier/amber): brown
+					\item Pin 7 (+5\,V supply): green
 					\item Pin 8 (bottom tier/green): green/white
 				\end{itemize}
 			\item Strip the insulation from the green wire to the height of the assembled tier tree.
@@ -450,7 +457,7 @@ on \z{example.org} on port \z{43210}, then all client requests to that server wo
 \end{Coding}
 
 \subsection{Message Data Fields}
-As a general rule, if a message expects a field that is not provided, a suitable ``zero'' value will be assumed
+As a general rule, if a message expects a field that is not provided, where possible, a suitable ``zero'' value will be assumed
 for that field. Any extra fields sent that were not expected are silently ignored.
 
 Boolean fields may have values \z{true} or \z{false}; if they are presented without a value, they are considered to be
@@ -614,7 +621,7 @@ higher-numbered addresses, the following extended format is used instead:
 		\bitbox[tbl]{1}{\z1}&
 		\bitbox[tb]{1}{\z1}&
 		\bitbox[tbr]{1}{\z1}&
-		\bitbox{4}{\Var*{ad}$_G$}\\
+		\bitbox{4}{\Var*{ad$_{G}$}}\\
 		\bitbox{1}{\z0}&
 		\bitbox{7}{1}\\
 		\bitbox{1}{\z0}&
@@ -898,7 +905,8 @@ The remaining commands are used for management of the matrix display. All comman
 			&\z{\textasciicircum D} & Abort/terminate command & \\
 			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
-			&\z{=} & Set operational parameters &\\
+			\z{configure-device}&\z{=} & Set operational parameters &\\
+			\z{diag-banners}&\z{=*=}&Display POST banners&\\
 			&\z{=\#}&Set serial number & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
@@ -908,6 +916,12 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{color}&\z{K} & Set current color & \\
 			\z{query}&\z{Q} & Query full device status & [2]\\
 			\z{text}&\z{T} & Display text on display & \\
+			\midrule
+			\z{current}&& Report current status display& \\
+			\z{post}&& Add queued display message& \\
+			\z{postlist}&& Report queued display message(s)& \\
+			\z{unpost}&& Remove queued display message(s)& \\
+			\z{update}&& Update user-defined variables& \\
 			\bottomrule
 			\multicolumn{4}{p{\textwidth}}{\tiny[1] Busylight compatibile command
 
@@ -1044,31 +1058,36 @@ to a multi-byte \acronym{UTF-8} representation which the readerboard doesn't gro
 	\bitbox[]{1}{\scriptsize3}&
 	\bitbox[]{1}{\scriptsize4}\\
 	\bitbox{1}{\z{=}} &
-	\bitbox{1}{\Var*{ad}}&
+	\bitbox{1}{\Var*{ad$'$}}&
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
-	\bitbox{1}{\Var*{ad$_G$}}
+	\bitbox{1}{\Var*{ad$_{G}'$}}
 \end{bytefield}
+\\
+\begin{Coding}
+	|/readerboard/v1/configure-device?a=|\Var*{ad}|&rspeed=|\Var*{baud}\\
+	|&uspeed=|\Var*{baud}|&address=|\Var*{ad$'$}|&global=|\Var*{ad$_{G}'$}
+\end{Coding}
 \end{center}
 
 This command sets a few operational parameters for the sign. Once set, these will be persistent across
 power cycles and reboots.
 
-If the \Var*{ad} parameter is ``\z{.}'' then the RS-485 interface is disabled entirely. Otherwise it is a
+If the \Var*{ad$'$} parameter is ``\z{.}'' then the RS-485 interface is disabled entirely. Otherwise it is a
 value from 0--63 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
-this sign's address to \Var*{ad}.
+this sign's address to \Var*{ad$'$}.
 
 The baud rate for the \acronym{USB} and RS-485 interfaces is set by the \Var*{uspd} and \Var*{rspd} values
 respectively. Each is encoded as per Table~\ref{tbl:baudcodes}.
 
-The \Var*{ad$_G$} value is an address in the range 0--15 which is not assigned
+The \Var*{ad$_{G}'$} value is an address in the range 0--15 which is not assigned
 to any other device on the RS-485 network. This is used to signal that all
 readerboards should pay attention to the start of the command because it might
 target them either as part of a list of specific readerboards or because the
 command is intended for all readerboards at once. This is encoded in the 
-same way as \Var*{ad}.
-If you only have one readerboard or do not wish to assign a global address,
-just set \Var*{ad$_G$} to the same value as \Var*{ad}.
+same way as \Var*{ad$'$}.
+%If you only have one readerboard or do not wish to assign a global address,
+%just set \Var*{ad$_{G}'$} to the same value as \Var*{ad$'$}.
 
 This command may only be sent over the \acronym{USB} port.
 
@@ -1123,6 +1142,22 @@ This command may only be sent over the \acronym{USB} port.
 
 The serial number may be arbitrary alphanumeric text of up to six characters.
 Numbers \z{RB0000}--\z{RB0299} and \z{B00000}--\z{B00299} are reserved for use by the author.
+
+\section{\z{=*=}---Display POST Banners}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+	\bitheader{0-2} \\
+	\bitbox{1}{\strut\z{=}} &
+	\bitbox{1}{\strut\z{*}} &
+	\bitbox{1}{\strut\z{=}} 
+\end{bytefield}
+\\
+\begin{Coding}
+	|/readerboard/v1/diag-banners?a=|\Var*{ad}
+\end{Coding}
+\end{center}
+
+Causes the readerboard to display the same banners as it does during power-on self-test.
 
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
@@ -1379,7 +1414,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
 			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
-			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\tUnused&\\\hline
+			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\strut$^{EE}$&\\\hline
 			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&{\tiny wide} \OE&{\tiny wide} \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&\multicolumn{8}{c|}{The phases of the moon}&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
@@ -1469,8 +1504,8 @@ corresponding position in the sequence.
 			\z{b} & L$_5$ & blue \\
 			\z{R} & L$_4$ & red \\
 			\z{r} & L$_3$ & red \\
-			\z{Y} & L$_2$ & yellow \\
-			\z{y} & L$_1$ & yellow \\
+			\z{Y} & L$_2$ & amber \\
+			\z{y} & L$_1$ & amber \\
 			\z{G} & L$_0$ & green \\
 			\z{\_}& --- & (no \led/off) \\
 			\z0--\z9&L$_0$--L$_9$&\led\ installed at physical position 0--9\\
@@ -1680,7 +1715,7 @@ Note that anything drawn in black simply turns off the corresponding pixels.
 		\z0&off&\z8& off\\
 		\z1&red&\z9&flashing red\\
 		\z2&green&\z:&flashing green\\
-		\z3&yellow&\z;&flashing yellow\\
+		\z3&amber&\z;&flashing amber\\
 		\z4&blue&\z<&flashing blue\\
 		\z5&magenta&\z=&flashing magenta\\
 		\z6&cyan&\z>&flashing cyan\\
@@ -1980,6 +2015,14 @@ Turns off the flasher, strober, and all discrete \led s.
 
 This command may be given in upper- or lower-case (``\z{x}'' or ``\z{X}'').
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____  _____ ______     _______ ____        ___  _   _ _  __   __
+% / ___|| ____|  _ \ \   / / ____|  _ \      / _ \| \ | | | \ \ / /
+% \___ \|  _| | |_) \ \ / /|  _| | |_) |____| | | |  \| | |  \ V / 
+%  ___) | |___|  _ < \ V / | |___|  _ <_____| |_| | |\  | |___| |  
+% |____/|_____|_| \_\ \_/  |_____|_| \_\     \___/|_| \_|_____|_|  
+% 
 \chapter{Server-Only Commands}
 \epigraph{The enjoyment of one’s tools is an essential ingredient of successful work.}{---Donald E. Knuth}
 \LJversal{F}{or the most part} the server exists as a way to host readerboards and busylights from a central machine
@@ -1992,6 +2035,20 @@ This chapter describes server-side coordination between users in a network envir
 commands which clients can post to the server to request information to be displayed for them alongside other
 content other users have posted. It also provides some services to keep boards updated with information
 known to the server which the devices don't themselves track, such as time of day.
+
+\section{\z{current}---Report Current Display State}
+\begin{center}
+	\begin{Coding}
+		|/readerboard/v1/current?a=|\Var*{ad}
+	\end{Coding}
+\end{center}
+
+Returns a \acronym{JSON}-formatted report as an object with device \acronym{ID}s as the keys
+and values matching the result of the \z{busy} command,
+which gives the server's understanding of what should be displayed on the device(s).
+This differs from \z{busy} in that this does not go through the time and effort to poll each
+device to ask about the hardware status. It merely reports what the server last told the
+devices to display.
 
 \section{\z{post}---Post a Message to the Displays}
 \begin{center}
@@ -2066,7 +2123,7 @@ can use here.)
 			\z{0}&\z{off} & \z{8}&\z{flashing-off}* \\
 			\z{1}&\z{red} & \z{9}&\z{flashing-red} \\
 			\z{2}&\z{green} & \z{10} or \z{:}&\z{flashing-green} \\
-			\z{3}&\z{yellow} & \z{11} or \z{;}&\z{flashing-yellow} \\
+			\z{3}&\z{amber}/\z{yellow} & \z{11} or \z{;}&\z{flashing-amber}/\z{flashing-yellow} \\
 			\z{4}&\z{blue} & \z{12} or \z{<}&\z{flashing-blue} \\
 			\z{5}&\z{magenta} & \z{13} or \z{=}&\z{flashing-magenta} \\
 			\z{6}&\z{cyan} & \z{14} or \z{>}&\z{flashing-cyan} \\
@@ -2160,12 +2217,113 @@ For each \Var*{name} and \Var*{value} pair, define or update the corresponding
 user variable (usable in posted messages as \z{\{\$}\Var*{name}\z{\}}). The
 updated value will be displayed from this point until it is updated again.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____ ___ _   _  ___  _   _ _____ ____  
+% |  _ \_ _| \ | |/ _ \| | | |_   _/ ___| 
+% | |_) | ||  \| | | | | | | | | | \___ \ 
+% |  __/| || |\  | |_| | |_| | | |  ___) |
+% |_|  |___|_| \_|\___/ \___/  |_| |____/ 
+%                                         
 \chapter{Pinouts}
-\epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
+%\epigraph{No cord or cable can draw so forcibly, or bind so fast, as love can do with a single thread.}{---Robert Burton}
+\epigraph{The nicest thing about standards is that there are so many of them to choose from.}{---Andrew S. Tanenbaum}
 \LJversal{T}{his chapter describes} each connector used by the readerboard devices and what signals are present
 on which pins. Note that this begins with the current hardware revision, which is most likely the only part you need
 to know about. Following that are the connector descriptions for older, legacy versions of the hardware. Be careful to
 know which version you need to refer to.
+
+\section{8p8c RS-485 Connectors}
+There is no universal standard for \acronym{RS-485} jack wiring, but often uses an 8p8c or 6p6c modular jack.\footnote{Commonly, but not \emph{entirely} correctly, referred to as
+``RJ-45'' and ``RJ-11'' jacks. The ``registered jack'' standards RJ-45 and RJ-11 refer to the wiring arrangement of signals in a modular jack, not just the shape of the jack itself.}
+
+A few popular \emph{de facto} standards are in use, but mostly everyone either uses
+discrete screw terminal blocks or makes up their own connector wiring arrangement.
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=.25]
+	\draw [thick] (0,0) -- (0,13) -- (13,13) -- (13,0) -- cycle;
+	\draw (2,11) -- (11,11) -- (11,4) -- (9,4) -- (9,3) -- (8,3) -- (8,2) -- (5,2) -- (5,3) -- (4,3) -- (4,4) -- (2,4) -- cycle;
+	\foreach \x in {3, 4, 5, 6, 7, 8, 9, 10} {
+		\draw (\x,11) -- (\x,8);
+	}
+	\node [below] at (3,8) {1};
+	\node [below] at (10,8) {8};
+	\node [right] at (15,12) {\strut 1 White/Orange};
+	\node [right] at (15,10.5) {\strut 2 Orange};
+	\node [right] at (15,9) {\strut 3 White/Green};
+	\node [right] at (15,7.5)  {\strut 4 Blue};
+	\node [right] at (15,6)  {\strut 5 White/Blue};
+	\node [right] at (15,4.5)  {\strut 6 Green};
+	\node [right] at (15,3)  {\strut 7 White/Brown};
+	\node [right] at (15,1.5)  {\strut 8 Brown};
+\end{tikzpicture}
+	\caption{Female 8p8c Modular Jack with T-568B Color Codes\label{fig:8p8c}}
+\end{center}
+\end{figure}
+
+\subsection{Lumos Wiring Pinout}
+The author's personal wiring standard used by all his \acronym{RS-485}-capable projects, staring with Lumos, supports full-duplex communication (i.e., a data pair that is dedicated
+to signals from the host PC out to all the connected units---but which could reverse direction if used with half-duplex devices---and a return data pair dedicated to signals from
+the networked devices back to the host) and a cable-check pair which can be used to power very small devices such as the Busylight or to verify that the entire set of daisy-chained
+devices are all fully connected and terminated.
+
+The pinout is as follows:
+\begin{center}
+\begin{tabular}{cl}\toprule
+	\bfseries Pin & \bfseries Signal\\\midrule
+	1&Return data A (+)\\
+	2&Return data B (--)\\
+	3&Cable check send (outbound +9--16\,V)\\
+	4&Data B (--)\\
+	5&Data A (+)\\
+	6&Cable check return\\
+	7&Ground\\
+	8&Ground\\\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{9-pin Connectors}
+Some applications use a \acronym{DE-9} connector\footnote{Also commonly, but incorrectly, called ``DB-9'' connectors.} for \acronym{RS-485} signals, with pinouts such as:
+\begin{center}
+	\begin{tabular}{cl}\toprule
+		\bfseries Pin & \bfseries Signal\\\midrule
+		1&Ground\\
+		2&Clear to Send (CTS) +\\
+		3&Request to Send (RTS) +\\
+		4&Received Data (RxD) +\\
+		5&Received Data (RxD) --\\
+		6&Clear to Send (CTS) --\\
+		7&Request to Send (RTS) --\\
+		8&Transmitted Data (TxD) +\\
+		9&Transmitted Data (TxD) --\\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+\section{DIN-8 Busylight Tree Connectors}
+The Busylight control boards use a \acronym{DIN-8} jack where the light tree cable plugs in to carry the light-signal
+voltages out to the light tree itself. The pinout used is:
+\begin{figure}
+	\begin{center}
+		\includegraphics[width=1in]{images/din8.png}\\
+		{\tiny Image: adapted from original by Ancillalover, Wikimedia Commons, CC-BY-SA 4.0 int'l.}
+		\caption{DIN-8 Jack (looking into socket from front)\label{fig:din9}}
+	\end{center}
+\end{figure}
+\begin{center}
+	\begin{tabular}{ccll}\toprule
+		\bfseries Pin & \bfseries Tier & \bfseries Light Color & \bfseries Wire Color\\\midrule
+		1&6&blue&blue\\
+		2&3&amber&white/brown\\
+		3&5&red&white/orange\\
+		4&4&red&orange\\
+		5&7&white&white/blue\\
+		6&2&amber&brown\\
+		7&&+5\,V power&green\\
+		8&1&green&white/green\\\bottomrule
+	\end{tabular}
+\end{center}
+
 
 \section{Connectors for Version 3.3 Boards}
 \subsection{Arduino Bus Connectors [J0]}
@@ -2177,7 +2335,42 @@ for initial configuration and/or to use it as a directly-connected singleton dev
 devices in use, it may be preferable to switch to the \acronym{RS-485} network after initial configuration of the
 device.)
 
-\subsection{Power / RS-485 (8-pin terminal) [J1]}
+\subsection{Version 3.3.1 Boards}
+The external connections changed significantly at revision 3.3.1. Now J1 is a pair of push-in terminal
+blocks with a combined total of 16 wire connections to make it easy to connect a pair of \acronym{CAT6} cables
+(cable ``A'' which carries the incoming data signals, and cable ``B'' which carries the same signals out to
+the next daisy-chained unit on the \acronym{RS-485} serial network). The expanded terminal block eliminates the
+need to make off-board connections or splices between the cables.
+
+The terminals are labeled as ``A1'' (cable A, pin 1), ``B2'' (cable B, pin 2) and so forth:
+\begin{center}
+	\begin{tabular}{rcl|rcl}\toprule
+		\bfseries Pin & \bfseries Wire & \bfseries Signal &
+		\bfseries Pin & \bfseries Wire & \bfseries Signal \\\midrule
+		1&A1&Return Data A(+) In*   & 9&A7&Ground In\\
+		2&B1&Return Data A(+) Out*  &10&B7&Ground Out\\
+		3&A2&Return Data B(--) In*  &11&A8&Ground In\\
+		4&B2&Return Data B(--) Out* &12&B8&Ground Out\\
+		5&A3&Cable Check Send + In* &13&A5&Data A(+) In\\
+		6&B3&Cable Check Send + Out*&14&B5&Data A(+) Out\\
+		7&A6&Cable Check Return In* &15&A4&Data B(--) In\\
+		8&B6&Cable Check Return Out*&16&B4&Data B(--) Out\\
+		\bottomrule
+		\multicolumn{6}{l}{*Signal not used by the readerboard unit (passed through).}
+	\end{tabular}
+\end{center}
+
+If this device is the last in the RS-485 network chain, insert a 120$\Omega$ resistor between the A and B terminals
+that would have been used as the output if there had been another device connected there (e.g., B4 and B5). This properly terminates
+the RS-485 network at that point.
+
+The power supply to the readerboard unit is on terminal block J5, with +9\,V~DC and ground connections as marked
+on the board.
+
+\subsection{Version 3.3.0 Boards}
+The previous revision, 3.3.0, used a single terminal block J1 to carry the power supply and the \acronym{RS-485} signals
+we actually use, leaving the other wires of the serial cables to be connected externally.
+
 The single external connector on version 3.3.0 boards is an 8-pin screw terminal block. This accepts a +9\,V DC power input
 and ground on pins 8 and 7 respectively, which powers the entire board and the attached Arduino controller.  If RS-485
 communications will be used, the incoming signal is received on pins 1, 2, and 6 while the outgoing signal is on
@@ -2188,21 +2381,25 @@ If this device is the last in the RS-485 network chain, insert a 120$\Omega$ res
 that would have been used as the output if there had been another device connected there. This properly terminates
 the RS-485 network at that point.
 \begin{center}
-	\begin{tabular}{rl|rl}
+	\begin{tabular}{rl|rl}\toprule
+		\bfseries Pin & \bfseries Signal &
+		\bfseries Pin & \bfseries Signal \\\midrule
 		1&A (Data in +)    &5&GND\\
 		2&B (Data in --)   &6&GND\\
 		3&A (Data out +)   &7&GND\\
-		4&B (Data out --)  &8&+9\,V DC in
+		4&B (Data out --)  &8&+9\,V DC in\\\bottomrule
 	\end{tabular}
 \end{center}
 
 The pinout of J1 for revision 3.2.2 boards is different:
 \begin{center}
-	\begin{tabular}{rl|rl}
+	\begin{tabular}{rl|rl}\toprule
+		\bfseries Pin & \bfseries Signal &
+		\bfseries Pin & \bfseries Signal \\\midrule
 		1&A (Data in +)    &5&GND\\
 		2&B (Data in --)   &6&GND\\
 		3&+9\,V DC in      &7&A (Data out +)\\
-		4&GND              &8&B (Data out --)\\
+		4&GND              &8&B (Data out --)\\\bottomrule
 	\end{tabular}
 \end{center}
 
@@ -2326,9 +2523,60 @@ those terminals to terminate the network at that point.
 \end{center}
 }
 
-\chapter{Installing the Readerboard Unit}
-\chapter{Using the Readerboard}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ___ _   _ ____ _____  _    _     _     ___ _   _  ____ 
+% |_ _| \ | / ___|_   _|/ \  | |   | |   |_ _| \ | |/ ___|
+%  | ||  \| \___ \ | | / _ \ | |   | |    | ||  \| | |  _ 
+%  | || |\  |___) || |/ ___ \| |___| |___ | || |\  | |_| |
+% |___|_| \_|____/ |_/_/   \_\_____|_____|___|_| \_|\____|
+%                                                         
+\chapter{Installing and Using the Readerboard and Busylight Units}
+\epigraph{See, unlike most hackers, I get little joy out of figuring out how to install the latest toy.}{---Jamie Zawinski}
+\section{Standalone Units}
+\section{Networked Units}
+\section{Compiling the Supporting Software}
+\section{Setting up \z{rbserver}}
+\section{Setting up Per-User Utilities}
+\subsection{\z{calmond}}
+\subsection{\z{micmond}}
+\subsection{Manual Status Updates}
+\section{Diagnostic Displays}
+There are a few situations where the readerboards and busylights use their light displays to convey
+information about their own status.
+
+\subsection{EEPROM Access}
+When a readerboard accesses its \acronym{EEPROM}, a small superscripted ``\strut$^{EE}$'' is displayed
+in the upper-right corner of the matrix. The next update to the displayed matrix content will overwrite
+this indicator. The color of the indicator indicates the type or outcome of the operation:
+\begin{center}
+	\begin{tabular}{lll}\toprule
+		\bfseries RGB Units & \bfseries Monochrome Units & \bfseries Meaning\\\midrule
+		green & on & reading \\
+		yellow & on & writing \\
+		flashing red & flashing & error \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+\subsection{Protocol Errors}
+If the device receives garbled or otherwise incorrect commands over either \acronym{USB} or \acronym{RS-485},
+it lights the top discrete status \led\ and alternately strobes the fourth and fifth from the bottom. On units with our
+standard color scheme, this is the white and both red \led s. 
+
+These will be displayed until the next status \led\ command changes them.
+
+\subsection{POST}
+During power-on self-test when a readerboard is turned on, the top (usually white) \led\ is illuminated until the \acronym{POST} operation is completed.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  _____ ___  _   _ _____ ____  
+% |  ___/ _ \| \ | |_   _/ ___| 
+% | |_ | | | |  \| | | | \___ \ 
+% |  _|| |_| | |\  | | |  ___) |
+% |_|   \___/|_| \_| |_| |____/ 
+%                               
 \chapter{Font Glyphs}\label{chap:fonts}
+\epigraph{Helvetica is the sweatpants of typefaces.}{---John Boardley}
 \input{../firmware/readerboard/fonts.tex}
 \section{Font Definition Files}
 In the \z{firmware/readerboard} directory there are a set of files with \z{.font} suffixes,
@@ -2428,16 +2676,32 @@ as Font~\#0, such as:
 ->$23,0
 \end{SourceCode}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  _____ ___ ____  __  ____        ___    ____  _____ 
+% |  ___|_ _|  _ \|  \/  \ \      / / \  |  _ \| ____|
+% | |_   | || |_) | |\/| |\ \ /\ / / _ \ | |_) |  _|  
+% |  _|  | ||  _ <| |  | | \ V  V / ___ \|  _ <| |___ 
+% |_|   |___|_| \_\_|  |_|  \_/\_/_/   \_\_| \_\_____|
+%                                                     
 \chapter{Preparing and Updating Firmware Images}\label{chap:firmware}
+\epigraph{Software is a great combination between artistry and engineering.}{---Bill Gates}
 The firmware that runs on the readerboard hardware (or, more precisely, the Arduino single-board
 computer attached to the circuit board) is located in the \z{firmware/readerboard} directory of the
 readerboard project repository.
 
-After updating the code from the repository if necessary, perform the following steps to configure and
+You'll need the following prerequisites in your Arduino development environment:
+\begin{itemize}
+	\item EEPROM v2.0
+	\item I2C\_EEPROM v1.8.5
+	\item TimerEvent v0.5.0
+	\item Wire v1.0
+\end{itemize}
+
+After pulling the latest code from the repository if necessary, perform the following steps to configure and
 prepare the firmware image:
 
 {\bfseries Step 1: Configuration.}\label{config-fw}
-Edit a few lines near the top of \z{readerboard.h}:
+Edit the \z{CONFIGURATION SECTION} near the top of \z{readerboard.h}:
 \begin{SourceCode}
 // BEGIN CONFIGURATION SECTION
 // TODO: Set these before compiling for a particular hardware 
@@ -2458,7 +2722,7 @@ Also, \z{HW\_MC} needs to be set to the model of Arduino microcontroller you wil
 using to control this unit.
 
 If using an \acronym{EEPROM} chip or module external to the Arduino via the I$^2$C bus, such as 
-chip U16 which is recommended for use with the Arduino Due, then set
+chip U16 on \acronym{PCB} revision 3.3.0 and later (which is recommended for use with the Arduino Due), then set
 \z{HAS\_I2C\_EEPROM} to \z{true}. If using no \acronym{EEPROM} or the one built-in to the
 Arduino, leave this set to \z{false}.
 
@@ -2527,23 +2791,53 @@ wish the unit to recognize. This must be in the range 0--15.
 // TODO: Adjust these for the colors of discrete status LEDs on
 //       this unit. These can be used for color values in
 //       commands sent to the device.
-#define STATUS_LED_COLOR_L0 ('G')
-#define STATUS_LED_COLOR_L1 ('y')
-#define STATUS_LED_COLOR_L2 ('Y')
-#define STATUS_LED_COLOR_L3 ('r')
-#define STATUS_LED_COLOR_L4 ('R')
-#define STATUS_LED_COLOR_L5 ('b')
-#define STATUS_LED_COLOR_L6 ('B')
-#define STATUS_LED_COLOR_L7 ('W')
+//
+//       READERBOARDS (8 LIGHTS)
+#define R_STATUS_LED_COLOR_L0 ('G')
+#define R_STATUS_LED_COLOR_L1 ('y')
+#define R_STATUS_LED_COLOR_L2 ('Y')
+#define R_STATUS_LED_COLOR_L3 ('r')
+#define R_STATUS_LED_COLOR_L4 ('R')
+#define R_STATUS_LED_COLOR_L5 ('b')
+#define R_STATUS_LED_COLOR_L6 ('B')
+#define R_STATUS_LED_COLOR_L7 ('W')
+//
+//       BUSYLIGHTS (7 LIGHTS)
+#define B_STATUS_LED_COLOR_L0 ('G')
+#define B_STATUS_LED_COLOR_L1 ('y')
+#define B_STATUS_LED_COLOR_L2 ('Y')
+#define B_STATUS_LED_COLOR_L3 ('r')
+#define B_STATUS_LED_COLOR_L4 ('R')
+#define B_STATUS_LED_COLOR_L5 ('B')
+#define B_STATUS_LED_COLOR_L6 ('W')
 \end{SourceCode}
 These are set for the standard color assignments for the discrete status \led s, allowing for
 the use of these single-letter color codes to refer to the status \led s. If you build a
 unit with different colors, you may assign appropriate color codes here.
 
+Since busylights and readerboards have different numbers of status light displays, they each
+get a separate set of color code assignments. If you are setting up a nonstandard readerboard,
+then edit the codes defined here for symbols starting with \z{R\_}, and likewise with the
+\z{B\_} symbols for nonstandard busylight units.
+
+If your unit doesn't have the full compliment of lights possible, assign the unused positions
+to codes with a digit that matches the light number. For example, for a three-color busylight:
+\begin{SourceCode}
+#define B_STATUS_LED_COLOR_L0 ('G') /* green */
+#define B_STATUS_LED_COLOR_L1 ('R') /* red */
+#define B_STATUS_LED_COLOR_L2 ('B') /* blue */
+#define B_STATUS_LED_COLOR_L3 ('O') /* orange */
+#define B_STATUS_LED_COLOR_L4 ('4') /* unused */
+#define B_STATUS_LED_COLOR_L5 ('5') /* unused */
+#define B_STATUS_LED_COLOR_L6 ('6') /* unused */
+\end{SourceCode}
+
+Move on to the version number banners.
+
 \begin{SourceCode}
 #define BANNER_HARDWARE_VERS "HW 3.2.3  "
-#define BANNER_FIRMWARE_VERS "FW 0.0.0  "
-#define SERIAL_VERSION_STAMP "V3.2.3$R0.0.0$"
+#define BANNER_FIRMWARE_VERS "FW 2.1.4  "
+#define SERIAL_VERSION_STAMP "V3.2.3$R2.1.4$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
@@ -2565,28 +2859,8 @@ Set the \z{SERIAL\_VERSION\_STAMP} value to match the previous two values while 
 the format ``\z{V}\dots\z{\$R}\dots\z{\$}''. This string will be sent verbatim as part
 of the device's response to being queried for its configuration and status.
 
-%An example of a properly configured file looks like this:
-%\begin{SourceCode}
-%#define BANNER_HARDWARE_VERS "HW 3.2.3  "
-%#define BANNER_FIRMWARE_VERS "FW 1.2.0  "
-%#define BANNER_SERIAL_NUMBER "S/N R1024 "
-%#define SERIAL_VERSION_STAMP "V3.2.3$R1.2.0$SR1024$"
-%//                             \___/  \___/  \___/
-%//                               |      |      |
-%//                  Hardware version    |      |
-%//                         Firmware version    |
-%//                                 Serial number
-%\end{SourceCode}
-%
-%{\bfseries Step 2: Set Hardware Model}.
-%A little further down \z{readerboard.h}, there is a pair of lines like:
-%\begin{SourceCode}
-%#define HW_MODEL (MODEL_3xx_RGB)
-%#define HW_MC (HW_MC_DUE)
-%\end{SourceCode}
-
 If, and \strong{only if}, you are making a custom firmware image for a board with no \acronym{EEPROM}
-storage capability, uncomment and adjust the \z{BESPOKE\_SERIAL\_NUMBER} definition with the serial
+storage capability, adjust the \z{BE\-SPOKE\-\_SER\-I\-AL\-\_NUM\-BER} definition with the serial
 number of this device. For example:
 \begin{SourceCode}
 #define BESPOKE_SERIAL_NUMBER "RB1234"
@@ -2600,12 +2874,14 @@ number of this device. For example:
 		Customizing and extending the fonts is described in Chapter~\ref{chap:fonts}.
 
 {\bfseries Step 3: Compile.}
-		Using your Arduino compiler tools, compile the \z{readerboard.ino} file and upload it
+		Using your Arduino compiler tools, compile the \z{readerboard} sketch files and upload the
+		resulting binary
 		to your readerboard hardware. This step assumes you have set up your own Arduino
 		development environment and is beyond the scope of this document to help you with.
 
 {\bfseries Step 4: Serial Number.}
-		Run the \z{setsn} command to field-configure the device's serial number. For example:
+		If your unit has \acronym{EEPROM} memory,
+		run the \z{setsn} command to field-configure the device's serial number. For example:
 \begin{SourceCode}
 % setsn -port /dev/ttyACM0 -sn RB1234 -model rb
 \end{SourceCode}
@@ -2613,8 +2889,16 @@ number of this device. For example:
 %Encode a ``flashing'' attribute into matrix content, perhaps as a bit that
 %is set on the color code, to allow arbitrary parts of the matrix to flash.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ____   ____ _   _ _____ __  __    _  _____ ___ ____ ____  
+% / ___| / ___| | | | ____|  \/  |  / \|_   _|_ _/ ___/ ___| 
+% \___ \| |   | |_| |  _| | |\/| | / _ \ | |  | | |   \___ \ 
+%  ___) | |___|  _  | |___| |  | |/ ___ \| |  | | |___ ___) |
+% |____/ \____|_| |_|_____|_|  |_/_/   \_\_| |___\____|____/ 
+%                                                            
 \chapter{Schematics and Diagrams}
-The following pages include the schematics for the current 3.3.0 version of the readerboard \acronym{PCB}
+\epigraph{Whether you draw diagrams that generate code or you type at a browser, you are coding.}{---Kent Beck}
+The following pages include the schematics for the current 3.3.1 version of the readerboard \acronym{PCB}
 and the board assembly diagram, showing where the components are placed, and the same for the 2.2.0 version
 of the Busylight circuit board and 1.1 light tree tier boards for use with the Busylight units.
 

@@ -30,11 +30,23 @@ Libraries Required:
 #define HW_MC_DUE (1)
 #define HW_MC_PRO (2)
 
+#define EE_ADDRESS_DISABLED (0xff) /* use this as the address if the RS-485 interface is not used */
+
+
+//_____________________________________________________________________________
+//   ____ ___  _   _ _____ ___ ____ _   _ ____      _  _____ ___ ___  _   _ 
+//  / ___/ _ \| \ | |  ___|_ _/ ___| | | |  _ \    / \|_   _|_ _/ _ \| \ | |
+// | |  | | | |  \| | |_   | | |  _| | | | |_) |  / _ \ | |  | | | | |  \| |
+// | |__| |_| | |\  |  _|  | | |_| | |_| |  _ <  / ___ \| |  | | |_| | |\  |
+//  \____\___/|_| \_|_|   |___\____|\___/|_| \_\/_/   \_\_| |___\___/|_| \_|
+//_____________________________________________________________________________
+//                                                                          
 // BEGIN CONFIGURATION SECTION
 // TODO: Set these before compiling for a particular hardware configuration
 #define HW_MODEL (MODEL_3xx_RGB)
 #define HW_MC (HW_MC_DUE)
-//#define HW_MODEL (MODEL_BUSYLIGHT_1)
+//#define HW_MC (HW_MC_MEGA_2560)
+//#define HW_MODEL (MODEL_BUSYLIGHT_2)
 //#define HW_MC (HW_MC_PRO)
 #define HAS_I2C_EEPROM (false)
 
@@ -51,7 +63,6 @@ Libraries Required:
 #define EE_DEFAULT_USB_SPEED  ('5')	/* usb connections 9600 baud */
 #define EE_DEFAULT_485_SPEED ('5')  /* RS-485 connections 9600 baud */
 //
-#define EE_ADDRESS_DISABLED (0xff) /* use this as the address if the RS-485 interface is not used */
 
 // Default device address (may be any value from 0-63 except the global address, or EE_ADDRESS_DISABLED if
 // you won't be using RS-485 at all.)
@@ -62,21 +73,32 @@ Libraries Required:
 //
 // TODO: Adjust these for the colors of discrete status LEDs on this unit. These
 //       can be used for color values in commands sent to the device.
-#define STATUS_LED_COLOR_L0 ('G')
-#define STATUS_LED_COLOR_L1 ('y')
-#define STATUS_LED_COLOR_L2 ('Y')
-#define STATUS_LED_COLOR_L3 ('r')
-#define STATUS_LED_COLOR_L4 ('R')
-#define STATUS_LED_COLOR_L5 ('b')
-#define STATUS_LED_COLOR_L6 ('B')
-#define STATUS_LED_COLOR_L7 ('W')
+//
+//       READERBOARDS (8 LIGHTS)
+#define R_STATUS_LED_COLOR_L0 ('G')
+#define R_STATUS_LED_COLOR_L1 ('y')
+#define R_STATUS_LED_COLOR_L2 ('Y')
+#define R_STATUS_LED_COLOR_L3 ('r')
+#define R_STATUS_LED_COLOR_L4 ('R')
+#define R_STATUS_LED_COLOR_L5 ('b')
+#define R_STATUS_LED_COLOR_L6 ('B')
+#define R_STATUS_LED_COLOR_L7 ('W')
+//
+//       BUSYLIGHTS (7 LIGHTS)
+#define B_STATUS_LED_COLOR_L0 ('G')
+#define B_STATUS_LED_COLOR_L1 ('y')
+#define B_STATUS_LED_COLOR_L2 ('Y')
+#define B_STATUS_LED_COLOR_L3 ('r')
+#define B_STATUS_LED_COLOR_L4 ('R')
+#define B_STATUS_LED_COLOR_L5 ('B')
+#define B_STATUS_LED_COLOR_L6 ('W')
 //
 // TODO: Adjust these for your version and serial number
 #if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.1.3  "
+#define BANNER_FIRMWARE_VERS "FW 2.1.8  "
 #endif
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$"
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.8$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
@@ -90,23 +112,28 @@ Libraries Required:
 //#define BESPOKE_SERIAL_NUMBER "RBXXXX"
 //
 // END CONFIGURATION SECTION
+//______________________________________________________________________________
 
-// some definitions for known devices and their hardware configurations
+//
+// You should not need to change anything below this point.
+// 
+
+// Some definitions for known prototype devices and their nonstandard hardware configurations
 //#define SN_B0001
-#define SN_RB0000
+//#define SN_RB0000
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
-# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.3$"
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.8$"
 # define HW_MC (HW_MC_PRO)
 #endif
 #ifdef SN_RB0000
-# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.3$"
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.8$"
 # define BANNER_HARDWARE_VERS "HW 3.2.2  "
 //# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)
-# define HAS_I2C_EEPROM (false)
-# define BESPOKE_SERIAL_NUMBER "RB0000"
+# define HAS_I2C_EEPROM (true)
+//# define BESPOKE_SERIAL_NUMBER "RB0000"
 #endif
 
 #define HW_CONTROL_LOGIC_3xx (1)
@@ -205,6 +232,7 @@ extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
 extern void shift_left(byte buffer[N_ROWS][N_COLS]);
 extern void setup_buffers(void);
 extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false);
+extern void show_banner(void);
 #endif /* IS_READERBOARD */
 
 extern byte USB_baud_rate_code;

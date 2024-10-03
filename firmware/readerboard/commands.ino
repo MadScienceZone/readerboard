@@ -218,6 +218,7 @@ private:
         ImageStateMerge,
         ImageStateTransition,
         LightSetState,
+        ShowBannerState,
 #endif
     } state;
     byte LEDset;
@@ -778,6 +779,12 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             state = SetSNState;
             break;
         }
+#if IS_READERBOARD
+        if (inputchar == '*') {
+            state = ShowBannerState;
+            break;
+        }
+#endif
         state = SetUspdState;
         if (inputchar == '.') {
             append_byte(EE_ADDRESS_DISABLED);
@@ -788,6 +795,17 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             error();
         }
         break;
+
+#if IS_READERBOARD
+    case ShowBannerState:
+        if (inputchar == '=') {
+            show_banner();
+            end_cmd();
+        } else {
+            error();
+        }
+        break;
+#endif
 
     case SetSNState:
         if (inputchar == '\033' || inputchar == '$') {
@@ -965,12 +983,11 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                     }
                 }
             }
+            buffer_idx = 0;
 
             if (++k >= N_COLORS) {
                 display_buffer(image_buffer, transition);
                 end_cmd();
-            } else {
-                error();
             }
             break;
         }
@@ -1107,7 +1124,15 @@ void CommandStateMachine::report_state(bool terminate)
 //
 void CommandStateMachine::error(void)
 {
-    set_lights(0b10011000);
+#if IS_READERBOARD
+    set_lights(0b10000000);
+#else
+    set_lights(0b01000000);
+#endif
+    strober.stop();
+    strober.append(3);
+    strober.append(4);
+    strober.start();
     state = ErrorState;
 }
 
