@@ -6,6 +6,7 @@ package readerboard
 
 import (
 	"fmt"
+	"strings"
 )
 
 // ImageFromASCII reads an image source which contains a bitmap in ASCII form
@@ -19,18 +20,61 @@ func ImageFromASCII(src []string, depth int) (ImageBitmap, error) {
 	if depth != 2 && depth != 4 {
 		return ImageBitmap{}, fmt.Errorf("depth must be 2 or 4")
 	}
+
 	img := ImageBitmap{
 		Depth: depth,
 	}
+
+	for _, rowdata := range src {
+		if len(rowdata) > img.Width {
+			img.Width = len(rowdata)
+		}
+	}
+
+	if img.Width == 0 {
+		img.Planes = nil
+		return img, nil
+	}
+
+	img.Planes = make([][]byte, depth)
+	for i := 0; i < depth; i++ {
+		img.Planes[i] = make([]byte, img.Width)
+	}
+
 	for row, rowdata := range src {
 		for col, coldata := range rowdata {
 			if depth == 2 {
 				switch coldata {
-					case '@'
-					case '.'
+				case '@':
+					img.Planes[0][col] |= (1 << row)
+				case '#':
+					img.Planes[0][col] |= (1 << row)
+					img.Planes[1][col] |= (1 << row)
+				case '.':
+				default:
+					return img, fmt.Errorf("Illegal character '%c' for depth-2 bitmap", coldata)
+				}
+			} else {
+				if !strings.ContainsRune("rgybmcwRGYBMCW.", coldata) {
+					return img, fmt.Errorf("Illegal character '%c' for depth-4 bitmap", coldata)
+				}
+				if strings.ContainsRune("rgybmcw", coldata) {
+					img.Planes[3][col] |= (1 << row)
+				}
+				if strings.ContainsRune("rymwRYMW", coldata) {
+					img.Planes[0][col] |= (1 << row)
+				}
+				if strings.ContainsRune("gycwGYCW", coldata) {
+					img.Planes[1][col] |= (1 << row)
+				}
+				if strings.ContainsRune("bmcwBMCW", coldata) {
+					img.Planes[2][col] |= (1 << row)
+				}
+			}
+		}
+	}
 
-	
-	return ImageBitmap{}, nil
+	return img, nil
 }
 
 // SketchImage renders an ImageBitmap value in ASCII, returned as a slice of strings, each element being a row of the image.

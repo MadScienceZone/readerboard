@@ -155,8 +155,11 @@ func TestImageFromASCII(t *testing.T) {
 		depth         int
 		errorExpected bool
 	}{
-		{ImageBitmap{0, 0, nil}, nil, 2, false},
+		// 0
+		{ImageBitmap{2, 0, nil}, nil, 2, false},
+		// 1
 		{ImageBitmap{0, 0, nil}, nil, 1, true},
+		// 2
 		{ImageBitmap{2, 6, [][]byte{
 			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
 			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
@@ -169,7 +172,7 @@ func TestImageFromASCII(t *testing.T) {
 				"..@@..",
 				".@..@.",
 				"@....@"}, 2, false},
-		// 2
+		// 3
 		{ImageBitmap{2, 6, [][]byte{
 			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
 			{0x01, 0x01, 0x01, 0x30, 0x40, 0x80}}},
@@ -182,7 +185,7 @@ func TestImageFromASCII(t *testing.T) {
 				"..@#..",
 				".@..#.",
 				"@....#"}, 2, false},
-		// 3
+		// 4
 		{ImageBitmap{2, 6, [][]byte{
 			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
 			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
@@ -195,7 +198,7 @@ func TestImageFromASCII(t *testing.T) {
 				"..@@..",
 				".@..@.",
 				"@....@"}, 2, false},
-		// 4
+		// 5
 		{ImageBitmap{4, 6, [][]byte{
 			{0x85, 0x49, 0x31, 0x31, 0x49, 0x85},
 			{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}},
@@ -207,7 +210,7 @@ func TestImageFromASCII(t *testing.T) {
 				"..@@..",
 				"..@@..",
 				".@..@.",
-				"@....@"}, 2, true},
+				"@....@"}, 4, true},
 		// 6
 		{ImageBitmap{4, 6, [][]byte{
 			{0x01, 0x01, 0x31, 0x31, 0x01, 0x01},
