@@ -294,6 +294,27 @@ type netTargetKey struct {
 	DeviceType HardwareModel
 }
 
+/*
+func InvokeOperation(f func(url.Values, HardwareModel) ([]byte, error), conn NetworkDescription, host, targetList, deviceModel string) error {
+	if conn != nil {
+		var tlist []int
+		for _, target := range strings.Split(targetList, ",") {
+			n, err := strconv.Atoi(target)
+			if err != nil {
+				return fmt.Errorf("Invalid target device address: %v (%v)", target, err)
+			}
+			tlist = append(tlist, n)
+		}
+		if sendCommandToHardware(f, map[netTargetKey][]int{
+			netTargetKey{"direct", hwModel}: tlist,
+		}, &http.Request{}, &ConfigData{}, false) > 0 {
+			return fmt.Errorf("Error sending command to hardware")
+		}
+	}
+	return nil
+}
+*/
+
 func WrapHandler(f func(url.Values, HardwareModel) ([]byte, error), config *ConfigData, globalAllowed bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		targetNetworks, errors, isGlobal := getTargetList(r, config)

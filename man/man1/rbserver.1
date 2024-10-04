@@ -116,7 +116,7 @@ shuts down.
 .TP
 .B Endpoint
 This gives the TCP endpoint which is to accept HTTP requests. It has the form
-.RI [ hostname ] \fB:\fPport .
+.RI [ hostname ] \f[CR]:\fPport .
 .SS "Example Configuration"
 .na
 .nf
@@ -242,6 +242,9 @@ Clear the LED matrix so all pixels are off.
 .TP
 .BI color ... &color= c
 Sets the current color to the specified color code.
+.TP
+.B diag-banners
+Causes the addressed readerboard(s) to display their power-on banner messages again.
 .TP
 .BI flash ... &l= L0L1...LN
 Sets a pattern of 0\-64 lights which will be illuminated in sequence on the discrete
@@ -393,11 +396,187 @@ as an object with device IDs as keys and JSON-formatted payloads as the correspo
 .B busy
 Query the device's discrete status LEDs, reporting on which lights are currently illuminated,
 and the state of the strober and flasher.
+.RS
+.LP
+The report is a JSON map where the keys are the reporting device ID(s) (as string values) and the values are JSON objects
+with the following fields:
+.TP
+.B StatusLights
+This is a string where each character represents the state of one of the status LEDs. If lit, the corresponding
+character will be the letter code defined it its firmware to represent the color of that light. If no code is defined
+for that light, the digit representing its position in the stack of LEDs is shown. If off, that position in the string
+will be
+.RB \*(lq _ \*(rq.
+.TP
+.BI "FlasherStatus " (object)
+A JSON object which shows the current state of the light flasher. This has the following fields:
+.RS
+.TP
+.BI "IsRunning " (bool)
+This is
+.B true
+If the flasher unit is currently running through its sequence.
+.TP
+.BI "Position " (int)
+The 0-origin index into the sequence for the light currently being illuminated.
+.TP
+.B Sequence
+A character string where each character is an LED code as shown above for the
+.B StatusLights
+field. This provides the full sequence that the flasher is running through.
+.RE
+.TP
+.BI "StroberStatus " (object)
+A JSON object with identical structure to
+.B FlasherStatus
+but giving the state of the light strober.
+.LP
+For example:
+.nf
+.na
+.ft C
+{
+  "1": {
+    "StatusLights": "__Y_____",
+    "FlasherStatus": {
+      "IsRunning": true,
+      "Position": 0,
+      "Sequence": "Yy"
+    },
+    "StroberStatus": {
+      "IsRunning": false,
+      "Position": 0,
+      "Sequence": ""
+    }
+  }
+}
+.ft
+.ad
+.fi
+.RE
 .TP
 .B query
 Query the device's full status and report it. This includes the information reported by the
 .B busy
 command, as well as hardware and firmware revision numbers, serial number, contents of the LED matrix, etc.
+As with
+.BR busy ,
+the response is a JSON map of device address to JSON object. The latter includes the following fields:
+.TP
+.B DeviceModelClass
+This is a string describing the general class of device. It may be
+.RB \*(lq Busylight \*(rq,
+.RB \*(lq Readerboard_Monochrome \*(rq,
+or
+.RB \*(lq Readerboard_RGB \*(rq.
+.TP
+.BI "DeviceAddress " (int)
+The configured address for this unit, or 255 if none is set (in which case the RS-485 interface is disabled).
+.TP
+.BI "GlobalAddress " (int)
+The configured global address recognized by the device.
+.TP
+.BI "SpeedUSB " (int)
+The baud rate setting for the direct USB interface.
+.TP
+.BI "Speed485 " (int)
+The baud rate setting for the RS-485 interface.
+.TP
+.B EEPROM
+This is
+.RB \*(lq external \*(rq
+if an I2C EEPROM chip external to the microcontroller board is in use,
+.RB \*(lq internal \*(rq,
+if the microcontroller's EEPROM is in use, or
+.RB \*(lq none \*(rq
+if no EEPROM is available on this unit.
+.TP
+.B HardwareRevision
+The hardware version number as understood by the firmware.
+.TP
+.B FirmwareRevision
+The firmware version number.
+.TP
+.B Serial
+The device's serial number.
+.TP
+.BI "StatusLEDs " (object)
+The state of the discrete status LED stack. The value is idential to the output from the
+.B busy
+command (q.v.)
+.TP
+.BI "ImageBitmap " "(list of lists)"
+Busylight units report this as
+.BR null .
+Readerboards report the contents of their LED matrix here as a list of bitplanes (2 for monochrome displays, 4 for RGB ones).
+Each plane is a list of columns as decimal integers, each of which is a bit-encoded value where the least-significant bit corresponds
+to the top pixel in the column.
+.RE
+.LP
+For example:
+.nf
+.na
+.ft C
+{
+  "1": {
+    "DeviceModelClass": "Readerboard_RGB",
+    "DeviceAddress": 255,
+    "GlobalAddress": 15,
+    "SpeedUSB": 115200,
+    "Speed485": 115200,
+    "EEPROM": "external",
+    "HardwareRevision": "3.2.2",
+    "FirmwareRevision": "2.1.8",
+    "Serial": "RB0000",
+    "StatusLEDs": {
+      "StatusLights": "__Y_____",
+      "FlasherStatus": {
+        "IsRunning": false,
+        "Position": 0,
+        "Sequence": ""
+      },
+      "StroberStatus": {
+        "IsRunning": false,
+        "Position": 0,
+        "Sequence": ""
+      }
+    },
+    "ImageBitmap": [
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+  },
+  "2": {
+    "DeviceModelClass": "Busylight",
+    "DeviceAddress": 255,
+    "GlobalAddress": 15,
+    "SpeedUSB": 9600,
+    "Speed485": 9600,
+    "EEPROM": "internal",
+    "HardwareRevision": "1.0.2",
+    "FirmwareRevision": "2.1.3",
+    "Serial": "B0001",
+    "StatusLEDs": {
+      "StatusLights": "___Y___",
+      "FlasherStatus": {
+        "IsRunning": false,
+        "Position": 0,
+        "Sequence": ""
+      },
+      "StroberStatus": {
+        "IsRunning": false,
+        "Position": 0,
+        "Sequence": ""
+      }
+    },
+    "ImageBitmap": null
+  }
+}
+.ft
+.ad
+.fi
 .SS "Server Commands"
 .LP
 The following commands execute higher-level operations on the server which in turn affects how it manages the state of the connected
@@ -434,76 +613,263 @@ or regular expression from the display list of the target devices.
 .TP
 .BI update ... & k0 = v0...kn = vn
 Update the value of one or more user variables which may be substituted into posted display lists.
-\".SS "Encoded Values"
-\".TP
-\".B Colors
-\".RS
-\".TP
-\".B 0
-\"off
-\".TP
-\".B 1/9
-\"red (1=steady, 9=flashing)
-\".TP
-\".B 2/10
-\"green (2=steady, 10=flashing)
-\".TP
-\".B 3/11
-\"yellow (3=steady, 11=flashing)
-\".TP
-\".B 4/12
-\"blue (4=steady, 12=flashing)
-\".TP
-\".B 5/13
-\"magenta (5=steady, 13=flashing)
-\".TP
-\".B 6/14
-\"cyan (6=steady, 14=flashing)
-\".TP
-\".B 7/15
-\"white (7=steady, 15=flashing)
-\".LP
-\"When sending color codes embedded in strings with the
-\".B %0B
-\"control sequence, flashing green, yellow, blue, magenta, cyan, and white are represented by 
-\".RB \*(lq : \*(rq,
-\".RB \*(lq ; \*(rq,
-\".RB \*(lq < \*(rq,
-\".RB \*(lq = \*(rq,
-\".RB \*(lq > \*(rq,
-\"and
-\".RB \*(lq ? \*(rq,
-\"since two-digit values can't be used with that notation.
-\".RE
-\".TP
-\".B Font IDs
-\".RS
-\".TP
-\".B 0
-\"Standard fixed-width 5x7 matrix characters.
-\".TP
-\".B 1
-\"Variable-width version of font 0.
-\".TP
-\".B 2
-\"Special symbols and large letters and digits.
-\".RE
-\".TP
-\".B Positions
-\"Column positions are encoded as six-bit integers, with the addition that the special character
-\".RB \*(lq ~ \*(rq
-\"indicates the current cursor position.
-\".TP
-\".B Six-bit integers
-\"Integer values are encoded by adding 48 to the integer and sending that as an ASCII character. Thus, values 0\-9 are
-\"sent as the characters
-\".RB \*(lq 0 \*(rq\-\*(lq 9 \*(rq,
-\"10 is sent as
-\".RB \*(lq : \*(rq,
-\"and 63 (the maximum value which can be encoded) as
-\".RB \*(lq o \*(rq.
-\".TP
-\".B Transitions
+.SH "ENCODED VALUES"
+.SS "Colors"
+.LP
+Colors as specified to the 
+.BR color ,
+.BR graph ,
+and
+.B post
+commands 
+and in the embedded color-change sequence in
+the
+.B scroll
+and
+.B text
+commands may use these codes:
+.LP
+.TS
+center;
+CB LB | CB LB
+CB l | CB l.
+_
+Code	Color	Code	Color
+_
+0	off	8	off
+1	red	9	flashing red
+2	green	:	flashing green
+3	amber	;	flashing amber
+4	blue	<	flashing blue
+5	magenta	\&=	flashing magenta
+6	cyan	>	flashing cyan
+7	white	?	flashing white
+_
+.TE
+.LP
+Color codes given as parameters to the
+.B color
+and
+.B post
+commands may also include integer values 10\-15 in place of :\-? respectively.
+.SS "Font Indexes"
+.LP
+Fonts are specified by numeric index:
+.LP
+.TS
+center;
+CB LB
+CB l.
+_
+Index	Font
+_
+0	Standard 5x7 matrix font (fixed-width)
+1	Variable-width version of font 0
+2	Special symbols and large bold alphanumerics
+_
+.TE
+.SS "Transition Codes"
+.LP
+The codes which may be specified to the
+.BR bitmap ,
+.BR post ,
+and
+.BR text
+commands to indicate transition effect may be given
+as either the code symbol or keyword:
+.LP
+.TS
+center;
+CB LB LB
+CB LB l.
+_
+Code	Keyword	Effect
+_
+.	none	no effect	
+>	scroll-right	scroll to the right	
+<	scroll-left	scroll to the left	
+^	scroll-up	scroll up	
+v	scroll-down	scroll down	
+R	wipe-right	wipe to the right
+L	wipe-left	wipe to the left
+U	wipe-up	wipe up
+D	wipe-down	wipe down
+|	wipe-horiz	wipe left and right	
+\-	wipe-vert	wipe up and down
+?	random	Random effect
+_
+.TE
+.SS "Alignment Codes"
+.LP
+The alignment code specified to the
+.B text
+command may be given by code or keyword:
+.LP
+.TS
+center;
+CB LB LB
+CB LB l.
+_
+Code	Keyword	Alignment
+_
+\&.	none	none
+>	right	right-justified to right edge
+^	center	centered across entire matrix
+C	local-center	centered between cursor and right edge
+R	local-right	right-aligned between left edge and cursor
+_
+.TE
+.SS "Time Durations"
+The various duration parameters to the
+.B post
+command are formatted as a string of numbers followed by a single-letter code indicating time units,
+such as
+.RB \*(lq 3m \*(rq
+for 3 minutes,
+.RB \*(lq 5h \*(rq
+for 5 hours,
+and
+.RB \*(lq 1d,10h3m42s \*(rq
+for 1 day, 10 hours, 3 minutes, and 42 seconds.
+.SS "Time and Date"
+The time and date parameters to the
+.B post
+command have the general form
+.RS
+.RI [ day \f[CR]@\fP][ hour ]\f[CR]:\fP min [\f[CR]:\fP sec ]
+.RE
+where
+.I day
+is the name of the day of the week, and the others are decimal integer values
+using 24-hour time for the
+.I hour
+value.
+.LP
+The parameter may also be a single
+.I day
+by itself, or it may have the form of a duration in which case it represents that much elapsed time from the current time.
+.LP
+The
+.B visible
+parameter to
+.B post
+is actually a pair of date time values separated by a hyphen
+.RB (\*(lq \- \*(rq).
+.SS Variables
+Text messages given to the
+.B post
+command may include these server-side variables:
+.TS
+center;
+LB LB
+LB l.
+_
+Variable	Meaning
+_
+{big}	Switch to large characters for alphanumerics
+{color\fIn\fP}	Switch to color code
+{\fIcolorname\fP}	Switch to color name
+{date}	Print the date as dd-mmm-yyyy
+{font\fIn\fP}	Switch to the given font
+{normal}	Cancel {big}
+{mdy}	Print the date as mm/dd/yyyy
+{pom}	Show the phase of the moon symbol
+{time12}	Print the time as hh:mm AM/PM
+{time24}	Print the time as hh:mm
+{ymd}	Print the date as yyyy-mm-dd
+{@\fIn\fP}	Move to the specified column
+{@+\fIn\fP}	Move right a number of columns
+{@\-\fIn\fP}	Move left a number of columns
+{#\fIn\fP}	Insert special character by decimal code
+{#$\fIh\fP}	Insert special character by hexadecimal code
+{$\fIname\fP}	Insert user-defined variable
+{{	Literal {
+}}	Literal }
+_
+.TE
+.SS "Six-Bit Integers"
+.LP
+Values such as the positioning commands specified to embedded codes in text strings are constrained to the range 0\-63, encoded into a single
+character by adding 48 to the integer value. Thus, the ASCII digit characters
+.RB \*(lq 0 \*(rq\-\*(lq 9 \*(rq
+represent integer values 0\-9 directly,
+.RB \*(lq : \*(rq\-\*(lq @ \*(rq
+represent 10\-16, and so forth, up to
+.RB \*(lq o \*(rq
+which represents the value 63.
+.LP
+For values that specifically refer to column position, the character
+.RB \*(lq ~ \*(rq
+represents the current cursor position.
+'\".TP
+'\".B Colors
+'\".RS
+'\".TP
+'\".B 0
+'\"off
+'\".TP
+'\".B 1/9
+'\"red (1=steady, 9=flashing)
+'\".TP
+'\".B 2/10
+'\"green (2=steady, 10=flashing)
+'\".TP
+'\".B 3/11
+'\"yellow (3=steady, 11=flashing)
+'\".TP
+'\".B 4/12
+'\"blue (4=steady, 12=flashing)
+'\".TP
+'\".B 5/13
+'\"magenta (5=steady, 13=flashing)
+'\".TP
+'\".B 6/14
+'\"cyan (6=steady, 14=flashing)
+'\".TP
+'\".B 7/15
+'\"white (7=steady, 15=flashing)
+'\".LP
+'\"When sending color codes embedded in strings with the
+'\".B %0B
+'\"control sequence, flashing green, yellow, blue, magenta, cyan, and white are represented by 
+'\".RB \*(lq : \*(rq,
+'\".RB \*(lq ; \*(rq,
+'\".RB \*(lq < \*(rq,
+'\".RB \*(lq = \*(rq,
+'\".RB \*(lq > \*(rq,
+'\"and
+'\".RB \*(lq ? \*(rq,
+'\"since two-digit values can't be used with that notation.
+'\".RE
+'\".TP
+'\".B Font IDs
+'\".RS
+'\".TP
+'\".B 0
+'\"Standard fixed-width 5x7 matrix characters.
+'\".TP
+'\".B 1
+'\"Variable-width version of font 0.
+'\".TP
+'\".B 2
+'\"Special symbols and large letters and digits.
+'\".RE
+'\".TP
+'\".B Positions
+'\"Column positions are encoded as six-bit integers, with the addition that the special character
+'\".RB \*(lq ~ \*(rq
+'\"indicates the current cursor position.
+'\".TP
+'\".B Six-bit integers
+'\"Integer values are encoded by adding 48 to the integer and sending that as an ASCII character. Thus, values 0\-9 are
+'\"sent as the characters
+'\".RB \*(lq 0 \*(rq\-\*(lq 9 \*(rq,
+'\"10 is sent as
+'\".RB \*(lq : \*(rq,
+'\"and 63 (the maximum value which can be encoded) as
+'\".RB \*(lq o \*(rq.
+'\".TP
+'\".B Transitions
 .SH "SEE ALSO"
 .LP
 More details about how values are encoded and handled by devices and the server are described

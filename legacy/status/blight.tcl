@@ -2,8 +2,15 @@
 #
 # Control busylight from GUI
 #
+package require http
 package require json 1.3.4
 package require json::write
+
+set t [::http::geturl http://localhost:43210/readerboard/v1/query?a=15]
+puts [set d [::json::json2dict [::http::data $t]]]
+puts [dict get $d 1 StatusLEDs FlasherStatus IsRunning]
+::http::cleanup $t
+exit 0
 
 set config_file_name [file normalize [file join ~ .busylight config.json]]
 set activity_file_name [file normalize [file join ~ .busylight activities.json]]

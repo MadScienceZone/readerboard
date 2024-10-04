@@ -1414,7 +1414,7 @@ for a complete font glyph listing with codepoint assignments.
 			\emph{16x}&\checkmark&$\sqrt{}$&$\infty$&\OE&\oe&\texteuro&$\therefore$&$\because$&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\XSolidBold&$\blacktriangleleft$&$\blacktriangleright$&$\blacktriangle$&$\blacktriangledown$&$\updownarrow$&$\blacklozenge$&$\lozenge$&\\\hline
 			\emph{20x}&$\lambda$&$\Theta$&$\Phi$&$\Psi$&\male&\female&\tUnused&zero&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
-			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&\strut$^{EE}$&\\\hline
+			\emph{21x}&$\pm$&$\mp$&$\oplus$&$\odot$&$\equiv$&clover&notes&EE&\\\hline
 			\emph{22x}&\tiny{AM}&\tiny{PM}&$^\circ$F&$^\circ$C&{\tiny wide} \OE&{\tiny wide} \oe&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&\multicolumn{8}{c|}{The phases of the moon}&\\\hline
 			\emph{24x}&&\tSpecial\tiny{TS1}&\tSpecial\tiny{TS2}&\tSpecial\tiny{TS3}&\tSpecial\tiny{TS4}&\tSpecial\tiny{TS5}&\tSpecial\tiny{TS6}&\tSpecial\tiny{TS7}&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
@@ -2546,8 +2546,8 @@ information about their own status.
 
 \subsection{EEPROM Access}
 When a readerboard accesses its \acronym{EEPROM}, a small superscripted ``\strut$^{EE}$'' is displayed
-in the upper-right corner of the matrix. The next update to the displayed matrix content will overwrite
-this indicator. The color of the indicator indicates the type or outcome of the operation:
+in the upper-right corner of the matrix until the matrix is cleared or overwritten.
+The color of the indicator indicates the type or outcome of the operation:
 \begin{center}
 	\begin{tabular}{lll}\toprule
 		\bfseries RGB Units & \bfseries Monochrome Units & \bfseries Meaning\\\midrule
@@ -2750,7 +2750,7 @@ Table~\ref{tab:hwmodel}.
 
 \begin{SourceCode}
 // TODO: Set these default settings (this will be the "factory
-//	 default settings"). On Due-based systems without 
+//       default settings"). On Due-based systems without 
 //       EEPROM chip U16 installed, this is the only way to 
 //       make these settings at all. If the EEPROM is installed
 //       (or one is built-in to the microcontroller), this is
