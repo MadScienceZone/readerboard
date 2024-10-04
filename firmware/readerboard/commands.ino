@@ -108,8 +108,11 @@
 //                          |
 //                          |  K    ________  rgb
 //                          +----->|SetColor|--------> END
-//                                 |________|
-//
+//                          |      |________|
+//                          |  M    _________   char
+//                          +----->|MorseText|--+
+//                                 |         |<-+         ESC
+//                                 |_________|----------------> END
 // Recognized commands:
 //     <addr>         ::= <eint>          (device address)
 //     <align>        ::= '.' | '<' | '|' | '>' (.=none, <=left, |=center, >=right)
@@ -162,13 +165,13 @@
 //     'H' (<digit> | 'K' <rgb>*8)  Draw bar graph data point
 //     'I' <merge> <pos> <trans> <col>* $ <col>* $ <col>* $
 //                                  Draw bitmap image starting at <pos>
-//::   'K' <rgb>                    Change current color
+//     'K' <rgb>                    Change current color
 //     'Q'                          Query status (replies with <qreply>)
-//::   '<' <loop> <string> ESCAPE   Scroll <string> across display, optionally looping repeatedly.
-//::   'T' <merge> <align> <trans> <string>* ESCAPE 
-//::                                Print string in current font from current cursor position
-//::   '@' <pos>                    Move cursor to specified column number
-//::   'A' <digit>                  Select font
+//     '<' <loop> <string> ESCAPE   Scroll <string> across display, optionally looping repeatedly.
+//     'T' <merge> <align> <trans> <string>* ESCAPE 
+//                                  Print string in current font from current cursor position
+//     '@' <pos>                    Move cursor to specified column number
+//     'A' <digit>                  Select font
 //     '%'                          Run test pattern set
 //     '=' <addr> <uspd> <rspd> <glob>
 //
@@ -201,6 +204,7 @@ private:
         SetSNState,
         SetSN2State,
         SetSN3State,
+        MorseTextState,
 #if IS_READERBOARD
         ScrollState,
         ScrollTextState,
@@ -218,8 +222,8 @@ private:
         ImageStateMerge,
         ImageStateTransition,
         LightSetState,
-        ShowBannerState,
 #endif
+        ShowBannerState,
     } state;
     byte LEDset;
     byte command_in_progress;
@@ -601,6 +605,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
           state = ScrollState;
           break;
 
+        case 'M':
+          state = MorseTextState;
+          break;
+
         case '@':
             state = SetColState;
             break;
@@ -779,12 +787,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             state = SetSNState;
             break;
         }
-#if IS_READERBOARD
         if (inputchar == '*') {
             state = ShowBannerState;
             break;
         }
-#endif
         state = SetUspdState;
         if (inputchar == '.') {
             append_byte(EE_ADDRESS_DISABLED);
@@ -796,7 +802,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         break;
 
-#if IS_READERBOARD
     case ShowBannerState:
         if (inputchar == '=') {
             show_banner();
@@ -805,7 +810,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             error();
         }
         break;
-#endif
 
     case SetSNState:
         if (inputchar == '\033' || inputchar == '$') {
@@ -1055,6 +1059,17 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             repeat = true;
         else 
             error();
+        break;
+
+    case MorseTextState:
+        if (inputchar == '\x1b') {
+            append_byte(0);
+            send_morse((const char *)buffer, CSM_BUFSIZE);
+            end_cmd();
+            break;
+        }
+        if (inputchar != '\0')
+            append_byte(inputchar);
         break;
 
     case ScrollTextState:

@@ -1538,14 +1538,13 @@ void setup(void)
     setup_completed = true;
 }
 
-#if IS_READERBOARD
 void show_banner(void) {
     char rbuf[32];
+#if IS_READERBOARD
 	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
 	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
     sprintf(rbuf, "S/N %s", serial_number);
     display_text(1, rbuf, BIT_RGB_BLUE, 1500);
-	//display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
     if (my_device_address == EE_ADDRESS_DISABLED) {
         display_text(0, "ADDRESS \0133\234\234", BIT_RGB_RED, 3000);
     } else {
@@ -1564,11 +1563,32 @@ void show_banner(void) {
     }
 	display_text(1, "MadScience", BIT_RGB_GREEN,  1500);
 	display_text(1, "Zone \0062\100\00612024",  BIT_RGB_GREEN, 1500);
-//	clear_matrix();
-//	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
     clear_all_buffers();
-}
+#else
+    send_morse(BANNER_HARDWARE_VERS, 10);
+    send_morse(BANNER_FIRMWARE_VERS, 10);
+    sprintf(rbuf, "S/N %s", serial_number);
+    send_morse(rbuf, 32);
+
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        send_morse("NO ADDRESS", 10);
+    } else {
+        sprintf(rbuf, "ADDRESS %d", my_device_address);
+        send_morse(rbuf, 32);
+    }
+    sprintf(rbuf, "GLOBAL  %2d", global_device_address);
+    send_morse(rbuf, 32);
+    sprintf(rbuf, "USB %d", USB_baud_rate);
+    send_morse(rbuf, 32);
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        send_morse("RS485 OFF", 10);
+    } else {
+        sprintf(rbuf, "RS485 %d", RS485_baud_rate);
+        send_morse(rbuf, 32);
+    }
+    send_morse("MADSCIENCE ZONE 2024", 20);
 #endif
+}
 
 int parse_baud_rate_code(byte code)
 {
@@ -2117,3 +2137,176 @@ void shift_down(byte buffer[N_ROWS][N_COLS])
     }
 }
 #endif /* IS_READERBOARD */
+
+const char *morse[] = {
+    /* 00 */ "",
+    /* 01 */ "",
+    /* 02 */ "",
+    /* 03 */ "",
+    /* 04 */ "",
+    /* 05 */ "",
+    /* 06 */ "",
+    /* 07 */ "",
+    /* 08 */ "",
+    /* 09 */ "",
+    /* 0A */ "",
+    /* 0B */ "",
+    /* 0C */ "",
+    /* 0D */ "",
+    /* 0E */ "",
+    /* 0F */ "",
+    /* 10 */ "",
+    /* 11 */ "",
+    /* 12 */ "",
+    /* 13 */ "",
+    /* 14 */ "",
+    /* 15 */ "",
+    /* 16 */ "",
+    /* 17 */ "",
+    /* 18 */ "",
+    /* 19 */ "",
+    /* 1A */ "",
+    /* 1B */ "",
+    /* 1C */ "",
+    /* 1D */ "",
+    /* 1E */ "",
+    /* 1F */ "",
+    /* 20 */ "",
+    /* 21 ! */ "=@=@==",
+    /* 22 " */ "@=@@=@",
+    /* 23 # */ "",
+    /* 24 $ */ "@@@=@@=",
+    /* 25 % */ "",
+    /* 26 & */ "@=@@@",
+    /* 27 ' */ "@====@",
+    /* 28 ( */ "=@==@",
+    /* 29 ) */ "=@==@=",
+    /* 2A * */ "",
+    /* 2B + */ "@=@=@",
+    /* 2C , */ "==@@==",
+    /* 2D - */ "=@@@@=",
+    /* 2E . */ "@=@=@=",
+    /* 2F / */ "=@@=@",
+    /* 30 0 */ "=====",
+    /* 31 1 */ "@====",
+    /* 32 2 */ "@@===",
+    /* 33 3 */ "@@@==",
+    /* 34 4 */ "@@@@=",
+    /* 35 5 */ "@@@@@",
+    /* 36 6 */ "=@@@@",
+    /* 37 7 */ "==@@@",
+    /* 38 8 */ "===@@",
+    /* 39 9 */ "====@",
+    /* 3A : */ "===@@@",
+    /* 3B ; */ "=@=@=@",
+    /* 3C < */ "",
+    /* 3D = */ "",
+    /* 3E > */ "",
+    /* 3F ? */ "@@==@@",
+    /* 40 @ */ "@==@=@",
+    /* 41 A */ "@=",
+    /* 42 B */ "=@@@",
+    /* 43 C */ "=@=@",
+    /* 44 D */ "=@@",
+    /* 45 E */ "@",
+    /* 46 F */ "@@=@",
+    /* 47 G */ "==@",
+    /* 48 H */ "@@@@",
+    /* 49 I */ "@@",
+    /* 4A J */ "@===",
+    /* 4B K */ "=@=",
+    /* 4C L */ "@=@@",
+    /* 4D M */ "==",
+    /* 4E N */ "=@",
+    /* 4F O */ "===",
+    /* 50 P */ "@==@",
+    /* 51 Q */ "==@=",
+    /* 52 R */ "@=@",
+    /* 53 S */ "@@@",
+    /* 54 T */ "=",
+    /* 55 U */ "@@=",
+    /* 56 V */ "@@@=",
+    /* 57 W */ "@==",
+    /* 58 X */ "=@@=",
+    /* 59 Y */ "=@==",
+    /* 5A Z */ "==@@",
+    /* 5B [ */ "",
+    /* 5C \ */ "",
+    /* 5D ] */ "",
+    /* 5E ^ */ "",
+    /* 5F _ */ "@@==@=",
+    /* 60 ` */ "",
+    /* 61 a */ "@=",
+    /* 62 b */ "=@@@",
+    /* 63 c */ "=@=@",
+    /* 64 d */ "=@@",
+    /* 65 e */ "@",
+    /* 66 f */ "@@=@",
+    /* 67 g */ "==@",
+    /* 68 h */ "@@@@",
+    /* 69 i */ "@@",
+    /* 6A j */ "@===",
+    /* 6B k */ "=@=",
+    /* 6C l */ "@=@@",
+    /* 6D m */ "==",
+    /* 6E n */ "=@",
+    /* 6F o */ "===",
+    /* 70 p */ "@==@",
+    /* 71 q */ "==@=",
+    /* 72 r */ "@=@",
+    /* 73 s */ "@@@",
+    /* 74 t */ "=",
+    /* 75 u */ "@@=",
+    /* 76 v */ "@@@=",
+    /* 77 w */ "@==",
+    /* 78 x */ "=@@=",
+    /* 79 y */ "=@==",
+    /* 7A z */ "==@@",
+    /* 7B { */ "",
+    /* 7C | */ "",
+    /* 7D } */ "",
+    /* 7E ~ */ "",
+    /* 7F   */ "@@@=@=",    /* SK */
+};
+
+/* 5 wpm Farnsworth spacing, 13 wpm characters */
+const int dit =         92;
+const int dah =        277;
+//const int intrachar =   92;
+const int intrachar =  200;
+const int interchar = 1443;
+const int interword = 3367 - interchar;
+
+void send_morse_char(byte ch)
+{
+    if (*morse[ch] == '\0') {
+        return;
+    }
+
+    for (const char *c = morse[ch]; *c != '\0'; c++) {
+        discrete_set(0, true);
+        if (*c == '@') {
+            delay(dit);
+        } else if (*c == '=') {
+            delay(dah);
+        }
+        discrete_set(0, false);
+        delay(intrachar);
+    }
+}
+
+void send_morse(const char *text, int maxlen)
+{
+    discrete_all_off(true);
+    for (int i = 0; i<maxlen && text[i] != '\0'; i++) {
+        if (text[i] == ' ') {
+            delay(interword);
+        }
+        else {
+            send_morse_char(text[i] & 0x7f);
+            delay(interchar);
+        }
+    }
+    delay(interword);
+    send_morse_char(0x7f);
+}
