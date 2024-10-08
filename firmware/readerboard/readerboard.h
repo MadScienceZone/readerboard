@@ -1,6 +1,6 @@
 /*
  ____  _____    _    ____  _____ ____  ____   ___    _    ____  ____  
-|  _ \| ____|  / \  |  _ \| ____|  _ \| __ ) / _ \  / \  |  _ \|  _ \ 
+|  _ \| ____|  / \  |  _ \| ____|  _ \| __ ) / _ \  / \  |  _ \|  _ \
 | |_) |  _|   / _ \ | | | |  _| | |_) |  _ \| | | |/ _ \ | |_) | | | |
 |  _ <| |___ / ___ \| |_| | |___|  _ <| |_) | |_| / ___ \|  _ <| |_| |
 |_| \_\_____/_/   \_\____/|_____|_| \_\____/ \___/_/   \_\_| \_\____/ 
@@ -98,8 +98,8 @@ Libraries Required:
 //
 // TODO: Adjust these for your version and serial number
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.2.0  "
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.2.0$"
+#define BANNER_FIRMWARE_VERS "FW 2.3.0  "
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.3.0$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
@@ -125,12 +125,12 @@ Libraries Required:
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
-# define SERIAL_VERSION_STAMP "V1.0.2$R2.2.0$"
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.3.0$"
 # define BANNER_HARDWARE_VERS "HW 1.0.2  "
 # define HW_MC (HW_MC_PRO)
 #endif
 #ifdef SN_RB0000
-# define SERIAL_VERSION_STAMP "V3.2.2$R2.2.0$"
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.3.0$"
 # define BANNER_HARDWARE_VERS "HW 3.2.2  "
 //# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)
@@ -243,7 +243,8 @@ extern byte my_device_address;
 extern byte global_device_address;
 extern int USB_baud_rate;
 extern int RS485_baud_rate;
-extern void send_morse(const char *text, int maxlen);
+extern void send_morse(byte led, const char *text, int maxlen=0);
+extern void play_sound(bool repeat, const byte *sequence, int sequence_length);
 
 typedef enum {FROM_USB, FROM_485} serial_source_t;
 

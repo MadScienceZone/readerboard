@@ -11,4 +11,4 @@ compile: $(FWSRC)
 	arduino-cli compile -b $(BOARD)
 
 upload:
-	arduino-cli upload -b $(BOARD) -p /dev/ttyACM1 -t
+	arduino-cli upload -b $(BOARD) -p /dev/ttyACM0 -t

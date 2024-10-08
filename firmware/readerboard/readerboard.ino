@@ -1565,28 +1565,28 @@ void show_banner(void) {
 	display_text(1, "Zone \0062\100\00612024",  BIT_RGB_GREEN, 1500);
     clear_all_buffers();
 #else
-    send_morse(BANNER_HARDWARE_VERS, 10);
-    send_morse(BANNER_FIRMWARE_VERS, 10);
+    send_morse(0, BANNER_HARDWARE_VERS);
+    send_morse(0, BANNER_FIRMWARE_VERS);
     sprintf(rbuf, "S/N %s", serial_number);
-    send_morse(rbuf, 32);
+    send_morse(0, rbuf, 32);
 
     if (my_device_address == EE_ADDRESS_DISABLED) {
-        send_morse("NO ADDRESS", 10);
+        send_morse(0, "NO ADDRESS");
     } else {
         sprintf(rbuf, "ADDRESS %d", my_device_address);
-        send_morse(rbuf, 32);
+        send_morse(0, rbuf, 32);
     }
     sprintf(rbuf, "GLOBAL  %2d", global_device_address);
-    send_morse(rbuf, 32);
+    send_morse(0, rbuf, 32);
     sprintf(rbuf, "USB %d", USB_baud_rate);
-    send_morse(rbuf, 32);
+    send_morse(0, rbuf, 32);
     if (my_device_address == EE_ADDRESS_DISABLED) {
-        send_morse("RS485 OFF", 10);
+        send_morse(0, "RS485 OFF");
     } else {
         sprintf(rbuf, "RS485 %d", RS485_baud_rate);
-        send_morse(rbuf, 32);
+        send_morse(0, rbuf, 32);
     }
-    send_morse("MADSCIENCE ZONE 2024", 20);
+    send_morse(0, "MADSCIENCE ZONE 2024");
 #endif
 }
 
@@ -2138,15 +2138,16 @@ void shift_down(byte buffer[N_ROWS][N_COLS])
 }
 #endif /* IS_READERBOARD */
 
+const int ps_SK = 0x03;
 const char *morse[] = {
     /* 00 */ "",
     /* 01 */ "",
-    /* 02 */ "",
-    /* 03 */ "",
+    /* 02 */ "@=@=@",       /* AR: start of message */
+    /* 03 */ "@@@=@=",      /* SK: end of message */
     /* 04 */ "",
     /* 05 */ "",
-    /* 06 */ "",
-    /* 07 */ "",
+    /* 06 */ "@@@=@",       /* VE/SN: verified */
+    /* 07 */ "=@=@=",       /* KA/CT: attention */
     /* 08 */ "",
     /* 09 */ "",
     /* 0A */ "",
@@ -2156,9 +2157,9 @@ const char *morse[] = {
     /* 0E */ "",
     /* 0F */ "",
     /* 10 */ "",
-    /* 11 */ "",
-    /* 12 */ "",
-    /* 13 */ "",
+    /* 11 */ "@@@===@@@",   /* SOS: distress */
+    /* 12 */ "=@@=@@=@@",   /* DDD: relayed distress */
+    /* 13 */ "@=@@@",       /* AS: wait */
     /* 14 */ "",
     /* 15 */ "",
     /* 16 */ "",
@@ -2169,7 +2170,7 @@ const char *morse[] = {
     /* 1B */ "",
     /* 1C */ "",
     /* 1D */ "",
-    /* 1E */ "",
+    /* 1E */ "=@@@=",       /* BT: break */
     /* 1F */ "",
     /* 20 */ "",
     /* 21 ! */ "=@=@==",
@@ -2266,47 +2267,70 @@ const char *morse[] = {
     /* 7C | */ "",
     /* 7D } */ "",
     /* 7E ~ */ "",
-    /* 7F   */ "@@@=@=",    /* SK */
+    /* 7F   */ "@@@@@@@@",    /* HH: correction */
 };
 
 /* 5 wpm Farnsworth spacing, 13 wpm characters */
 const int dit =         92;
 const int dah =        277;
 //const int intrachar =   92;
-const int intrachar =  200;
+const int intrachar =  184;  /* for lights it helps readability to delay a little more than for audio */
 const int interchar = 1443;
 const int interword = 3367 - interchar;
 
-void send_morse_char(byte ch)
+void send_morse_char(byte led, byte ch)
 {
     if (*morse[ch] == '\0') {
         return;
     }
 
+    if (led == STATUS_LED_OFF) {
+        // TODO: play audibly
+        return;
+    }
+
     for (const char *c = morse[ch]; *c != '\0'; c++) {
-        discrete_set(0, true);
+        discrete_set(led, true);
         if (*c == '@') {
             delay(dit);
         } else if (*c == '=') {
             delay(dah);
         }
-        discrete_set(0, false);
+        discrete_set(led, false);
         delay(intrachar);
     }
 }
 
-void send_morse(const char *text, int maxlen)
+void send_morse(byte led, const char *text, int maxlen)
 {
     discrete_all_off(true);
+    if (maxlen == 0) {
+        maxlen = strlen(text);
+    }
     for (int i = 0; i<maxlen && text[i] != '\0'; i++) {
         if (text[i] == ' ') {
             delay(interword);
         }
         else {
-            send_morse_char(text[i] & 0x7f);
+            send_morse_char(led, text[i] & 0x7f);
             delay(interchar);
         }
     }
     delay(interword);
-    send_morse_char(0x7f);
+    send_morse_char(led, ps_SK);
+}
+
+//
+// The sequence represents each note as a pair of bytes:
+//  7 6 5 4 3 2 1 0
+// |b|#|oct-1|note |
+// |__duration_cs__|
+//
+//   b   is 1 if the note is flat
+//   #   is 1 if the note is sharp
+// oct-1 is the octave number 1-8 minus 1
+// note  is 0=rest, 1=A, 2=B, 3=C, 4=D, 5=E, 6=F, 7=G
+//
+void play_sound(bool repeat, const byte *sequence, int sequence_length)
+{
 }

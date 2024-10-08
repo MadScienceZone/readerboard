@@ -109,10 +109,21 @@
 //                          |  K    ________  rgb
 //                          +----->|SetColor|--------> END
 //                          |      |________|
-//                          |  M    _________   char
-//                          +----->|MorseText|--+
-//                                 |         |<-+         ESC
-//                                 |_________|----------------> END
+//                          |  M    ________       _________   char
+//                          +----->|MorseLED|led  |MorseText|--+
+//                          |      |        |---->|         |<-+         ESC
+//                          |      |________|     |_________|----------------> END
+//                          |                                              1-8
+//                          |                                            +----------------------------------+    +-------+
+//                          |  B    ________ .L   ________  A-G    ______|_______  B#   __________  1-8   __V____|____   | nybble1
+//                          +----->|BeepLoop|--->|BeepNote|------>|BeepAccidental|---->|BeepOctave|----->|BeepDuration|<-+
+//                                 |________|    |        | R     |______________|     |__________|      |            |
+//                                               |        |--------------------------------------------->|____________|
+//                                               |        |                                                      |nybble2
+//                                               |        |<-----------------------------------------------------+
+//                                               |________|---------> END
+//                                                           $/ESC
+//                                 
 // Recognized commands:
 //     <addr>         ::= <eint>          (device address)
 //     <align>        ::= '.' | '<' | '|' | '>' (.=none, <=left, |=center, >=right)
@@ -205,6 +216,12 @@ private:
         SetSN2State,
         SetSN3State,
         MorseTextState,
+        MorseLEDState,
+        BeepLoopState,
+        BeepNoteState,
+        BeepAccidentalState,
+        BeepOctaveState,
+        BeepDurationState,
 #if IS_READERBOARD
         ScrollState,
         ScrollTextState,
@@ -606,7 +623,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
           break;
 
         case 'M':
-          state = MorseTextState;
+          state = MorseLEDState;
           break;
 
         case '@':
@@ -1061,16 +1078,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             error();
         break;
 
-    case MorseTextState:
-        if (inputchar == '\x1b') {
-            append_byte(0);
-            send_morse((const char *)buffer, CSM_BUFSIZE);
-            end_cmd();
-            break;
-        }
-        if (inputchar != '\0')
-            append_byte(inputchar);
-        break;
 
     case ScrollTextState:
         if (inputchar == '\x1b') {
@@ -1084,7 +1091,98 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         if (inputchar != '\0')
             append_byte(inputchar);
         break;
-#endif
+#endif /* IS_READERBOARD */
+
+   case MorseLEDState:
+        append_byte(parse_led_name(inputchar));
+        state = MorseTextState;
+        break;
+
+    case MorseTextState:
+        if (inputchar == '\x1b') {
+            append_byte(0);
+            send_morse(buffer[0], (const char *)buffer+1, CSM_BUFSIZE);
+            end_cmd();
+            break;
+        }
+        if (inputchar != '\0')
+            append_byte(inputchar);
+        break;
+
+        // repeat = loop            7  6  5  4  3  2  1  0
+        // 0 | Note           |-->| b| #|octave-1|  note  |     0=rest, 1=A ... 7=G
+        // 1 | Duration       |   |      duration         |
+        // :       :                 
+    case BeepLoopState:
+        state = BeepNoteState;
+        if (inputchar == '.')
+            repeat = false;
+        else if (inputchar == 'L')
+            repeat = true;
+        else 
+            error();
+        break;
+        
+    case BeepNoteState:
+        state = BeepAccidental;
+        switch (inputchar) {
+            case 'A': case 'a': append_byte(1); break;
+            case 'B': case 'b': append_byte(2); break;
+            case 'C': case 'c': append_byte(3); break;
+            case 'D': case 'd': append_byte(4); break;
+            case 'E': case 'e': append_byte(5); break;
+            case 'F': case 'f': append_byte(6); break;
+            case 'G': case 'g': append_byte(7); break;
+            case 'R': case 'r': 
+                append_byte(0); 
+                state = BeepDurationState;
+                break;
+
+            case '$':
+            case 0x1b:
+                play_sound(repeat, buffer, buffer_idx);
+                end_cmd();
+                break;
+
+            default:
+                error();
+                break;
+        }
+        break;
+
+    case BeepAccidentalState:
+        state = BeepOctaveState;
+        if (inputchar == 'b' || inputchar == 'B') {
+            buffer[buffer_idx-1] |= 0x80;
+        }
+        else if (inputchar == '#') {
+            buffer[buffer_idx-1] |= 0x40;
+        }
+        else if (inputchar >= '1' && inputchar <= '8') {
+            buffer[buffer_idx-1] |= (((inputchar - '1') << 3) & 0x38);
+            state = BeepDurationState;
+        }
+        else {
+            error();
+        }
+        break;
+
+    case BeepOctaveState:
+        state = BeepDurationState;
+        if (inputchar >= '1' && inputchar <= '8') {
+            buffer[buffer_idx-1] |= (((inputchar - '1') << 3) & 0x38);
+        }
+        else {
+            error();
+        }
+        break;
+
+    case BeepDurationState:
+        if (accept_hex_nybble(inputchar)) {
+            state = BeepNoteState;
+            append_bytebuf();
+        }
+        break;
 
     default:
         error();

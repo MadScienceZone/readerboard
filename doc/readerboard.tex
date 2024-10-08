@@ -910,10 +910,12 @@ The remaining commands are used for management of the matrix display. All comman
 			&\z{=\#}&Set serial number & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
+			\z{sound}&\z{B}&Beep / Play sounds&\\
 			\z{clear}&\z{C} & Clear matrix display & \\
 			\z{graph}&\z{H} & Add histogram/bargraph data point & \\
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
+			\z{morse}&\z{M}&Send message via Morse code&\\
 			\z{query}&\z{Q} & Query full device status & [2]\\
 			\z{text}&\z{T} & Display text on display & \\
 			\midrule
@@ -1158,6 +1160,9 @@ Numbers \z{RB0000}--\z{RB0299} and \z{B00000}--\z{B00299} are reserved for use b
 \end{center}
 
 Causes the readerboard to display the same banners as it does during power-on self-test.
+Busylights don't display the equivalent series of messages when they power up, but if you
+send them this command they will send the same information as the readerboard \acronym{POST} banners,
+but will do so by flashing out the information in Morse code on the bottom \led.
 
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
@@ -1442,6 +1447,48 @@ for a complete font glyph listing with codepoint assignments.
 	\caption{Font Table for Font \#2\label{tbl:font2}}
 \end{table}
 			
+\section{\z{B}---Beep/Play Sound Sequence}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\dots}\\
+	\bitbox{1}{\z{B}} &
+	\bitbox{1}{\Var*{loop}}&
+	\bitbox[ltb]{1}{\Var*{note}}&
+	\bitbox[tb]{2}{\Var*{cs (hex)}}&
+	\bitbox[tbr]{1}{\dots}&
+	\bitbox{1}{\z{\$}}
+\end{bytefield}
+\\
+\begin{Coding}
+	|/readerboard/v1/sound?a=|\Var*{ad}|&loop=|\Var*{bool}|&notes=|\Var*{note}\Var*{cs}\dots\\
+\end{Coding}
+\end{center}
+
+This command causes the device to play a sequence of notes on the speaker. If \Var*{loop} is ``\z{L}'', the note sequence is
+played repeatedly until another \z{B} command is received. If the sequence is empty, all sound is stopped. If \Var*{loop} is ``\z{.}'',
+it is only played once.
+
+The sequence consists of a series of \Var*{note} values, each of which is followed by the note duration \Var*{cs} which is a two-character
+hexadecimal integer in centiseconds. (1/100th of a second).  Each \Var*{note} begins with a letter \z{A}--\z{G}, optionally followed by
+\z{\#} or \z{b} to indicate a sharp ($\sharp$) or flat ($\flat$) note, respectively, followed by a digit \z0--\z8 to indicate the octave. The notes range from \z{B0} (B at 31\,Hz)
+to \z{D\#8} (D$\sharp$ at 4.978\,kHz). A rest is indicated by ``\z{R}'' as the note letter.
+
+An example 3-note attention tone where the first two notes are played for \sfrac12 second and the final one is held for a full second
+is ``\z{G432E532C564}'' (note G4, \z{32}$_{16}$\,cs=0.50\,s, note E5, \z{32}$_{16}$\,cs=0.50\,s, note C5, \z{64}$_{16}$\,cs=1.00\,s).
+Duration codes range from \z{00} (\z0$_{16}$=0$_{10}$\,cs=0.00\,s) to \z{FF} (\z{FF}$_{16}$=255$_{10}$\,cs=2.55\,s),
+in increments of 0.01\,s.
+
+The letters may be upper- or lower-case (the letter \z{b} as a note name vs.\ a ``$\flat$'' half-step shift indicator from context).
+
+Some devices are not able to play notes but can sound a beep at a fixed frequency (typically 490\,Hz or just ever so slightly flat of B4)
+for SparkFun Pro Micro and Adruino Mega 2560 microcontrollers and 1\,kHz or between B5 and C6 for Arduino Due). These will play that single
+tone regardless of the note specified in the sequence.
 
 \section{\z{C}---Clear Matrix Display}
 \begin{center}
@@ -1934,6 +1981,51 @@ indicated in the protocol description above as ``\z{\textbackslash n}''.
 
 For Busylight devices, serial numbers \z{B0000}--\z{B0299} are reserved for use by the original author.
 
+\section{\z{M}---Morse Code}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	%\bitheader{0-1} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\dots}\\
+	\bitbox{1}{\z{M}} &
+	\bitbox{1}{\Var*{led}} &
+	\bitbox{4}{\Var*{message}} &
+	\bitbox{1}{\z{ESC}} 
+\end{bytefield}
+\\
+%	|{"m":"light","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led}|]}|
+\begin{Coding}
+	|/readerboard/v1/morse?a=|\Var*{ad}|&t=|\Var*{message}|&l=|\Var*{led}
+\end{Coding}
+\end{center}
+
+Sends \Var*{message} by blinking the designated status \led\ in Morse code.
+If \Var*{led} is ``\z{\_}'', then the message is sent audibly over the speaker.
+
+Supported characters include the letters \z{A}--\z{Z}, digits \z0--\z9, and the symbols \z{!}, \z{"}, \z{\$},
+\z{\&}, \z{'}, \z(, \z), \z+, \z,, \z-, \z., \z/, \z:, \z;, \z?, \z{@}, and \z{\_}.
+At the end of the message, the prosign $\overline{\text{SK}}$ is transmitted (which is also available at codepoint 3).
+
+Supported prosigns include:
+\begin{center}
+	\begin{tabular}{clrr}\toprule
+		\bfseries Sign&\bfseries Meaning&\multicolumn{2}{c}{\bfseries Codepoint}\\\midrule
+		$\overline{\text{AR}}$&start message&2$_{10}$&\z{02}$_{16}$\\
+		$\overline{\text{AS}}$&wait&19$_{10}$&\z{13}$_{16}$\\
+		$\overline{\text{BT}}$&break&30$_{10}$&\z{1E}$_{16}$\\
+		$\overline{\text{DDD}}$&relayed distress&18$_{10}$&\z{12}$_{16}$\\
+		$\overline{\text{HH}}$&correction&127$_{10}$&\z{7F}$_{16}$\\
+		$\overline{\text{KA}}$/$\overline{\text{CT}}$&attention&7$_{10}$&\z{07}$_{16}$\\
+		$\overline{\text{SK}}$&end of message&3$_{10}$&\z{03}$_{16}$\\
+		$\overline{\text{SOS}}$&distress&17$_{10}$&\z{11}$_{16}$\\
+		$\overline{\text{VE}}$/$\overline{\text{SN}}$&verified&6$_{10}$&\z{06}$_{16}$\\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+
 \section{\z{S}---Light Single \led}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
@@ -1953,6 +2045,7 @@ Stops the flasher (cancelling any previous \z{F} command) and turns off all disc
 it remains running.
 
 This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
+
 
 \section{\z{T}---Display Text}
 \begin{center}
