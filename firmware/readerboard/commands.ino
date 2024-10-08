@@ -244,6 +244,7 @@ private:
     } state;
     byte LEDset;
     byte command_in_progress;
+    bool repeat;
 #if IS_READERBOARD
     bool merge;
     TransitionEffect transition;
@@ -251,9 +252,8 @@ private:
     byte column;
     byte font;
     byte color;
-    bool repeat;
-    bool nybble;
 #endif
+    bool nybble;
     byte buffer[CSM_BUFSIZE];
     byte buffer_idx;
     byte bytebuf;
@@ -265,8 +265,8 @@ private:
 
 public:
     void accept(serial_source_t source, int inputchar);
-#if IS_READERBOARD
     bool accept_hex_nybble(int inputchar);
+#if IS_READERBOARD
     bool accept_encoded_pos(int inputchar);     // 6-bit position or ~ for current
     bool accept_encoded_rgb(int inputchar);     // 4-bit color code
     bool accept_encoded_transition(int inputchar);
@@ -398,7 +398,6 @@ void CommandStateMachine::append_byte(byte n)
 //   If an error is encountered, the state machine is reset with an error condition, which
 //   should interrupt whatever operation was in progress automatically.
 //
-#if IS_READERBOARD
 bool CommandStateMachine::accept_hex_nybble(int inputchar)
 {
     byte val;
@@ -423,7 +422,6 @@ bool CommandStateMachine::accept_hex_nybble(int inputchar)
     nybble = true;
     return false;
 }
-#endif
 
 //
 // (CSM) end_cmd()
@@ -601,6 +599,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             strober.stop();
             break;
 
+        case 'B':
+            state = BeepLoopState;
+            break;
+
 #if IS_READERBOARD
         case 'C':
             clear_all_buffers();
@@ -617,14 +619,15 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             state = SetState;
             break;
 
+        case 'M':
+          state = MorseLEDState;
+          break;
+
 #if IS_READERBOARD
         case '<':
           state = ScrollState;
           break;
 
-        case 'M':
-          state = MorseLEDState;
-          break;
 
         case '@':
             state = SetColState;
@@ -1111,6 +1114,8 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
         // repeat = loop            7  6  5  4  3  2  1  0
         // 0 | Note           |-->| b| #|octave-1|  note  |     0=rest, 1=A ... 7=G
+        //                          1| 1| 0  0  0| 0  1  0|     special code for B0
+        //                          1| 1| x  x  x| x  x  x|     Otherswise 11xxxxxx is invalid
         // 1 | Duration       |   |      duration         |
         // :       :                 
     case BeepLoopState:
@@ -1124,7 +1129,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         break;
         
     case BeepNoteState:
-        state = BeepAccidental;
+        state = BeepAccidentalState;
         switch (inputchar) {
             case 'A': case 'a': append_byte(1); break;
             case 'B': case 'b': append_byte(2); break;

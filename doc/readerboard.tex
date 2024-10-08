@@ -2025,6 +2025,8 @@ Supported prosigns include:
 	\end{tabular}
 \end{center}
 
+This is intended for diagnostic messages or signalling when other, easier to read, methods aren't available.
+As such, other device operations may be suspended while the message is being sent by Morse code.
 
 \section{\z{S}---Light Single \led}
 \begin{center}
@@ -2077,7 +2079,23 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 Displays the text \Var*{string} at the current cursor position. The cursor position is
 then moved past the text to be ready for the next string to be printed.
 
-The \Var*{align} code indicates how the text is aligned on the display (TBD). {\color{red} Not currently implemented.}
+The \Var*{align} code indicates how the text is aligned on the display using one of the codes
+shown in Table~\ref{tbl:alignments}. {\color{red} Not currently implemented.}
+\begin{table}
+	\begin{center}
+		\begin{tabular}{cl}\toprule
+			\bfseries Code & \bfseries Alignment Behavior\\\midrule
+			\z{.} & No alignment (print at cursor)\\
+			\z{<} & Left (print at left edge of matrix)\\
+			\z{>} & Right (end of text at right edge of matrix)\\
+			\z{\textasciicircum} & Center (between left and right edges)\\
+			\z{R} & Local right (end of text at cursor)\\
+			\z{C} & Local center right (between cursor and right edge)\\
+			\z{L} & Local center left (between left edge and cursor)\\\bottomrule
+		\end{tabular}
+		\caption{Alignment Codes\label{tbl:alignments}}
+	\end{center}
+\end{table}
 
 The \Var*{trans} code specifies the transition effect to be used to add this string to the
 display as shown in Table~\ref{tbl:transitions}.

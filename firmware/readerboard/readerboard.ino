@@ -100,7 +100,7 @@ const int PIN_STATUS_LED = 13;
 // Hardware notes
 // DUE    MEGA                 READERBOARD              DUE    MEGA     PRO
 //                                                  LED 13~    13~
-//                                                      12~    12~
+//                                    SPEAKER           12~    12~      05
 //                                                      11~    11~
 //                                                      10~    10~
 //                                    L4                09~    09~      06
@@ -173,6 +173,13 @@ const int PIN_L6    =  7;   // discrete LED 6
 const int PIN_L7    =  6;   // discrete LED 7 (top) 
 const int PIN_DE    = 16;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   = 17;   // RS-485 ~receiver enable (0=enabled)
+const int PIN_SPKR  = 12;   // PWM output driving speaker
+# define HAS_SPEAKER (true)
+# if HW_MC == HW_MC_DUE
+#  define HAS_TONE_SUPPORT (false)
+# else
+#  define HAS_TONE_SUPPORT (true)
+# endif
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_1xx
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
@@ -181,6 +188,7 @@ const int PIN_L3    =  8;   // discrete LED 3
 const int PIN_L4    =  6;   // discrete LED 4 
 const int PIN_L5    =  7;   // discrete LED 5 
 const int PIN_L6    = 10;   // discrete LED 6 (top)
+# define HAS_SPEAKER (false)
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_2xx
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
@@ -191,8 +199,17 @@ const int PIN_L5    =  7;   // discrete LED 5
 const int PIN_L6    = 10;   // discrete LED 6 (top)
 const int PIN_DE    =  2;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   =  3;   // RS-485 ~receiver enable (0=enabled)
+const int PIN_SPKR  =  5;   // PWM output driving speaker
+# define HAS_SPEAKER (true)
+# define HAS_TONE_SUPPORT (false)
 #else
 # error "HW_CONTROL_LOGIC not defined to supported model"
+#endif
+
+#ifdef SN_B0001
+# define HAS_SPEAKER (true)
+# define HAS_TONE_SUPPORT (false)
+const int PIN_SPKR = 5;
 #endif
 
 #if IS_READERBOARD
@@ -211,15 +228,6 @@ const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5
 #else
 const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
 const byte discrete_led_labels[7] = {
-# ifdef SN_B0001
-    '0',
-    '1',
-    'G',
-    'Y',
-    'R',
-    'r',
-    'B',
-# else
     B_STATUS_LED_COLOR_L0,
     B_STATUS_LED_COLOR_L1,
     B_STATUS_LED_COLOR_L2,
@@ -227,7 +235,6 @@ const byte discrete_led_labels[7] = {
     B_STATUS_LED_COLOR_L4,
     B_STATUS_LED_COLOR_L5,
     B_STATUS_LED_COLOR_L6,
-# endif
 };
 #endif
 
@@ -931,6 +938,10 @@ void flag_test(void)
     }
 }
 
+#if HAS_SPEAKER
+TimerEvent sound_timer;
+#endif
+
 #if IS_READERBOARD
 TimerEvent status_timer;
 void strobe_status(void)
@@ -1476,8 +1487,12 @@ void setup(void)
     flasher.stop();
     strober.stop();
     setup_commands();
+#if HAS_SPEAKER
+    play_init();
+#endif
 #if IS_READERBOARD
     setup_buffers();
+
 	status_timer.set(0, strobe_status);
 	status_timer.reset();
 	status_timer.setPeriod(10);
@@ -1658,6 +1673,9 @@ void loop(void)
     /* flash/strobe discrete LEDs as needed */
     flasher.update();
     strober.update();
+#if HAS_SPEAKER
+    sound_timer.update();
+#endif
 
     /* receive commands via serial port */
     if (Serial.available() > 0) {
@@ -2271,21 +2289,16 @@ const char *morse[] = {
 };
 
 /* 5 wpm Farnsworth spacing, 13 wpm characters */
-const int dit =         92;
-const int dah =        277;
-//const int intrachar =   92;
-const int intrachar =  184;  /* for lights it helps readability to delay a little more than for audio */
-const int interchar = 1443;
-const int interword = 3367 - interchar;
+const int dit =              92;
+const int dah =             277;
+const int intrachar_audio =  92;
+const int intrachar_light = 184;  /* for lights it helps readability to delay a little more than for audio */
+const int interchar =      1443;
+const int interword =      3367 - interchar;
 
 void send_morse_char(byte led, byte ch)
 {
     if (*morse[ch] == '\0') {
-        return;
-    }
-
-    if (led == STATUS_LED_OFF) {
-        // TODO: play audibly
         return;
     }
 
@@ -2297,12 +2310,49 @@ void send_morse_char(byte led, byte ch)
             delay(dah);
         }
         discrete_set(led, false);
-        delay(intrachar);
+        delay(intrachar_light);
     }
 }
 
+#if HAS_SPEAKER
+# define MAX_PLAY_SEQUENCE_LENGTH (256) // leonardo
+const word PLAY_SRC_B0 =(0xc2);
+const word PLAY_NOTE_B0 =(0xc200);
+const word PLAY_NOTE_C5 =(0x2300);
+const word PLAY_NOTE_REST =(0x0000);
+const word PLAY_END_OF_SEQUENCE = (0xf800);
+word play_sequence[MAX_PLAY_SEQUENCE_LENGTH];
+int  play_sequence_idx = 0;
+#endif
+
 void send_morse(byte led, const char *text, int maxlen)
 {
+    if (led == STATUS_LED_OFF) {
+#if HAS_SPEAKER
+        play_stop();
+        // MAX_PLAY_SEQUENCE_LENGTH - 17 allows room for all the elements in a character
+        for (int src_i=0, play_sequence_idx=0; src_i<maxlen && text[src_i] != '\0' && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH-17; src_i++) {
+            if (text[src_i] == ' ') {
+                play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+            }
+            else if (*morse[text[src_i]] != '\0') {
+                for (const char *c = morse[text[src_i]]; *c != '\0'; c++) {
+                    if (*c == '@') {
+                        play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dit / 10) & 0x00ff);
+                    } else if (*c == '=') {
+                        play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dah / 10) & 0x00ff);
+                    }
+                    play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((intrachar_audio / 10) & 0x00ff);
+                }
+                play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+            }
+        }
+        play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
+        play_start();
+#endif
+        return;
+    }
+
     discrete_all_off(true);
     if (maxlen == 0) {
         maxlen = strlen(text);
@@ -2324,13 +2374,218 @@ void send_morse(byte led, const char *text, int maxlen)
 // The sequence represents each note as a pair of bytes:
 //  7 6 5 4 3 2 1 0
 // |b|#|oct-1|note |
+// |1 1 0 0 0 0 1 0| B0
 // |__duration_cs__|
+//
+// We store them in words encoded as
+//  F E D C B A 9 8 7 6 5 4 3 2 1 0
+// |b|#|oct-1|note_|__duration_cs__|
+// |1 1 0 0 0 0 1 0 x x x x x x x x| B0
+// |1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0| end of sequence marker
 //
 //   b   is 1 if the note is flat
 //   #   is 1 if the note is sharp
 // oct-1 is the octave number 1-8 minus 1
 // note  is 0=rest, 1=A, 2=B, 3=C, 4=D, 5=E, 6=F, 7=G
 //
+#if HAS_SPEAKER
+# if HAS_TONE_SUPPORT
+#  include <Tone.h>
+Tone tone1;
+# endif
+
+void play_init(void)
+{
+# if HAS_TONE_SUPPORT
+    tone1.begin(PIN_SPKR);
+# endif
+    sound_timer.set(0, sound_player);
+    sound_timer.reset();
+    sound_timer.disable();
+}
+
+/* copy source data received from host as byte pairs 
+//  7 6 5 4 3 2 1 0
+// |b|#|oct-1|note |
+// |1 1 0 0 0 0 1 0| B0
+// |__duration_cs__|
+//
+// we will re-encode them into words as
+//  F E D C B A 9 8 7 6 5 4 3 2 1 0
+// |b|#|oct-1|note_|__duration_cs__|
+// |1 1 0 0 0 0 1 0 x x x x x x x x| B0
+// |1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0| end of sequence marker
+// 
+// and store them in our sequence, then start the event timer to work through the list.
+// if the seuqence is empty, we don't do anything. In any event, an existing sound is stopped.
+//
+//   b   is 1 if the note is flat
+//   #   is 1 if the note is sharp
+// oct-1 is the octave number 1-8 minus 1
+// note  is 0=rest, 1=A, 2=B, 3=C, 4=D, 5=E, 6=F, 7=G
+*/
+
+void play_sound(bool repeat, const byte *sequence, int sequence_length)
+{
+    play_stop();
+
+    // truncate to even number of bytes
+    sequence_length &= ~1;
+    if (sequence_length > 0) {
+        for (int i=0, play_sequence_idx=0; i < sequence_length && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH; i+=2) {
+            play_sequence[play_sequence_idx++] = (sequence[i] << 8) | (sequence[i+1] & 0xff);
+        }
+        play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
+        play_start();
+    }
+}
+
+const int PLAY_NATURAL = 0;
+const int PLAY_SHARP = 1;
+const int PLAY_FLAT = 2;
+#if HAS_TONE_SUPPORT
+const int play_note_table[8][8][3] = {
+    {  
+        {0, 0, 0}, 
+        {NOTE_A1, NOTE_AS1, NOTE_GS1},
+        {NOTE_B1, 0,        NOTE_AS1},
+        {NOTE_C1, NOTE_CS1, 0},
+        {NOTE_D1, NOTE_DS1, NOTE_CS1},
+        {NOTE_E1, 0,        NOTE_DS1},
+        {NOTE_F1, NOTE_FS1, 0},
+        {NOTE_G1, NOTE_GS1, NOTE_FS1},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A2, NOTE_AS2, NOTE_GS2},
+        {NOTE_B2, 0,        NOTE_AS2},
+        {NOTE_C2, NOTE_CS2, 0},
+        {NOTE_D2, NOTE_DS2, NOTE_CS2},
+        {NOTE_E2, 0,        NOTE_DS2},
+        {NOTE_F2, NOTE_FS2, 0},
+        {NOTE_G2, NOTE_GS2, NOTE_FS2},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A3, NOTE_AS3, NOTE_GS3},
+        {NOTE_B3, 0,        NOTE_AS3},
+        {NOTE_C3, NOTE_CS3, 0},
+        {NOTE_D3, NOTE_DS3, NOTE_CS3},
+        {NOTE_E3, 0,        NOTE_DS3},
+        {NOTE_F3, NOTE_FS3, 0},
+        {NOTE_G3, NOTE_GS3, NOTE_FS3},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A4, NOTE_AS4, NOTE_GS4},
+        {NOTE_B4, 0,        NOTE_AS4},
+        {NOTE_C4, NOTE_CS4, 0},
+        {NOTE_D4, NOTE_DS4, NOTE_CS4},
+        {NOTE_E4, 0,        NOTE_DS4},
+        {NOTE_F4, NOTE_FS4, 0},
+        {NOTE_G4, NOTE_GS4, NOTE_FS4},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A5, NOTE_AS5, NOTE_GS5},
+        {NOTE_B5, 0,        NOTE_AS5},
+        {NOTE_C5, NOTE_CS5, 0},
+        {NOTE_D5, NOTE_DS5, NOTE_CS5},
+        {NOTE_E5, 0,        NOTE_DS5},
+        {NOTE_F5, NOTE_FS5, 0},
+        {NOTE_G5, NOTE_GS5, NOTE_FS5},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A6, NOTE_AS6, NOTE_GS6},
+        {NOTE_B6, 0,        NOTE_AS6},
+        {NOTE_C6, NOTE_CS6, 0},
+        {NOTE_D6, NOTE_DS6, NOTE_CS6},
+        {NOTE_E6, 0,        NOTE_DS6},
+        {NOTE_F6, NOTE_FS6, 0},
+        {NOTE_G6, NOTE_GS6, NOTE_FS6},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A7, NOTE_AS7, NOTE_GS7},
+        {NOTE_B7, 0,        NOTE_AS7},
+        {NOTE_C7, NOTE_CS7, 0},
+        {NOTE_D7, NOTE_DS7, NOTE_CS7},
+        {NOTE_E7, 0,        NOTE_DS7},
+        {NOTE_F7, NOTE_FS7, 0},
+        {NOTE_G7, NOTE_GS7, NOTE_FS7},
+    }, {
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+        {NOTE_C8, NOTE_CS8, 0},
+        {NOTE_D8, NOTE_DS8, NOTE_CS8},
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+    }
+};
+#endif
+
+void sound_player(void)
+{
+    // play next note
+    if (!sound_timer.isEnabled()) {
+        return;
+    }
+    if (++play_sequence_idx >= MAX_PLAY_SEQUENCE_LENGTH || play_sequence[play_sequence_idx] == PLAY_END_OF_SEQUENCE) {
+        play_stop();
+        return;
+    }
+# if HAS_TONE_SUPPORT
+    if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_B0) {
+        tone1.play(NOTE_B0, (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    } else if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_REST) {
+        tone1.stop();
+    } else if ((play_sequence[play_sequence_idx] & 0xc000) == 0x8000) {
+        tone1.play(play_note_table[play_sequence[play_sequence_idx] & 0x3800][play_sequence[play_sequence_idx] & 0x07][PLAY_FLAT],
+                (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    } else if ((play_sequence[play_sequence_idx] & 0xc000) == 0x4000) {
+        tone1.play(play_note_table[play_sequence[play_sequence_idx] & 0x3800][play_sequence[play_sequence_idx] & 0x07][PLAY_SHARP],
+                (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    } else {
+        tone1.play(play_note_table[play_sequence[play_sequence_idx] & 0x3800][play_sequence[play_sequence_idx] & 0x07][PLAY_NATURAL],
+                (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    }
+# else
+    if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_REST) {
+        analogWrite(PIN_SPKR, 0);
+    } else {
+        analogWrite(PIN_SPKR, 127);
+    }
+# endif
+    sound_timer.setPeriod((play_sequence[play_sequence_idx] & 0x00ff) * 10);
+}
+
+void play_start(void)
+{
+    play_stop();
+    play_sequence_idx = -1;
+    sound_timer.reset();
+    sound_timer.enable();
+    sound_player();
+}
+
+void play_stop(void)
+{
+    sound_timer.reset();
+    sound_timer.disable();
+    play_sequence_idx = 0;
+# if HAS_TONE_SUPPORT
+    if (tone1.isPlaying()) {
+        tone1.stop();
+    }
+# else
+    analogWrite(PIN_SPKR, 0);
+# endif
+}
+
+#else /* HAS_SPEAKER */
+
+void play_stop(void) 
+{
+}
 void play_sound(bool repeat, const byte *sequence, int sequence_length)
 {
 }
+
+#endif /* !HAS_SPEAKER */
