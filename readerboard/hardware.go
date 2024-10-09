@@ -43,6 +43,14 @@ const (
 	InternalEEPROM
 )
 
+type SoundType byte
+
+const (
+	NoSound SoundType = iota
+	SingleTone
+	FullTonal
+)
+
 func (n EEPROMType) MarshalJSON() ([]byte, error) {
 	switch n {
 	case NoEEPROM:
@@ -73,6 +81,48 @@ func (n *EEPROMType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (n SoundType) MarshalJSON() ([]byte, error) {
+	switch n {
+	case NoSound:
+		return json.Marshal("none")
+	case SingleTone:
+		return json.Marshal("single")
+	case FullTonal:
+		return json.Marshal("full")
+	}
+	return nil, fmt.Errorf("Unsupported SoundType value %v", n)
+}
+
+func (n *SoundType) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	switch s {
+	case "none":
+		*n = NoSound
+	case "single":
+		*n = SingleTone
+	case "full":
+		*n = FullTonal
+	default:
+		return fmt.Errorf("Unsupported SoundType value %v", s)
+	}
+	return nil
+}
+
+func parseSoundType(e byte) (SoundType, error) {
+	switch e {
+	case 'S':
+		return SingleTone, nil
+	case 'T':
+		return FullTonal, nil
+	case '_':
+		return NoSound, nil
+	}
+	return NoSound, fmt.Errorf("invalid sount type code %v", e)
+}
+
 func parseEEPROMType(e byte) (EEPROMType, error) {
 	switch e {
 	case 'I':
@@ -92,6 +142,19 @@ func EEPROMTypeName(e EEPROMType) string {
 	case ExternalEEPROM:
 		return "external"
 	case NoEEPROM:
+		return "no"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+func SoundTypeName(e SoundType) string {
+	switch e {
+	case SingleTone:
+		return "single"
+	case FullTonal:
+		return "full"
+	case NoSound:
 		return "no"
 	default:
 		return "UNKNOWN"
@@ -142,11 +205,14 @@ type DeviceStatus struct {
 	SpeedUSB         int
 	Speed485         int
 	EEPROM           EEPROMType
+	Sound            SoundType
 	HardwareRevision string
 	FirmwareRevision string
 	Serial           string
 	StatusLEDs       DiscreteLEDStatus
 	ImageBitmap      [][64]byte
+	Dimmers          []byte
+	DimmerValid      []bool
 }
 
 type DiscreteLEDStatus struct {
@@ -364,6 +430,19 @@ func showAddress(a byte) string {
 	return fmt.Sprintf("%d", a)
 }
 
+func logDimmers(d []byte, ok []bool) {
+	var s string
+	for i, v := range d {
+		if ok[i] {
+			s += fmt.Sprintf("#%d=%02X ", i, v)
+		} else {
+			s += fmt.Sprintf("#%d -- ", i)
+		}
+	}
+
+	log.Printf("| dimmers: %s", s)
+}
+
 func logStatusLEDs(s DiscreteLEDStatus) {
 	log.Printf("| status lights on=%s", s.StatusLights)
 	if s.FlasherStatus.IsRunning {
@@ -424,12 +503,14 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'B':
 						switch dev.DeviceType {
 						case Busylight1:
-							log.Printf("| busylight model 1.x; USB speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								s.SpeedUSB, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| busylight model 1.x; USB speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								s.SpeedUSB, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 						case Busylight2:
-							log.Printf("| busylight model 2.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| busylight model 2.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 						default:
 							log.Printf("| IDENTIFIES AS A BUSYLIGHT DEVICE REV %s BUT CONFIGURED AS %s!", s.HardwareRevision, HardwareModelName(dev.DeviceType))
@@ -437,8 +518,9 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'M':
 						switch dev.DeviceType {
 						case Readerboard3Mono:
-							log.Printf("| monochrome readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| monochrome readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 							log.Printf("| bitmap %s", hex.EncodeToString(s.ImageBitmap[0][:]))
 							log.Printf("| flash  %s", hex.EncodeToString(s.ImageBitmap[1][:]))
@@ -449,8 +531,9 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'C':
 						switch dev.DeviceType {
 						case Readerboard3RGB:
-							log.Printf("| color readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| color readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 							log.Printf("| red plane %s", hex.EncodeToString(s.ImageBitmap[0][:]))
 							log.Printf("| green \"   %s", hex.EncodeToString(s.ImageBitmap[1][:]))

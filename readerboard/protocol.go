@@ -870,9 +870,9 @@ func parseBitmapPlane(hex string) ([64]byte, error) {
 //    <- L l0 l1 ... lN $ F R/S _/{pos @ l0 l1 ... lN} $ S R/S _/{pos @ l0 l1 ... lN} $ \n
 //    /readerboard/v1/query?a=<targets>&status
 //    -> Q
-//    <- Q B = ad uspd rspd glb I/X/_ $ L ... $ V vers $ R vers $ S sn $ \n
-//    <- Q C = ad uspd rspd glb I/X/_ $ L ... $ V vers $ R vers $ S sn $ M red... $ green... $ blue... $ flash... $ \n
-//    <- Q M = ad uspd rspd glb I/X/_ $ L ... $ V vers $ R vers $ S sn $ M bits... $ flash... $ \n
+//    <- Q B = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ \n
+//    <- Q C = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ M red... $ green... $ blue... $ flash... $ \n
+//    <- Q M = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ M bits... $ flash... $ \n
 //
 //    (485)  1101aaaa ...
 //           1111gggg 00000001 00aaaaaa ...
@@ -940,7 +940,7 @@ func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareMode
 			if len(in) < 15 {
 				return DeviceStatus{}, fmt.Errorf("query response from hardware too short (%d)", len(in))
 			}
-			if in[0] != 'Q' || in[2] != '=' || in[8] != '$' {
+			if in[0] != 'Q' || in[2] != '=' || in[9] != '$' {
 				return DeviceStatus{}, fmt.Errorf("query response is invalid (%v...)", in[0:9])
 			}
 
@@ -958,7 +958,11 @@ func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareMode
 			if stat.EEPROM, err = parseEEPROMType(in[7]); err != nil {
 				return stat, fmt.Errorf("query response EEPROM type code %c invalid (%v)", in[7], err)
 			}
-			if stat.HardwareRevision, idx, err = extractString(in, 9, "V"); err != nil {
+			if stat.Sound, err = parseSoundType(in[8]); err != nil {
+				return stat, fmt.Errorf("query response sound support type code %c invalid (%v)", in[8], err)
+			}
+
+			if stat.HardwareRevision, idx, err = extractString(in, 10, "V"); err != nil {
 				return stat, fmt.Errorf("query response hardware version could not be parsed (%v)", err)
 			}
 			if stat.FirmwareRevision, idx, err = extractString(in, idx, "R"); err != nil {
@@ -969,6 +973,27 @@ func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareMode
 			}
 			if stat.StatusLEDs, idx, err = parseStatusLEDs(in, idx); err != nil {
 				return stat, fmt.Errorf("query response status LEDs could not be parsed (%v)", err)
+			}
+
+			var dimmerBytes string
+			if dimmerBytes, idx, err = extractString(in, idx, "D"); err != nil {
+				return stat, fmt.Errorf("query response dimmer settings could not be extracted (%v)", err)
+			}
+			if len(dimmerBytes)%2 != 0 {
+				return stat, fmt.Errorf("query response dimmer settings could not be extracted (hex string must have even number of characters)")
+			}
+			for i := 0; i < len(dimmerBytes); i += 2 {
+				if dimmerBytes[i] == '_' && dimmerBytes[i+1] == '_' {
+					stat.Dimmers = append(stat.Dimmers, 0xff)
+					stat.DimmerValid = append(stat.DimmerValid, false)
+				} else {
+					ui, err := strconv.ParseUint(string(dimmerBytes[i:i+2]), 16, 8)
+					if err != nil {
+						return stat, fmt.Errorf("query response dimmer settings could not be extracted (%v)", err)
+					}
+					stat.Dimmers = append(stat.Dimmers, byte(ui))
+					stat.DimmerValid = append(stat.DimmerValid, true)
+				}
 			}
 
 			if stat.DeviceModelClass == 'B' {

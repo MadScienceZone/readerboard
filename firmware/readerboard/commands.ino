@@ -692,6 +692,15 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #else
                 sendbyte('I');
 #endif
+#if HAS_SPEAKER
+# if HAS_TONE_SUPPORT
+                sendbyte('T');
+# else
+                sendbyte('S');
+# endif
+#else
+                sendbyte('_');
+#endif
                 sendbyte('$');
                 for (const char *c = SERIAL_VERSION_STAMP; *c != '\0'; c++) {
                     sendbyte(*c);

@@ -1438,6 +1438,7 @@ void refresh_hw_buffer(void)
     static int row = 0;
 	static int flash_counter = 0;
 	static bool flash_off = false;
+    static int delay_passes = 0;
 
 	if ((++flash_counter % MATRIX_FLASH_INTERVAL) == 0) {
 		flash_off = !flash_off;
@@ -1452,6 +1453,12 @@ void refresh_hw_buffer(void)
     if (hw_active_color_planes == 0)
         return;
 
+    if (delay_passes > 0) {
+        --delay_passes;
+        delayMicroseconds(50);
+        return;
+    }
+
     if (++row >= N_ROWS) {
         do {
             if (++plane >= N_COLORS) {
@@ -1460,6 +1467,9 @@ void refresh_hw_buffer(void)
             planebit = 1 << plane;
         } while (plane == N_FLASHING_PLANE || !(hw_active_color_planes & planebit));
         row = 0;
+        if (row == 0 && plane == 0) {
+            delay_passes = 255 - matrix_brightness;
+        }
     }
 
 #if HW_MODEL == MODEL_3xx_MONOCHROME
