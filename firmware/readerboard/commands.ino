@@ -813,24 +813,20 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
     // Set operational parameters
     case SetState:
-        if (inputchar == '#') {
-            if (source != FROM_USB) {
-                error();
-                break;
-            }
-            state = SetSNState;
-            break;
-        }
         if (inputchar == '*') {
             state = ShowBannerState;
             break;
         }
-        if (inputchar == '>') {
+        if (inputchar == '&') {
             state = SetPersistState;
             break;
         }
         if (source != FROM_USB) {
             error();
+            break;
+        }
+        if (inputchar == '#') {
+            state = SetSNState;
             break;
         }
         state = SetUspdState;
