@@ -192,12 +192,20 @@ const int PIN_L7    =  6;   // discrete LED 7 (top)
 const int PIN_DE    = 16;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   = 17;   // RS-485 ~receiver enable (0=enabled)
 const int PIN_SPKR  = 12;   // PWM output driving speaker
-# define HAS_SPEAKER (true)
-# if HW_MC == HW_MC_DUE
-#  define HAS_TONE_SUPPORT (false)
+# ifdef SPEAKER_INSTALLED
+#  define HAS_SPEAKER (SPEAKER_INSTALLED)
 # else
-#  define HAS_TONE_SUPPORT (true)
+#  define HAS_SPEAKER (true)
 # endif
+
+# if HAS_SPEAKER
+#  if HW_MC == HW_MC_DUE
+#   define HAS_TONE_SUPPORT (false)
+#  else
+#   define HAS_TONE_SUPPORT (true)
+# endif
+# endif
+
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_1xx
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
@@ -218,16 +226,28 @@ const int PIN_L6    = 10;   // discrete LED 6 (top)
 const int PIN_DE    =  2;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   =  3;   // RS-485 ~receiver enable (0=enabled)
 const int PIN_SPKR  =  5;   // PWM output driving speaker
-# define HAS_SPEAKER (true)
-# define HAS_TONE_SUPPORT (false)
+# ifdef SPEAKER_INSTALLED
+#  define HAS_SPEAKER (SPEAKER_INSTALLED)
+# else
+#  define HAS_SPEAKER (true)
+# endif
+
+# if HAS_SPEAKER
+#  define HAS_TONE_SUPPORT (false)
+# endif
+
 #else
 # error "HW_CONTROL_LOGIC not defined to supported model"
 #endif
 
 #ifdef SN_B0001
-# define HAS_SPEAKER (true)
+# define HAS_SPEAKER (false)
 # define HAS_TONE_SUPPORT (false)
-const int PIN_SPKR = 5;
+//const int PIN_SPKR = 5;
+#endif
+#ifdef SN_RB0000
+# define HAS_SPEAKER (false)
+# define HAS_TONE_SUPPORT (false)
 #endif
 
 #if IS_READERBOARD
@@ -1455,7 +1475,7 @@ void refresh_hw_buffer(void)
 
     if (delay_passes > 0) {
         --delay_passes;
-        delayMicroseconds(50);
+//        delayMicroseconds(1);
         return;
     }
 
@@ -1467,9 +1487,6 @@ void refresh_hw_buffer(void)
             planebit = 1 << plane;
         } while (plane == N_FLASHING_PLANE || !(hw_active_color_planes & planebit));
         row = 0;
-        if (row == 0 && plane == 0) {
-            delay_passes = 255 - matrix_brightness;
-        }
     }
 
 #if HW_MODEL == MODEL_3xx_MONOCHROME
@@ -1542,6 +1559,10 @@ void refresh_hw_buffer(void)
     digitalWrite(PIN__G, LOW);          //   0     1  0   1    p  p  r  r  r  enable column sinks
     delayMicroseconds(ROW_HOLD_TIME_US);
     digitalWrite(PIN__G, HIGH);         //   0     1  1   1    p  p  r  r  r  disable column sinks
+                                        //
+    if (matrix_brightness < 255) {
+        delay_passes = 255 - matrix_brightness;
+    }
 }
 
 //

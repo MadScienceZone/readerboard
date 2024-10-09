@@ -211,8 +211,22 @@ type DeviceStatus struct {
 	Serial           string
 	StatusLEDs       DiscreteLEDStatus
 	ImageBitmap      [][64]byte
-	Dimmers          []byte
+	Dimmers          []DimmerSet
 	DimmerValid      []bool
+}
+
+type DimmerSet byte
+
+func (ds DimmerSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(int(ds))
+}
+func (ds *DimmerSet) UnmarshalJSON(j []byte) error {
+	var d int
+	if err := json.Unmarshal(j, &d); err != nil {
+		return err
+	}
+	*ds = DimmerSet(d)
+	return nil
 }
 
 type DiscreteLEDStatus struct {
@@ -430,7 +444,7 @@ func showAddress(a byte) string {
 	return fmt.Sprintf("%d", a)
 }
 
-func logDimmers(d []byte, ok []bool) {
+func logDimmers(d []DimmerSet, ok []bool) {
 	var s string
 	for i, v := range d {
 		if ok[i] {

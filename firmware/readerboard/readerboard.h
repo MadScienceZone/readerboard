@@ -98,12 +98,20 @@ Libraries Required:
 //
 // TODO: Adjust these for your version and serial number
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.3.3  "
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.3.3$"
+#define BANNER_FIRMWARE_VERS "FW 2.3.4  "
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.3.4$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
 //                         Firmware version
+//
+// Uncomment and adjust the following #define symbol ONLY IF
+// you built a non-standard unit with respect to whether it
+// has a speaker installed. If SPEAKER_INSTALLED is not defined
+// AT ALL, the default sound configuration will be assumed for
+// a unit of its type. The value is a boolean which is true
+// if a speaker is present on the device.
+//#define SPEAKER_INSTALLED (false)
 //
 //
 // Uncomment and adjust the following #define symbol ONLY IF
@@ -120,17 +128,17 @@ Libraries Required:
 // 
 
 // Some definitions for known prototype devices and their nonstandard hardware configurations
-#define SN_B0001
-//#define SN_RB0000
+//#define SN_B0001
+#define SN_RB0000
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
-# define SERIAL_VERSION_STAMP "V1.0.2$R2.3.3$"
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.3.4$"
 # define BANNER_HARDWARE_VERS "HW 1.0.2  "
 # define HW_MC (HW_MC_PRO)
 #endif
 #ifdef SN_RB0000
-# define SERIAL_VERSION_STAMP "V3.2.2$R2.3.3$"
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.3.4$"
 # define BANNER_HARDWARE_VERS "HW 3.2.2  "
 //# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)

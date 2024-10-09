@@ -668,6 +668,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 }
 
                 sendbyte('Q');
+                sendbyte('0');  // RESPONSE FORMAT Q0
 #if HW_MODEL == MODEL_3xx_MONOCHROME
                 sendbyte('M');
 #elif HW_MODEL == MODEL_3xx_RGB
@@ -1278,6 +1279,7 @@ void CommandStateMachine::report_state(bool terminate)
 
     int i = 0;
     (*send_byte)('L');
+    (*send_byte)('0'); // Response format L0
     for (i = 0; i < LENGTH_OF(discrete_led_set); i++) {
         (*send_byte)(discrete_query(i) ? encode_led(i) : '_');
     }

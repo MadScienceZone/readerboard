@@ -885,9 +885,14 @@ func parseStatusLEDs(in []byte, idx int) (DiscreteLEDStatus, int, error) {
 	var fstat string
 	var err error
 	stat := DiscreteLEDStatus{}
-	if stat.StatusLights, idx, err = extractString(in, idx, "L"); err != nil {
+	if fstat, idx, err = extractString(in, idx, "L"); err != nil {
 		return stat, idx, fmt.Errorf("status query response status light string could not be extracted (%v)", err)
 	}
+	if len(fstat) < 2 || fstat[0] != '0' {
+		return stat, idx, fmt.Errorf("status query response status light string could not be extracted (unsupported format version %c)", fstat[0])
+	}
+
+	stat.StatusLights = fstat[1:]
 	if fstat, idx, err = extractString(in, idx, "F"); err != nil {
 		return stat, idx, fmt.Errorf("status query response flasher string could not be extracted (%v)", err)
 	}
@@ -937,32 +942,36 @@ func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareMode
 			var idx int
 
 			// try parsing full device status response
-			if len(in) < 15 {
+			if len(in) < 17 {
 				return DeviceStatus{}, fmt.Errorf("query response from hardware too short (%d)", len(in))
 			}
-			if in[0] != 'Q' || in[2] != '=' || in[9] != '$' {
+			if in[0] != 'Q' || in[3] != '=' || in[10] != '$' {
 				return DeviceStatus{}, fmt.Errorf("query response is invalid (%v...)", in[0:9])
 			}
 
-			stat := DeviceStatus{
-				DeviceModelClass: ModelClass(in[1]),
-				DeviceAddress:    parseAddress(in[3]),
-				GlobalAddress:    parseAddress(in[6]),
-			}
-			if stat.SpeedUSB, err = parseBaudRateCode(in[4]); err != nil {
-				return stat, fmt.Errorf("query response usb baud rate code %c invalid (%v)", in[4], err)
-			}
-			if stat.Speed485, err = parseBaudRateCode(in[5]); err != nil {
-				return stat, fmt.Errorf("query response rs-485 baud rate code %c invalid (%v)", in[5], err)
-			}
-			if stat.EEPROM, err = parseEEPROMType(in[7]); err != nil {
-				return stat, fmt.Errorf("query response EEPROM type code %c invalid (%v)", in[7], err)
-			}
-			if stat.Sound, err = parseSoundType(in[8]); err != nil {
-				return stat, fmt.Errorf("query response sound support type code %c invalid (%v)", in[8], err)
+			if in[1] != '0' {
+				return DeviceStatus{}, fmt.Errorf("query response cound not be understood (unsupported format version %c)", in[1])
 			}
 
-			if stat.HardwareRevision, idx, err = extractString(in, 10, "V"); err != nil {
+			stat := DeviceStatus{
+				DeviceModelClass: ModelClass(in[2]),
+				DeviceAddress:    parseAddress(in[4]),
+				GlobalAddress:    parseAddress(in[7]),
+			}
+			if stat.SpeedUSB, err = parseBaudRateCode(in[5]); err != nil {
+				return stat, fmt.Errorf("query response usb baud rate code %c invalid (%v)", in[5], err)
+			}
+			if stat.Speed485, err = parseBaudRateCode(in[6]); err != nil {
+				return stat, fmt.Errorf("query response rs-485 baud rate code %c invalid (%v)", in[6], err)
+			}
+			if stat.EEPROM, err = parseEEPROMType(in[8]); err != nil {
+				return stat, fmt.Errorf("query response EEPROM type code %c invalid (%v)", in[8], err)
+			}
+			if stat.Sound, err = parseSoundType(in[9]); err != nil {
+				return stat, fmt.Errorf("query response sound support type code %c invalid (%v)", in[9], err)
+			}
+
+			if stat.HardwareRevision, idx, err = extractString(in, 11, "V"); err != nil {
 				return stat, fmt.Errorf("query response hardware version could not be parsed (%v)", err)
 			}
 			if stat.FirmwareRevision, idx, err = extractString(in, idx, "R"); err != nil {
@@ -991,7 +1000,7 @@ func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareMode
 					if err != nil {
 						return stat, fmt.Errorf("query response dimmer settings could not be extracted (%v)", err)
 					}
-					stat.Dimmers = append(stat.Dimmers, byte(ui))
+					stat.Dimmers = append(stat.Dimmers, DimmerSet(ui))
 					stat.DimmerValid = append(stat.DimmerValid, true)
 				}
 			}

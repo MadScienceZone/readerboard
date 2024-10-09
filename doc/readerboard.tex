@@ -1209,13 +1209,13 @@ This response has the form:
 
 \begin{center}\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 	\bitheader{0-8} \\
-	\bitbox{1}{\z{L}} &
+	\bitbox[ltb]{1}{\z{L}} &
+	\bitbox[rtb]{1}{\z0} &
 	\bitbox[tbl]{1}{\Var*{led$_0$}} &
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{\Var*{led$_3$}} &
 	\bitbox[tb]{1}{\Var*{led$_4$}} &
-	\bitbox[tb]{1}{\Var*{led$_5$}} &
 	\bitbox[tb]{1}{\strut$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} \\
 	\bitbox{1}{\z{\$}} &
@@ -1228,6 +1228,10 @@ This response has the form:
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
+
+The initial bytes ``\z{L0}'' identify the format of the data that follows. If the format changes
+in a way that breaks the previous parsing rules, the ``\z0'' will be incremented according to the
+conventions of 6-bit integer encoding as described in Table~\ref{tbl:int063}.
 
 Each \Var*{led$_x$} value is a single character which is ``\z{\_}'' if the corresponding \led\ is
 off, or the \led's color code or position number if it is on. One such value is sent for each \led\ installed
@@ -1498,18 +1502,18 @@ it is only played once.
 
 The sequence consists of a series of \Var*{note} values, each of which is followed by the note duration \Var*{cs} which is a two-character
 hexadecimal integer in centiseconds. (1/100th of a second).  Each \Var*{note} begins with a letter \z{A}--\z{G}, optionally followed by
-\z{\#} or \z{b} to indicate a sharp ($\sharp$) or flat ($\flat$) note, respectively, followed by a digit \z0--\z8 to indicate the octave. The notes range from \z{B0} (B at 31\,Hz)
-to \z{D\#8} (D$^{\sharp}$ at 4.978\,kHz). A rest is indicated by ``\z{R}'' as the note letter.
+\z{\#} or \z{b} to indicate a sharp ($\sharp$) or flat ($\flat$) note, respectively, followed by a digit \z0--\z8 to indicate the octave. The notes range from \z{B0} (B$_0$ at 31\,Hz)
+to \z{D\#8} (D$_8^{\sharp}$ at 4.978\,kHz). A rest is indicated by ``\z{R}'' as the note letter.
 
 An example 3-note attention tone where the first two notes are played for \sfrac12 second and the final one is held for a full second
-is ``\z{G432E532C564}'' (note G4, \z{32}$_{16}$\,cs=0.50\,s, note E5, \z{32}$_{16}$\,cs=0.50\,s, note C5, \z{64}$_{16}$\,cs=1.00\,s).
+is ``\z{G432E532C564}'' (note G$_4$, \z{32}$_{16}$\,cs=0.50\,s, note E$_5$, \z{32}$_{16}$\,cs=0.50\,s, note C$_5$, \z{64}$_{16}$\,cs=1.00\,s).
 Duration codes range from \z{00} (\z0$_{16}$=0$_{10}$\,cs=0.00\,s) to \z{FF} (\z{FF}$_{16}$=255$_{10}$\,cs=2.55\,s),
 in increments of 0.01\,s.
 
-The letters may be upper- or lower-case (the letter \z{b} as a note name vs.\ a ``$\flat$'' half-step shift indicator from context).
+The letters may be upper- or lower-case (the letter \z{b} is distinguished as a note name vs.\ a ``$\flat$'' half-step shift indicator from context).
 
-Some devices are not able to play notes but can sound a beep at a fixed frequency (typically 490\,Hz or just ever so slightly flat of B4)
-for SparkFun Pro Micro and Adruino Mega 2560 microcontrollers and 1\,kHz or between B5 and C6 for Arduino Due). These will play that single
+Some devices are not able to play notes but can sound a beep at a fixed frequency (typically 490\,Hz or just ever so slightly flat of B$_4$)
+for SparkFun Pro Micro and Adruino Mega 2560 microcontrollers and 1\,kHz or between B$_5$ and C$_6$ for Arduino Due). These will play that single
 tone regardless of the note specified in the sequence.
 
 \section{\z{C}---Clear Matrix Display}
@@ -1551,6 +1555,9 @@ discrete status \led s, or ``\z{\_}'' to dim the matrix \led s, or ``\z{*}'' to 
 
 Not all \led s are dimmable, depending on the hardware configuration. All \led s on readerboard models from revision 3.\Var{x} and after. On the busylight
 hardware, only the third, fifth, and seventh, \led\ tiers (usually assigned amber, red, and white colors) are dimmable.
+
+Note that the readerboards were designed to run best at full brightness. Dimming the matrix display too much may result in the display
+appearing to flicker too much. This effect is most pronounced with white content, a little less so with yellow, cyan, and magenta.
 
 \section{\z{F}---Flash Lights in Sequence}
 \begin{center}
@@ -1886,22 +1893,23 @@ The response has the form:
 	\bitbox[]{1}{\scriptsize6}&
 	\bitbox[]{1}{\scriptsize7}&
 	\bitbox[]{1}{\scriptsize8}\\
-	\bitbox{1}{\z{Q}} &
+	\bitbox[ltb]{1}{\z{Q}} &
+	\bitbox[tbr]{1}{\z0} &
 	\bitbox{1}{\Var*{model}} &
 	\bitbox{1}{\z{=}} &
 	\bitbox{1}{\Var*{ad}}&
 	\bitbox{1}{\Var*{uspd}}&
 	\bitbox{1}{\Var*{rspd}}&
 	\bitbox{1}{\Var*{ad$_G$}}&
-	\bitbox{1}{\Var*{EE}}&
-	\bitbox{1}{\Var*{spkr}}\\
+	\bitbox{1}{\Var*{EE}}\\
+	\bitbox{1}{\Var*{spkr}}&
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{V}} &
 	\bitbox{2}{\Var*{hwversion}}
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{R}} &
-	\bitbox{2}{\Var*{romversion}}&
-	\bitbox{1}{\z{\$}}\\ 
+	\bitbox{2}{\Var*{romversion}}\\
+	\bitbox{1}{\z{\$}}& 
 	\bitbox{1}{\z{S}}&
 	\bitbox{1}{\Var*{serial}}& 
 	\bitbox{1}{\z{\$}} &
@@ -1909,9 +1917,8 @@ The response has the form:
 	\bitbox[tbl]{1}{\Var*{led$_0$}} &
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
-	\bitbox[tb]{1}{\Var*{led$_3$}} &
-	\bitbox[tb]{1}{\Var*{led$_4$}} \\
-	\bitbox[tb]{1}{\Var*{led$_5$}} &
+	\bitbox[tb]{1}{\Var*{led$_3$}} \\
+	\bitbox[tb]{1}{\Var*{led$_4$}} &
 	\bitbox[tb]{1}{\strut$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z{\$}} &
@@ -1953,6 +1960,10 @@ The response has the form:
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
+
+The leading ``\z{Q0}'' indicates the format of the data that follows. If a change is introduced
+that breaks the parsing rules needed to understand the response, the ``\z0'' will be incremented
+as documented in Table~\ref{tbl:int063} for 6-bit integer encoding.
 
 The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author still has
 %lying around (but this shouldn't be something anyone else would need to see),
