@@ -820,26 +820,50 @@ func parseFlasherStatus(src string) (LEDSequence, error) {
 		return LEDSequence{}, fmt.Errorf("flasher sequence data too short")
 	}
 	seq := LEDSequence{}
-
-	if src[0] == 'R' {
-		seq.IsRunning = true
-	} else if src[0] != 'S' {
-		return seq, fmt.Errorf("flasher sequence data invalid: run state value %v", src[0])
+	idx := 0
+	if src[0] == '/' {
+		seq.CustomTiming.Enabled = true
+		if len(src) < 5 {
+			return LEDSequence{}, fmt.Errorf("flasher sequence data too short")
+		}
+		if src[1] < '0' || src[1] > 'o' {
+			return seq, fmt.Errorf("flasher timing data invalid: up-time %v out of range", src[1])
+		}
+		seq.CustomTiming.Up = float64(src[2]-48) / 10.0
+		if src[2] < '0' || src[2] > 'o' {
+			return seq, fmt.Errorf("flasher timing data invalid: on-time %v out of range", src[2])
+		}
+		seq.CustomTiming.On = float64(src[3]-48) / 10.0
+		if src[3] < '0' || src[3] > 'o' {
+			return seq, fmt.Errorf("flasher timing data invalid: down-time %v out of range", src[3])
+		}
+		seq.CustomTiming.Down = float64(src[4]-48) / 10.0
+		if src[4] < '0' || src[4] > 'o' {
+			return seq, fmt.Errorf("flasher timing data invalid: off-time %v out of range", src[4])
+		}
+		seq.CustomTiming.Off = float64(src[4]-48) / 10.0
+		idx = 5
 	}
 
-	if src[1] == '_' {
+	if src[idx+0] == 'R' {
+		seq.IsRunning = true
+	} else if src[idx+0] != 'S' {
+		return seq, fmt.Errorf("flasher sequence data invalid: run state value %v", src[idx+0])
+	}
+
+	if src[idx+1] == '_' {
 		return seq, nil
 	}
 
-	if len(src) < 3 || src[2] != '@' {
+	if len(src) < idx+3 || src[idx+2] != '@' {
 		return seq, fmt.Errorf("flasher sequence data invalid: can't read position marker")
 	}
 
-	if src[1] < '0' || src[1] > 'o' {
-		return seq, fmt.Errorf("flasher sequence data invalid: position %v out of range", src[1])
+	if src[idx+1] < '0' || src[idx+1] > 'o' {
+		return seq, fmt.Errorf("flasher sequence data invalid: position %v out of range", src[idx+1])
 	}
-	seq.Position = int(src[1]) - '0'
-	seq.Sequence = []byte(src[3:])
+	seq.Position = int(src[idx+1]) - '0'
+	seq.Sequence = []byte(src[idx+3:])
 	return seq, nil
 }
 

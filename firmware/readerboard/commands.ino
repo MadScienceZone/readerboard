@@ -71,10 +71,11 @@
 //  |SetRspd| |SetSN2|      |  A    __________  n
 //  |_______| |______|      +----->|SelectFont|-----> END
 //    | speed   |#          |      |__________|
-//   _V_____   _V____       |           ____
-//  |SetDg  | |SetSN3|      |  F    ___|_   |led
-//  |_______| |______|      +----->|Flash|<-+      $
-//    | Addr    |=          |      |_____|----------> END
+//   _V_____   _V____       |                                                                                              ____
+//  |SetDg  | |SetSN3|      |  F    __________ /   ___________ i   ___________ i   _____________ i   ____________ i    ___|_   |led
+//  |_______| |______|      +----->|FlashTimes|-->|FlashTimeUp|-->|FlashTimeOn|-->|FlashTimeDown|-->|FlashTimeOff|--->|Flash|<-+      $
+//    | Addr    |=          |      |__________|---------------------------------------------------------------------->|_____|----------> END
+//    |         |           |                   *
 //    V         V           |  H    ________  n
 //   END       END          +----->|BarGraph|-------> END
 //                          |      |________|                                                         
@@ -217,6 +218,11 @@ private:
         SetDgState,
         StrobeState, 
         FlashState, 
+        FlashTimeState,
+        FlashTimeUpState,
+        FlashTimeOnState,
+        FlashTimeDownState,
+        FlashTimeOffState,
         LightOnState, 
         SetSNState,
         SetSN2State,
@@ -744,7 +750,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
         case 'F':
         case 'f':
-            state = FlashState;
+            state = FlashTimeState;
             flasher.stop();
             break;
 
@@ -799,11 +805,60 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         break;
 //
 //    // Collecting LED numbers to form a flash or strobe sequence
+    case FlashTimeUpState:
+        state = FlashTimeOnState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeOnState:
+        state = FlashTimeDownState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeDownState:
+        state = FlashTimeOffState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeOffState:
+        state = FlashState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeState:
+        if (inputchar == '/') {
+            state = FlashTimeUpState;
+            break;
+        }
+        state = FlashState;
+        /* FALLTHRU */
+
     case FlashState:
     case StrobeState:
         if (inputchar == '$' || inputchar == '\x1b') {
             discrete_all_off(false);
             if (state == FlashState) {
+                if (buffer_idx == 4) {
+                    flasher.SetTiming(buffer[0], buffer[1], buffer[2], buffer[3]);
+                } else {
+                    flasher.DefaultTiming();
+                }
                 flasher.start();
             }
             else {

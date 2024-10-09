@@ -1248,6 +1248,31 @@ In each case, if there is no defined sequence, the status field will be:
 	\bitbox{1}{\Var*{run}} &
 	\bitbox{1}{\strut\z{\_}}
 \end{bytefield}
+
+\smallskip
+
+or
+
+\smallskip
+
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+%	\bitheader{0-6} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize5}&
+	\bitbox[]{1}{\scriptsize6}\\
+	\bitbox{1}{\z{/}} &
+	\bitbox{1}{\Var*{up}} &
+	\bitbox{1}{\Var*{on}} &
+	\bitbox{1}{\Var*{down}} &
+	\bitbox{1}{\Var*{off}} &
+	\bitbox{1}{\Var*{run}} &
+	\bitbox{1}{\strut\z{\_}}
+\end{bytefield}
+
 \end{center}
 
 \smallskip
@@ -1256,7 +1281,8 @@ In each case, if there is no defined sequence, the status field will be:
 
 \medskip
 
-\begin{center}\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+\begin{center}
+	\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
 %	\bitheader{0-6} \\
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize1}&
@@ -1273,9 +1299,43 @@ In each case, if there is no defined sequence, the status field will be:
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} 
 \end{bytefield}
+
+\smallskip
+
+or
+
+\smallskip
+
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+%	\bitheader{0-6} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize5}&
+	\bitbox[]{1}{\scriptsize6}&
+	\bitbox[]{1}{\scriptsize7}\\
+	\bitbox{1}{\z{/}} &
+	\bitbox{1}{\Var*{up}} &
+	\bitbox{1}{\Var*{on}} &
+	\bitbox{1}{\Var*{down}} &
+	\bitbox{1}{\Var*{off}} &
+	\bitbox{1}{\Var*{run}} &
+	\bitbox{1}{\Var*{pos}} &
+	\bitbox{1}{\z{@}} \\
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} 
+\end{bytefield}
 \end{center}
 
-In either case, \Var*{run} is the \ascii\ character ``\z{S}'' if the unit is
+If the flasher has custom timings defined for it, a five-character block starting with ``\z{/}''
+will appear at the start of the status and will contain the four timing values in the
+same format as specified to the \z{F} command when they were set (q.v.).
+
+In any case, \Var*{run} is the \ascii\ character ``\z{S}'' if the unit is
 stopped or ``\z{R}'' if it is currently running.  If there is a defined sequence,
 \Var*{pos} indicates the 0-origin position within the sequence of the light currently
 being flashed or strobed, encoded as described in Table~\ref{tbl:int063}. 
@@ -1567,20 +1627,46 @@ appearing to flicker too much. This effect is most pronounced with white content
 	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize2}&
 	\bitbox[]{1}{\scriptsize3}&
-	\bitbox[]{1}{\dots}&
-	\bitbox[]{1}{\scriptsize$n$}&
-	\bitbox[]{1}{\scriptsize$n+1$}\\
+	\bitbox[]{1}{\dots}\\
+%	\bitbox[]{1}{\scriptsize$n$}&
+%	\bitbox[]{1}{\scriptsize$n+1$}\\
 	\bitbox{1}{\z{F}} &
 	\bitbox[tbl]{1}{\Var*{led$_0$}} &
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
-	\bitbox{1}{\z\$}
+	\bitbox{1}{\z\$}\\
+\end{bytefield}
+
+\smallskip
+
+or
+
+\smallskip
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize5}&
+	\bitbox[]{1}{\scriptsize6}&
+	\bitbox[]{1}{\dots}\\
+	\bitbox{1}{\z{F}} &
+	\bitbox{1}{\z{/}} &
+	\bitbox{1}{\Var*{up}}&
+	\bitbox{1}{\Var*{on}}&
+	\bitbox{1}{\Var*{down}}&
+	\bitbox{1}{\Var*{off}}&
+	\bitbox[tbl]{1}{\Var*{led$_0$}} &
+	\bitbox[tbr]{1}{$\cdots$} &
+	\bitbox{1}{\z\$}\\
 \end{bytefield}
 %|{"m":"flash","a":[|\Var*{ad$_0$}|,|\dots|],"l":[|\Var*{led$_0$}|,|\Var*{led$_1$}|,|\Var*{led$_2$}|,|\dots|,|\Var*{led$_{n-1}$}|]}|
 \begin{Coding}
-	|/readerboard/v1/flash?a=|\Var*{ad}|&l=|\Var*{led$_0$}\Var*{led$_1$}\Var*{led$_2$}\dots\Var*{led$_{n-1}$}
+	|/readerboard/v1/flash?a=|\Var*{ad}|&l=|\Var*{led$_0$}\Var*{led$_1$}\Var*{led$_2$}\dots\Var*{led$_{n-1}$}\\
+	|&up=|\Var*{sec}|&on=|\Var*{sec}|&down=|\Var*{sec}|&off=|\Var*{sec}
 \end{Coding}
 \end{center}
 
@@ -1627,6 +1713,16 @@ sequence (no codes at all) stops the flasher's operation.
 The sequence is terminated by either a dollar-sign (``\z{\$}'') character or the
 escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagram above
 simply as ``\z{\$}''.
+
+Optionally, a block of timing values may be given before the block of \Var*{led} values.
+This is introduced by a ``\z{/}'' character and consists of four 6-bit encoded integer values
+giving the time interval over which the light should fade up to full brightness, the time to
+remain on, the interval over which to dim down, and the time to remain off. These values
+are in units of \sfrac{1}{10}th of a second (thus ranging from 0--6.4 seconds). For \led s
+which do not support dimming, the values of \Var*{up} and \Var*{down} are treated as if they
+were zero, instantly turning on or off the \led. (In the \acronym{HTTP} \acronym{API},
+the \Var*{sec} values are floating-point numbers of seconds; e.g., a value of 1.2 seconds would be
+expressed in the \acronym{API} as ``\z{up=1.2}'' and in the hardware protocol as ``\z{<}'').
 			
 This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 

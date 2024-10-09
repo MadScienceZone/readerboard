@@ -738,6 +738,15 @@ class LightBlinker {
     byte         cur_index;
     byte         sequence_length;
     byte         sequence[LED_SEQUENCE_LEN];
+
+    bool         custom_timings;
+    byte         cur_ramp_value;
+    enum {RAMP_UP, RAMP_ON, RAMP_DOWN, RAMP_OFF} ramp_stage;
+    unsigned int up_interval;
+    unsigned int on_interval;
+    unsigned int down_interval;
+    unsigned int off_interval;
+
     TimerEvent   timer;
 
 public:
@@ -749,6 +758,8 @@ public:
     void advance(void);
     void start(void);
     void report_state(void (*sendfunc)(byte));
+    void SetTiming(unsigned int up, unsigned int on, unsigned int down, unsigned int off);
+    void DefaultTiming(void);
 };
 
 LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
@@ -760,6 +771,23 @@ LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(v
     sequence_length = 0;
     on_period = on;
     off_period = off;
+    custom_timings = false;
+}
+
+void LightBlinker::SetTiming(unsigned int up, unsigned int on, unsigned int down, unsigned int off)
+{
+    up_interval = up;
+    on_interval = on;
+    down_interval = down;
+    off_interval = off;
+    cur_ramp_value = 0;
+    ramp_stage = RAMP_UP;
+    custom_timings = true;
+}
+
+void LightBlinker::DefaultTiming(void)
+{
+    custom_timings = false;
 }
 
 int LightBlinker::length(void)
@@ -776,6 +804,13 @@ void LightBlinker::append(byte v)
 
 void LightBlinker::report_state(void (*sendfunc)(byte))
 {
+    if (custom_timings) {
+        (*sendfunc)('/');
+        (*sendfunc)(encode_int6(up_interval));
+        (*sendfunc)(encode_int6(on_interval));
+        (*sendfunc)(encode_int6(down_interval));
+        (*sendfunc)(encode_int6(off_interval));
+    }
     (*sendfunc)(timer.isEnabled()? 'R' : 'S');
     if (sequence_length > 0) {
         (*sendfunc)(encode_int6(cur_index));
@@ -788,12 +823,12 @@ void LightBlinker::report_state(void (*sendfunc)(byte))
     }
 }
 
-void discrete_set(byte l, bool value)
+void discrete_set(byte l, bool value, byte fraction)
 {
     if (l < LENGTH_OF(discrete_led_set)) {
         led_state[l] = value;
-        if (led_dimmable[l]) {
-            analogWrite(discrete_led_set[l], value ? led_brightness[l] : 0);
+        if (led_dimmable[l] && (led_brightness[l] != 255 || fraction != 255)) {
+            analogWrite(discrete_led_set[l], value ? (led_brightness[l] * fraction) / 255 : 0);
         } else {
             digitalWrite(discrete_led_set[l], value? HIGH : LOW);
         }
@@ -810,6 +845,70 @@ bool discrete_query(byte l)
         
 void LightBlinker::advance(void)
 {
+    if (sequence_length > LED_SEQUENCE_LEN)
+        sequence_length = LED_SEQUENCE_LEN;
+    
+    if (custom_timings) {
+        if (led_dimmable[sequence[cur_index]]) {
+            switch (ramp_stage) {
+                case RAMP_OFF:
+                    ramp_stage = RAMP_UP;
+                    timer.setPeriod((up_interval * 100) / 255);
+                    timer.reset();
+                    /* FALLTHRU */
+
+                case RAMP_UP:
+                    if (cur_ramp_value < 255) {
+                        discrete_set(sequence[cur_index], true, ++cur_ramp_value);
+                    } else {
+                        discrete_set(sequence[cur_index], true);
+                        ramp_stage = RAMP_ON;
+                        timer.setPeriod(on_interval * 100);
+                        timer.reset();
+                    }
+                    break;
+
+                case RAMP_ON:
+                    ramp_stage = RAMP_DOWN;
+                    timer.setPeriod((down_interval * 100) / 255);
+                    timer.reset();
+                    /* FALLTHRU */
+
+                case RAMP_DOWN:
+                    if (cur_ramp_value > 0) {
+                        discrete_set(sequence[cur_index], true, --cur_ramp_value);
+                    } else {
+                        discrete_set(sequence[cur_index], false);
+                        ramp_stage = RAMP_OFF;
+                        timer.setPeriod(off_interval * 100);
+                        timer.reset();
+                        cur_index = (cur_index + 1) % sequence_length;
+                    }
+                    break;
+            }
+        } else {
+            switch (ramp_stage) {
+                case RAMP_OFF:
+                case RAMP_UP:
+                    discrete_set(sequence[cur_index], true);
+                    ramp_stage = RAMP_ON;
+                    timer.setPeriod(on_interval * 100);
+                    timer.reset();
+                    break;
+
+                case RAMP_ON:
+                case RAMP_DOWN:
+                    discrete_set(sequence[cur_index], false);
+                    ramp_stage = RAMP_OFF;
+                    timer.setPeriod(off_interval * 100);
+                    timer.reset();
+                    cur_index = (cur_index + 1) % sequence_length;
+                    break;
+            }
+        }
+        return;
+    }
+            
     if (sequence_length < 2) {
         if (cur_state) {
             discrete_set(sequence[0], false);
@@ -826,9 +925,6 @@ void LightBlinker::advance(void)
         return;
     }
 
-    if (sequence_length > LED_SEQUENCE_LEN)
-        sequence_length = LED_SEQUENCE_LEN;
-    
     if (off_period == 0) {
         cur_state = true;
         discrete_set(sequence[cur_index], false);
@@ -864,11 +960,19 @@ void LightBlinker::stop(void)
 void LightBlinker::start(void)
 {
     if (sequence_length > 0) {
+        if (custom_timings) {
+            ramp_stage = RAMP_UP;
+            cur_ramp_value = 0;
+            discrete_set(sequence[0], true, 0);
+            timer.setPeriod((up_interval * 100) / 255);
+        }
+        else {
+            cur_state = true;
+            discrete_set(sequence[0], true);
+            timer.setPeriod(on_period);
+        }
         cur_index = 0;
-        cur_state = true;
-        discrete_set(sequence[0], true);
         timer.reset();
-        timer.setPeriod(on_period);
         timer.enable();
     }
     else {
@@ -1475,7 +1579,6 @@ void refresh_hw_buffer(void)
 
     if (delay_passes > 0) {
         --delay_passes;
-//        delayMicroseconds(1);
         return;
     }
 

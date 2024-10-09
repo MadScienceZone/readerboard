@@ -17,9 +17,16 @@ import (
 type LightList []byte
 
 type LEDSequence struct {
-	IsRunning bool
-	Position  int
-	Sequence  LightList
+	IsRunning    bool
+	CustomTiming struct {
+		Enabled bool
+		Up      float64
+		On      float64
+		Down    float64
+		Off     float64
+	}
+	Position int
+	Sequence LightList
 }
 
 func (v LightList) MarshalJSON() ([]byte, error) {
@@ -460,6 +467,14 @@ func logDimmers(d []DimmerSet, ok []bool) {
 func logStatusLEDs(s DiscreteLEDStatus) {
 	log.Printf("| status lights on=%s", s.StatusLights)
 	if s.FlasherStatus.IsRunning {
+		if s.FlasherStatus.CustomTiming.Enabled {
+			log.Printf("| custom timing (sec): up=%v, on=%v, down=%v, off=%v",
+				s.FlasherStatus.CustomTiming.Up,
+				s.FlasherStatus.CustomTiming.On,
+				s.FlasherStatus.CustomTiming.Down,
+				s.FlasherStatus.CustomTiming.Off,
+			)
+		}
 		log.Printf("| flasher running, pos=%d, sequence=%s", s.FlasherStatus.Position, s.FlasherStatus.Sequence)
 	} else {
 		log.Printf("| flasher stopped")
