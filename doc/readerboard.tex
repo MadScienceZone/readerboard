@@ -909,12 +909,13 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{scroll}&\z{<} & Scroll text across display & \\
 			\z{configure-device}&\z{=} & Set operational parameters &\\
 			\z{diag-banners}&\z{=*=}&Display POST banners&\\
+			\z{save}&\z{=\&}&Persist Settings in EEPROM&\\
 			&\z{=\#}&Set serial number & [4]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
 			\z{sound}&\z{B}&Beep / Play sounds&\\
 			\z{clear}&\z{C} & Clear matrix display & \\
-			\z{dim}&\z{D}&Set light dimmer levels & [6]\\
+			\z{dim}&\z{D}&Set light dimmer levels & \\
 			\z{graph}&\z{H} & Add histogram/bargraph data point & \\
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
@@ -937,8 +938,6 @@ The remaining commands are used for management of the matrix display. All comman
 			\noindent[4] \acronym{USB} only
 
 			\noindent[5] Must be targeted to a specific device at a time; does not respond on the global address}
-
-			\noindent[6] Not supported by Busylight units
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
@@ -1168,6 +1167,24 @@ Causes the readerboard to display the same banners as it does during power-on se
 Busylights don't display the equivalent series of messages when they power up, but if you
 send them this command they will send the same information as the readerboard \acronym{POST} banners,
 but will do so by flashing out the information in Morse code on the bottom \led.
+
+\section{\z{=\&}---Persist Settings in EEPROM}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+	\bitheader{0-3} \\
+	\bitbox{1}{\strut\z{=}} &
+	\bitbox{1}{\strut\z{\&}} &
+	\bitbox{1}{\strut\Var*{type}} &
+	\bitbox{1}{\strut\z{=}} 
+\end{bytefield}
+\\
+\begin{Coding}
+	|/readerboard/v1/save?a=|\Var*{ad}|&type=|\Var*{type}
+\end{Coding}
+\end{center}
+
+Saves current system state in \acronym{EEPROM} so they remain in effect across reboots.
+Currently, the only supported \Var*{type} is ``\z{D}'' which saves the current dimmer settings.
 
 \section{\z?---Query Discrete \led\ Status}
 \begin{center}
@@ -1531,6 +1548,9 @@ value from \z{00}$_{16}$ (fully off) to \z{FF}$_{16}$ (fully on).
 
 The specific lamp to adjust is given by \Var*{led}, and can have any of the values shown in Table~\ref{tbl:lightcodes} to dim one of the
 discrete status \led s, or ``\z{\_}'' to dim the matrix \led s, or ``\z{*}'' to dim all the discrete status \led s to the same value.
+
+Not all \led s are dimmable, depending on the hardware configuration. All \led s on readerboard models from revision 3.\Var{x} and after. On the busylight
+hardware, only the third, fifth, and seventh, \led\ tiers (usually assigned amber, red, and white colors) are dimmable.
 
 \section{\z{F}---Flash Lights in Sequence}
 \begin{center}
@@ -1906,7 +1926,7 @@ The response has the form:
 	\bitbox[tb]{2}{\Var*{dim$_0$}} &
 	\bitbox[tb]{1}{\dots}&
 	\bitbox[tbr]{2}{\Var*{dim$_n$}} &
-	\bitbix{1}{\z{\$}} &
+	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} \\
 	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
 %	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
@@ -1961,8 +1981,10 @@ The \Var*{spkr} field is ``\z{T}'' if the hardware supports a speaker with full 
 if the speaker can only emit a single fixed tone, or ``\z{\_}'' if no audio output is supported.
 
 The dimmer values appear in a block beginning with ``\z{D}''. Each dimmer value is a two-digit hex
-value. \Var*{dim$_m$} is the dimmer value for the \led\ matrix (or ``\z{\_\_}'' if this unit has no matrix),
+value. \Var*{dim$_m$} is the dimmer value for the \led\ matrix while
 \Var*{dim$_n$} is the dimmer level for discrete status \led\ \#\Var{n}. The block is terminated with ``\z{\$}''.
+These values are given as ``\z{\_\_}'' if the device does not have the corresponding feature (e.g., matrix)
+or the corresponding \led\ is not dimmable on that device.
 
 The discrete light, flasher, and strober fields (starting, respectively, with \z{L}, \z{F}, and \z{S},
 are as documented above for the \z{?} (\z{busy}) command. Busylight units stop here and don't include
