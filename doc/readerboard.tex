@@ -1081,7 +1081,7 @@ power cycles and reboots.
 
 If the \Var*{ad$'$} parameter is ``\z{.}'' then the RS-485 interface is disabled entirely. Otherwise it is a
 value from 0--63 encoded as described in Table~\ref{tbl:int063}. This enables the RS-485 interface and assigns
-this sign's address to \Var*{ad$'$}.
+this sign's address to \Var*{ad$'$}. (In the \acronym{HTTP} \acronym{API}, use ``\z{address=\_}'' to indicate this.)
 
 The baud rate for the \acronym{USB} and RS-485 interfaces is set by the \Var*{uspd} and \Var*{rspd} values
 respectively. Each is encoded as per Table~\ref{tbl:baudcodes}.
@@ -1201,7 +1201,8 @@ Currently, the only supported \Var*{type} is ``\z{D}'' which saves the current d
 This command causes the sign to send a status report back to the host to indicate
 what the discrete \led s (usually showing a person's ``busy'' status) are currently showing. 
 
-This cannot be sent to the global device address.
+This cannot be sent to the global device address, although you can request the server
+to query the global address in which case it will individually poll each device.
 
 This response has the form:
 
@@ -1608,7 +1609,7 @@ the discrete \led s.
 \end{center}
 
 This command adjusts the apparent brightness of the \led s. The brightness level is expressed as a two-digit hex
-value from \z{00}$_{16}$ (fully off) to \z{FF}$_{16}$ (fully on).
+value from \z{00}$_{16}$ (fully off) to \z{FF}$_{16}$ (fully on). (In the \acronym{HTTP} \acronym{API}, as integers 0--255.)
 
 The specific lamp to adjust is given by \Var*{led}, and can have any of the values shown in Table~\ref{tbl:lightcodes} to dim one of the
 discrete status \led s, or ``\z{\_}'' to dim the matrix \led s, or ``\z{*}'' to dim all the discrete status \led s to the same value.

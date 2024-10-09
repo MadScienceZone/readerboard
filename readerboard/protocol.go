@@ -437,6 +437,14 @@ func intParam(r url.Values, key string) (int, error) {
 	return strconv.Atoi(v)
 }
 
+func floatParam(r url.Values, key string) (float64, error) {
+	v := r.Get(key)
+	if v == "" {
+		return 0.0, nil
+	}
+	return strconv.ParseFloat(v, 64)
+}
+
 func intParamOrUnderscore(r url.Values, key string) (int, bool, error) {
 	v := r.Get(key)
 	if v == "_" {
@@ -452,20 +460,24 @@ func intParamOrUnderscore(r url.Values, key string) (int, bool, error) {
 	return n, true, nil
 }
 
-func textParam(r url.Values) ([]byte, error) {
-	t := r.Get("t")
+func stringParam(r url.Values, key string) ([]byte, error) {
+	t := r.Get(key)
 	text := make([]byte, 0, len(t)+1)
 	// This can't just be UTF-8 encoded; it is just a series of 8-bit character values
 	// and we disallow codepoints > 255.
 	for _, ch := range t {
 		if ch == 0o33 || ch == 4 {
-			return nil, fmt.Errorf("text parameter contains illegal character(s)")
+			return nil, fmt.Errorf("%s parameter contains illegal character(s)", key)
 		}
 		if ch <= 255 {
 			text = append(text, byte(ch&0xff))
 		}
 	}
 	return append(text, 0o33), nil
+}
+
+func textParam(r url.Values) ([]byte, error) {
+	return stringParam(r, "t")
 }
 
 func posParam(r url.Values) (byte, error) {
@@ -506,6 +518,35 @@ func Clear(_ url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'C'}, nil
 }
 
+// Dim sets one or all dimmer values.
+//
+//  /readerboard/v1/dim?a=<targets>&l=<led>|*|_&d=<level>
+//  -> D led h h
+//
+func Dim(r url.Values, hw HardwareModel) ([]byte, error) {
+	l, err := ledList(r)
+	if err != nil {
+		return nil, err
+	}
+	if len(l) != 2 {
+		return nil, fmt.Errorf("l parameter must contain exactly ONE LED name, *, or _")
+	}
+	value, err := intParam(r, "d")
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte{'D', l[0], encode_hex_nybble(byte(value >> 4)), encode_hex_nybble(byte(value))}, nil
+}
+
+func encode_hex_nybble(v byte) byte {
+	v &= 0x0f
+	if v > 10 {
+		return 'A' + v - 10
+	}
+	return '0' + v
+}
+
 // Test runs a test pattern on the target device.
 //
 //	/readerboard/v1/test?a=<targets>
@@ -518,15 +559,50 @@ func Test(_ url.Values, hw HardwareModel) ([]byte, error) {
 
 // Flash sets a flash pattern on the busylight status LEDs.
 //
-//	/readerboard/v1/flash?a=<targets>&l=<leds>
+//	/readerboard/v1/flash?a=<targets>&l=<leds>[&up=<sec>&on=<sec>&down=<sec>&off=<sec>]
 //	-> F l0 l1 ... lN $
+//  -> F / up on down off l0 l1 ... lN $
+//
 func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
 	}
+	up, err := floatParam(r, "up")
+	if err != nil {
+		return nil, err
+	}
+	on, err := floatParam(r, "on")
+	if err != nil {
+		return nil, err
+	}
+	down, err := floatParam(r, "down")
+	if err != nil {
+		return nil, err
+	}
+	off, err := floatParam(r, "off")
+	if err != nil {
+		return nil, err
+	}
 
-	return append([]byte{'F'}, l...), nil
+	if up == 0.0 && on == 0.0 && down == 0.0 && off == 0.0 {
+		return append([]byte{'F'}, l...), nil
+	} else {
+		return append([]byte{'F', '/', encodeInt6(int(up * 10)), encodeInt6(int(on * 10)), encodeInt6(int(down * 10)), encodeInt6(int(off * 10))}, l...), nil
+	}
+}
+
+// Sound plays a sound on the speaker.
+//
+//  /readerboard/v1/sound?a=<targets>[&loop]&notes=...
+//  -> B L|. notes... $
+func Sound(r url.Values, hw HardwareModel) ([]byte, error) {
+	loop := boolParam(r, "loop", '.', 'L')
+	notes, err := stringParam(r, "notes")
+	if err != nil {
+		return nil, err
+	}
+	return append([]byte{'B', loop}, notes...), nil
 }
 
 // Font selection to indexed font table.
@@ -593,6 +669,7 @@ func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
 	}
 	if len(trans) != 1 {
 		return nil, fmt.Errorf("transition code must be a single character")
+		// TODO: allow key names here too
 	}
 	image := r.Get("image")
 	pos, err := posParam(r)
@@ -649,6 +726,7 @@ func Color(r url.Values, hw HardwareModel) ([]byte, error) {
 	}
 	if len(color) != 1 {
 		return nil, fmt.Errorf("color codes must be a single character")
+		// TODO: allow names too
 	}
 	if color[0] < '0' || color[0] > '?' {
 		return nil, fmt.Errorf("invalid color code")
@@ -701,16 +779,29 @@ func Scroll(r url.Values, hw HardwareModel) ([]byte, error) {
 //  -> = * =
 //
 func DiagBanners(_ url.Values, hw HardwareModel) ([]byte, error) {
-	if !IsReaderboardModel(hw) {
-		return nil, fmt.Errorf("diag-banners command not supported for hardware type %v", hw)
-	}
 	return []byte{'=', '*', '='}, nil
+}
+
+// Save current settings to EEPROM
+//
+//  /readerboard/v1/save?a=<targets>&type="D"
+//  --> = & D =
+//
+func Save(r url.Values, hw HardwareModel) ([]byte, error) {
+	settingType := r.Get("type")
+	if settingType == "" {
+		return nil, fmt.Errorf("save type parameter is required")
+	}
+	if settingType != "D" {
+		return nil, fmt.Errorf("save data type %v not supported", settingType)
+	}
+	return []byte{'=', '&', 'D', '='}, nil
 }
 
 // Text displays a text message on the display.
 //
 //	/readerboard/v1/text?a=<targets>&t=<text>[&merge=<bool>][&align=<align>][&trans=<trans>]
-//	-> T M/. . trans text
+//	-> T M/. align trans text
 func Text(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("text command not supported for hardware type %v", hw)
@@ -723,16 +814,18 @@ func Text(r url.Values, hw HardwareModel) ([]byte, error) {
 		return nil, err
 	}
 	if align == "" {
-		align = "<"
+		align = "."
 	}
 	if trans == "" {
 		trans = "."
 	}
 	if len(align) != 1 {
 		return nil, fmt.Errorf("alignment value must be a single character")
+		// TODO: allow names too
 	}
 	if len(trans) != 1 {
 		return nil, fmt.Errorf("transition value must be a single character")
+		// TODO: allow names too
 	}
 	return append([]byte{'T', merge, align[0], trans[0]}, text...), nil
 }
@@ -787,6 +880,26 @@ func Light(r url.Values, hw HardwareModel) ([]byte, error) {
 	return append([]byte{'L'}, l...), nil
 }
 
+// Morse sends a message in Morse code.
+//
+//  /readerboard/v1/morse?a=<targets>&t=<message>&l=<led>
+//  -> M led message... $
+//
+func Morse(r url.Values, _ HardwareModel) ([]byte, error) {
+	l, err := ledList(r)
+	if err != nil {
+		return nil, err
+	}
+	t, err := textParam(r)
+	if err != nil {
+		return nil, err
+	}
+	if len(l) != 2 {
+		return nil, fmt.Errorf("l parameter must be ONE led name or _")
+	}
+	return append([]byte{'M', l[0]}, t...), nil
+}
+
 // Strobe sets a strobe pattern on the busylight status LEDs.
 //
 //	/readerboard/v1/strobe?a=<targets>&l=<leds>
@@ -829,15 +942,15 @@ func parseFlasherStatus(src string) (LEDSequence, error) {
 		if src[1] < '0' || src[1] > 'o' {
 			return seq, fmt.Errorf("flasher timing data invalid: up-time %v out of range", src[1])
 		}
-		seq.CustomTiming.Up = float64(src[2]-48) / 10.0
+		seq.CustomTiming.Up = float64(src[1]-48) / 10.0
 		if src[2] < '0' || src[2] > 'o' {
 			return seq, fmt.Errorf("flasher timing data invalid: on-time %v out of range", src[2])
 		}
-		seq.CustomTiming.On = float64(src[3]-48) / 10.0
+		seq.CustomTiming.On = float64(src[2]-48) / 10.0
 		if src[3] < '0' || src[3] > 'o' {
 			return seq, fmt.Errorf("flasher timing data invalid: down-time %v out of range", src[3])
 		}
-		seq.CustomTiming.Down = float64(src[4]-48) / 10.0
+		seq.CustomTiming.Down = float64(src[3]-48) / 10.0
 		if src[4] < '0' || src[4] > 'o' {
 			return seq, fmt.Errorf("flasher timing data invalid: off-time %v out of range", src[4])
 		}
@@ -1095,18 +1208,46 @@ func WrapInternalHandler(f func([]int, url.Values) error, config *ConfigData) fu
 	}
 }
 
+// Current returns what we last told a device to display on its discrete LEDs
+//
+//  /readerboard/v1/current?a=<targets>
+//
 func Current(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }
+
+// Post displays a message
+//
+//  /readerboard/v1/post?a=<targets>&t=<text>&id=<id>[&trans=<transition>][&until=<dt>][&hold=<dur>][&color=<rgb>][&visible=<dur>][&show=<dur>][&repeat=<dur>]
+//
+//  <dt> ::= [<day>@][<hour>]:<min>[:<sec>]
+//        |  <day>
+//        |  <duration>
+//
 func Post(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }
+
+// Postlist returns the message queue
+//
+//  /readerboard/v1/postlist?a=<targets>[&id={/<regex> | <id>}]
+//
 func PostList(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }
+
+// Unpost removes a message
+//
+//  /readerboard/v1/unpost?a=<targets>&id={/ <regex> | <id>}
+//
 func Unpost(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }
+
+// Update sets user variables inside messages
+//
+//  /readerboard/v1/update?name0=value0&name1=value1&...&nameN=valueN
+//
 func Update(_ []int, _ url.Values) error {
 	return fmt.Errorf("not yet implemented")
 }
