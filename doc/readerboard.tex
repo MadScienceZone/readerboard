@@ -61,7 +61,7 @@ materials are suitable for your purpose and function as expected.
 \strut\vfill
 
 \begin{center}\bfseries
-	For Readerboard hardware (\acronym{PCB}) version 3.3.1, 
+	For Readerboard hardware (\acronym{PCB}) version 3.4.1, 
 	Busylight hardware version 2.1 (light tree version 1.1), and firmware version 2.1.4.
 \end{center}
 
@@ -136,7 +136,7 @@ has all of the external connections in one place, including power, \acronym{RS-4
 \acronym{USB} connector(s) on the Arduino itself.
 
 \section{Version 3}
-Revision 3.2 of the hardware expands on the version 2.1 design by replacing the single-color \led s with
+Revision 3.\Var{x} of the hardware expands on the version 2.1 design by replacing the single-color \led s with
 \acronym{RGB} \led s arranged into 24 logical rows---each of the eight physical rows is logically a row of red,
 green, and blue \led\ elements.
 
@@ -179,8 +179,9 @@ heat or static electricity discharge.
 		{\bfseries Part No.}&{\bfseries Qty}&{\bfseries Mouser}&{\bfseries Description}\\\midrule
 		&1&&Printed circuit board rev 3.2.2\\
 		&1&&Arduino Due or Mega 2560\\
-		C0--9,11,12&12&\mouser{810-FA18X7R1H10400}&0.1 $\mu$F capacitor\\
-		C10&1&\mouser{667-ECA-1HM100I}&10 $\mu$F electrolytic capacitor\\
+		C0--9,11,12&12&\mouser{810-FA18X7R1H10400}&\SI{0.1}{\micro\farad} capacitor\\
+		C10&1&\mouser{667-ECA-1HM100I}&\SI{10}{\micro\farad} electrolytic capacitor\\
+		C13&1&&\SI{100}{\micro\farad} electrolytic capacitor\\
 		D0--511&512&&\led, 5mm, \acronym{RGB}, common cathode\\
 		D512&1&&\led, 5mm, green\\
 		D513--14&2&&\led, 5mm, amber (yellow)\\
@@ -194,11 +195,12 @@ heat or static electricity discharge.
 		J5&1&&2-position Euro-style terminal block\\
 		P0--3&3&&2-position jumper shunt\\
 		Q0--23&24&\mouser{942-IRF9530NPBF}&\mc{IRF9530} p-channel \acronym{MOSFET}\\
+		Q24&1&&\mc{2N2222} or \mc{BC547} \mc{NPN} transistor\\
 		R0--7,35--51&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
 		R8--23&16&&4$\times$360$\Omega$ resistor array, isolated\\
 		R24,29--31&4&\mouser{603-MFR-25FTE52-300R}&300$\Omega$ resistor\\
 		R25--28&4&&360$\Omega$ resistor\\
-		R32--34,52--53&5&\mouser{603-MFR-25FRF5210K}&10K resistor\\
+		R32--34,52--54&6&\mouser{603-MFR-25FRF5210K}&10K resistor\\
 		R$_{\text{TERM}}$&1&&120$\Omega$ resistor\\
 		U0,12,13&3&\mouser{595-CD74HCT238PWR}&\mc{CD74HCT238PWR} non-inverting 3-to-8 decoder\\
 		U1,2,14,15&4&&\mc{ULN2803CDWR} octal NPN Darlington array\\
@@ -235,7 +237,7 @@ in the way of connecting subsequent ones. For example:
 			\item R32--R34: 10K
 			\item If U16 is installed, solder in R52--R53: 10K
 		\end{itemize}
-	\item Solder the 0.1$\mu$F capacitors: C0--C9, C11--C12.
+	\item Solder the \SI{0.1}{\micro\farad} capacitors: C0--C9, C11--C12.
 	\item Solder the resistor arrays: R8--R23.
 	\item Solder the \acronym{RGB} \led s D0--D511. Ensure that the common cathode goes to pin~2 so that pins 1, 3, and 4
 		are respectvely the red, green, and blue anodes.
@@ -252,7 +254,7 @@ in the way of connecting subsequent ones. For example:
 			\item D519 (top): white (with R31=300$\Omega$)
 		\end{itemize}
 	\item \strong{If you are using an Arduino Due:} solder R51 (1K).
-	\item \strong{If you are using an Arduino Mega 2560:} Solder the 10$\mu$F capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
+	\item \strong{If you are using an Arduino Mega 2560:} Solder the \SI{10}{\micro\farad} capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
 	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
 		Ensure the pins extend down and out the back of the board.
 	\item Solder the 2-pin headers J2 and J3, and the 3-pin header J4.
@@ -359,7 +361,7 @@ solder points without some parts getting in the way of connecting subsequent one
 	\item Solder through-hole components:
 		\begin{itemize}
 			\item R0--R2 10K resistors
-			\item C0 0.1\,$\mu$F capacitor
+			\item C0 \SI{0.1}{\micro\farad} capacitor
 		\end{itemize}
 	\item Solder the sockets:
 		\begin{itemize}
@@ -912,6 +914,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{font}&\z{A} & Select character font & \\
 			\z{sound}&\z{B}&Beep / Play sounds&\\
 			\z{clear}&\z{C} & Clear matrix display & \\
+			\z{dim}&\z{D}&Set light dimmer levels & [6]\\
 			\z{graph}&\z{H} & Add histogram/bargraph data point & \\
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
@@ -934,6 +937,8 @@ The remaining commands are used for management of the matrix display. All comman
 			\noindent[4] \acronym{USB} only
 
 			\noindent[5] Must be targeted to a specific device at a time; does not respond on the global address}
+
+			\noindent[6] Not supported by Busylight units
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
@@ -1477,7 +1482,7 @@ it is only played once.
 The sequence consists of a series of \Var*{note} values, each of which is followed by the note duration \Var*{cs} which is a two-character
 hexadecimal integer in centiseconds. (1/100th of a second).  Each \Var*{note} begins with a letter \z{A}--\z{G}, optionally followed by
 \z{\#} or \z{b} to indicate a sharp ($\sharp$) or flat ($\flat$) note, respectively, followed by a digit \z0--\z8 to indicate the octave. The notes range from \z{B0} (B at 31\,Hz)
-to \z{D\#8} (D$\sharp$ at 4.978\,kHz). A rest is indicated by ``\z{R}'' as the note letter.
+to \z{D\#8} (D$^{\sharp}$ at 4.978\,kHz). A rest is indicated by ``\z{R}'' as the note letter.
 
 An example 3-note attention tone where the first two notes are played for \sfrac12 second and the final one is held for a full second
 is ``\z{G432E532C564}'' (note G4, \z{32}$_{16}$\,cs=0.50\,s, note E5, \z{32}$_{16}$\,cs=0.50\,s, note C5, \z{64}$_{16}$\,cs=1.00\,s).
@@ -1506,6 +1511,26 @@ tone regardless of the note specified in the sequence.
 Clears the matrix display so that no \led s are illuminated. Does not affect
 the discrete \led s.
 
+\section{\z{D}---Set Dimmer Levels}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-3} \\
+	\bitbox{1}{\z{D}} &
+	\bitbox{1}{\Var*{led}} 
+	\bitbox{2}{\Var*{level (hex)}} 
+\end{bytefield}
+\\
+%|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|}|
+\begin{Coding}
+	|/readerboard/v1/dim?a=|\Var*{ad}|&l=|\Var*{led}|&d=|\Var*{level}
+\end{Coding}
+\end{center}
+
+This command adjusts the apparent brightness of the \led s. The brightness level is expressed as a two-digit hex
+value from \z{00}$_{16}$ (fully off) to \z{FF}$_{16}$ (fully on).
+
+The specific lamp to adjust is given by \Var*{led}, and can have any of the values shown in Table~\ref{tbl:lightcodes} to dim one of the
+discrete status \led s, or ``\z{\_}'' to dim the matrix \led s, or ``\z{*}'' to dim all the discrete status \led s to the same value.
 
 \section{\z{F}---Flash Lights in Sequence}
 \begin{center}
@@ -1849,14 +1874,15 @@ The response has the form:
 	\bitbox{1}{\Var*{rspd}}&
 	\bitbox{1}{\Var*{ad$_G$}}&
 	\bitbox{1}{\Var*{EE}}&
-	\bitbox{1}{\z{\$}} \\
+	\bitbox{1}{\Var*{spkr}}\\
+	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{V}} &
 	\bitbox{2}{\Var*{hwversion}}
 	\bitbox{1}{\z\$}&
 	\bitbox{1}{\z{R}} &
 	\bitbox{2}{\Var*{romversion}}&
-	\bitbox{1}{\z{\$}}& 
-	\bitbox{1}{\z{S}}\\ 
+	\bitbox{1}{\z{\$}}\\ 
+	\bitbox{1}{\z{S}}&
 	\bitbox{1}{\Var*{serial}}& 
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{L}} &
@@ -1864,17 +1890,23 @@ The response has the form:
 	\bitbox[tb]{1}{\Var*{led$_1$}} &
 	\bitbox[tb]{1}{\Var*{led$_2$}} &
 	\bitbox[tb]{1}{\Var*{led$_3$}} &
-	\bitbox[tb]{1}{\Var*{led$_4$}} &
-	\bitbox[tb]{1}{\Var*{led$_5$}} \\
+	\bitbox[tb]{1}{\Var*{led$_4$}} \\
+	\bitbox[tb]{1}{\Var*{led$_5$}} &
 	\bitbox[tb]{1}{\strut$\cdots$} &
 	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{F}} &
-	\bitbox{5}{flasher status (q.v.)} \\
+	\bitbox{4}{flasher status (q.v.)} \\
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{S}} &
 	\bitbox{5}{strober status (q.v.)} &
 	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\z{D}} \\
+	\bitbox[ltb]{2}{\Var*{dim$_m$}} &
+	\bitbox[tb]{2}{\Var*{dim$_0$}} &
+	\bitbox[tb]{1}{\dots}&
+	\bitbox[tbr]{2}{\Var*{dim$_n$}} &
+	\bitbix{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} \\
 	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
 %	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
@@ -1924,6 +1956,13 @@ The \Var*{EE} field is ``\z{X}'' if the device is fitted with an external \acron
 ``\z{I}'' if using the \acronym{EEPROM} memory on the Arduino controller board, or ``\z{\_}'' if there
 is no \acronym{EEPROM} memory at all (and thus, configuration settings made with the \z= commaand
 are not persistent).
+
+The \Var*{spkr} field is ``\z{T}'' if the hardware supports a speaker with full tone output, ``\z{S}''
+if the speaker can only emit a single fixed tone, or ``\z{\_}'' if no audio output is supported.
+
+The dimmer values appear in a block beginning with ``\z{D}''. Each dimmer value is a two-digit hex
+value. \Var*{dim$_m$} is the dimmer value for the \led\ matrix (or ``\z{\_\_}'' if this unit has no matrix),
+\Var*{dim$_n$} is the dimmer level for discrete status \led\ \#\Var{n}. The block is terminated with ``\z{\$}''.
 
 The discrete light, flasher, and strober fields (starting, respectively, with \z{L}, \z{F}, and \z{S},
 are as documented above for the \z{?} (\z{busy}) command. Busylight units stop here and don't include
@@ -2200,6 +2239,19 @@ transition effect, specified by name or number (see Table~\ref{tbl:transcodes}).
 	\end{center}
 \end{table}
 
+\begin{table}
+	\begin{center}
+	    \begin{tabular}{cl|cl}\toprule
+		    \bfseries Code & \bfseries Name & \bfseries Code & \bfseries Name\\\midrule
+		    \z.&\z{none}                   & \z{C}&\z{local-center-right}\\
+		    \z>&\z{right}                  & \z{L}&\z{local-center-left}\\
+		    \z<&\z{left}                   & \z{R}&\z{local-right}\\
+		    \z{\textasciicircum}&\z{center}&&\\\bottomrule
+	    \end{tabular}
+	    \caption{Alignment codes for use in \z{post} command\label{tbl:aligncodes}}
+	\end{center}
+\end{table}
+
 If \z{until} is given, the message will automatically unpost when the specified
 date and time is reached. \Var*{Datetime} has one of the formats:
 \begin{center}
@@ -2436,7 +2488,7 @@ voltages out to the light tree itself. The pinout used is:
 \end{center}
 
 
-\section{Connectors for Version 3.3 Boards}
+\section{Connectors for Version 3.4 Boards}
 \subsection{Arduino Bus Connectors [J0]}
 Two parallel rows of stacking pins, for a total of 50 pins, extend out of the back of the readerboard \acronym{PCB}.
 An Arduino Mega 2560 or Due microcontroller board is connected to these pins.
@@ -2446,7 +2498,7 @@ for initial configuration and/or to use it as a directly-connected singleton dev
 devices in use, it may be preferable to switch to the \acronym{RS-485} network after initial configuration of the
 device.)
 
-\subsection{Version 3.3.1 Boards}
+\subsection{Version 3.4.1 Boards}
 The external connections changed significantly at revision 3.3.1. Now J1 is a pair of push-in terminal
 blocks with a combined total of 16 wire connections to make it easy to connect a pair of \acronym{CAT6} cables
 (cable ``A'' which carries the incoming data signals, and cable ``B'' which carries the same signals out to
@@ -2477,6 +2529,8 @@ the RS-485 network at that point.
 
 The power supply to the readerboard unit is on terminal block J5, with +9\,V~DC and ground connections as marked
 on the board.
+
+J6 allows the connection of an external speaker, driven by a simple amplifier formed by C13, R54, and Q24.
 
 \subsection{Version 3.3.0 Boards}
 The previous revision, 3.3.0, used a single terminal block J1 to carry the power supply and the \acronym{RS-485} signals
@@ -3009,7 +3063,7 @@ number of this device. For example:
 %                                                            
 \chapter{Schematics and Diagrams}
 \epigraph{Whether you draw diagrams that generate code or you type at a browser, you are coding.}{---Kent Beck}
-The following pages include the schematics for the current 3.3.1 version of the readerboard \acronym{PCB}
+The following pages include the schematics for the current 3.4.1 version of the readerboard \acronym{PCB}
 and the board assembly diagram, showing where the components are placed, and the same for the 2.2.0 version
 of the Busylight circuit board and 1.1 light tree tier boards for use with the Busylight units.
 

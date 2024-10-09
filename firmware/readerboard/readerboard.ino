@@ -53,9 +53,25 @@ void debug_hw_buffer(void);
 // $03 485 baud rate code
 // $04 device address
 // $05 global address
-// $06 0x4B (sentinel)
+// $06 serial number [0]       <-- EE_ADDR_SERIAL_NO
+// $07 serial number [1]                 |
+// $08 serial number [2]                 V +EE_LENGTH_SERIAL_NO
+// $09 serial number [3]
+// $0A serial number [4]
+// $0B serial number [5]
+// $0C serial number [6]
+// $0D matrix dimmer           <-- EE_ADDR_DIMMERS
+// $0E L0 dimmer                         |
+// $0F L1 dimmer                         V +EE_LENGTH_DIMMERS
+// $10 L2 dimmer
+// $11 L3 dimmer
+// $12 L4 dimmer
+// $13 L5 dimmer
+// $14 L6 dimmer
+// $15 L7 dimmer
+// $16 0x4B (sentinel)
 //
-#define EE_VALUE_LAYOUT (0)
+#define EE_VALUE_LAYOUT (1)
 #define EE_VALUE_SENTINEL (0x4b)
 
 #define EE_ADDR_SENTINEL  (0x00)
@@ -66,7 +82,9 @@ void debug_hw_buffer(void);
 #define EE_ADDR_GLOBAL_ADDR (0x05)
 #define EE_ADDR_SERIAL_NO (0x06)
 #define EE_LENGTH_SERIAL_NO (7)
-#define EE_ADDR_SENTINEL2  (EE_ADDR_SERIAL_NO+EE_LENGTH_SERIAL_NO)
+#define EE_ADDR_DIMMERS (EE_ADDR_SERIAL_NO + EE_LENGTH_SERIAL_NO)
+#define EE_LENGTH_DIMMERS (8)
+#define EE_ADDR_SENTINEL2  (EE_ADDR_DIMMERS + EE_LENGTH_DIMMERS)
 char serial_number[EE_LENGTH_SERIAL_NO] = "";
 
 /* I/O port to use for full 8-bit write operations to the sign board */
@@ -213,6 +231,10 @@ const int PIN_SPKR = 5;
 #endif
 
 #if IS_READERBOARD
+byte matrix_brightness = 255;
+byte led_brightness[8] = {255, 255, 255, 255, 255, 255, 255, 255};
+bool led_state[8] = {false, false, false, false, false, false, false, false};
+const bool led_dimmable[8] = {true, true, true, true, true, true, true, true};
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
 const byte discrete_led_labels[8] = {
     R_STATUS_LED_COLOR_L0,
@@ -226,6 +248,10 @@ const byte discrete_led_labels[8] = {
 };
 const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5, PIN_D6, PIN_D7};
 #else
+byte led_brightness[7] = {255, 255, 255, 255, 255, 255, 255};
+bool led_state[7] = {false, false, false, false, false, false, false};
+// The busylight only has PWM dimming on ports 6, 9, and 10, which corresponds to L2, L4, and L6.
+const bool led_dimmable[7] = {false, false, true, false, true, false, true};
 const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
 const byte discrete_led_labels[7] = {
     B_STATUS_LED_COLOR_L0,
@@ -744,15 +770,20 @@ void LightBlinker::report_state(void (*sendfunc)(byte))
 
 void discrete_set(byte l, bool value)
 {
-    if (l < 8) {
-        digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+    if (l < LENGTH_OF(discrete_led_set)) {
+        led_state[l] = value;
+        if (led_dimmable[l]) {
+            analogWrite(discrete_led_set[l], value ? led_brightness[l] : 0);
+        } else {
+            digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+        }
     }
 }
 
 bool discrete_query(byte l)
 {
-    if (l < 8) {
-        return digitalRead(discrete_led_set[l]) == HIGH;
+    if (l < LENGTH_OF(discrete_led_set)) {
+        return led_state[l];
     }
     return false;
 }
@@ -865,7 +896,7 @@ void discrete_all_off(bool stop_blinkers)
     strober.stop();
   }
   for (int i=0; i < LENGTH_OF(discrete_led_set); i++) {
-    digitalWrite(discrete_led_set[i], LOW);
+      discrete_set(i, false);
   }
 }
 
@@ -913,28 +944,28 @@ void flag_test(void)
 {
 #if IS_READERBOARD
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], HIGH);
+        discrete_set(i, true);
         delay(100);
     }
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
         delay(100);
     }
 #else
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
     }
 #endif
 
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], HIGH);
+        discrete_set(i, true);
         delay(100);
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
     }
     for (int i = LENGTH_OF(discrete_led_set) - 1; i >= 0; i--) {
-        digitalWrite(discrete_led_set[i], HIGH);
+        discrete_set(i, true);
         delay(100);
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
     }
 }
 
@@ -986,7 +1017,15 @@ void reset_eeprom_values(void)
     || xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS) != 0
     || xEEPROM.writeByte(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL) != 0
     || xEEPROM.writeByte(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL) != 0
-    || xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0) != 0) {
+    || xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+0, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+1, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+2, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+3, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+4, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+5, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+6, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+7, 255) != 0) {
         signal_eeprom_access(9, 5000, true);     /* signal error */
     }
 #elif HW_MC != HW_MC_DUE
@@ -998,6 +1037,14 @@ void reset_eeprom_values(void)
     EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SERIAL_NO, 0);
+    EEPROM.write(EE_ADDR_DIMMERS+0, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+1, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+2, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+3, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+4, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+5, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+6, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+7, 255);
 #else
     signal_eeprom_access(9, 5000, true);     /* signal error */
 #endif
@@ -1014,19 +1061,34 @@ void store_serial_number(const char *sn)
     serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
 #elif HW_MC == HW_MC_DUE
     signal_eeprom_access(9, 5000, true);     /* signal error */
+    strncpy(serial_number, sn, EE_LENGTH_SERIAL_NO);
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
 #else
     int i;
     for (i=0; i<EE_LENGTH_SERIAL_NO-1 && sn[i] != '\0'; i++) {
-# if HW_MC != HW_MC_DUE
         EEPROM.write(EE_ADDR_SERIAL_NO+i, sn[i]);
-# endif
         serial_number[i] = sn[i];
     }
     for (; i<EE_LENGTH_SERIAL_NO; i++) {
-# if HW_MC != HW_MC_DUE
         EEPROM.write(EE_ADDR_SERIAL_NO+i, 0);
-# endif
         serial_number[i] = '\0'; 
+    }
+#endif
+}
+
+void store_dimmer_levels(void)
+{
+    signal_eeprom_access(3);
+#if HAS_I2C_EEPROM
+    if (xEEPROM.writeBlock(EE_ADDR_DIMMERS, (const byte *)led_brightness, min(EE_LENGTH_DIMMERS, LENGTH_OF(led_brightness))) != 0) {
+        signal_eeprom_access(9, 5000, true);     /* signal error */
+    }
+#elif HW_MC == HW_MC_DUE
+    signal_eeprom_access(9, 5000, true);     /* signal error */
+#else
+    int i;
+    for (i=0; i<EE_LENGTH_DIMMERS && i < LENGTH_OF(led_brightness); i++) {
+        EEPROM.write(EE_ADDR_DIMMERS+i, led_brightness[i]);
     }
 #endif
 }
@@ -1050,8 +1112,17 @@ void save_eeprom(void)
         signal_eeprom_access(9, 5000, true);     /* signal error */
     }
 #elif HW_MC == HW_MC_MEGA_2560
-# error "Support for Mega 2560 not implemented"
-    signal_eeprom_access(9, 5000, true);     /* signal error */
+    if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    EEPROM.write(EE_ADDR_USB_SPEED, USB_baud_rate_code);
+    EEPROM.write(EE_ADDR_485_SPEED, RS485_baud_rate_code);
+    EEPROM.write(EE_ADDR_DEVICE_ADDR, my_device_address);
+    EEPROM.write(EE_ADDR_GLOBAL_ADDR, global_device_address);
 #elif HW_MC == HW_MC_DUE
     signal_eeprom_access(9, 5000, true);     /* signal error */
 # warning "Arduino Due without external EEPROM module is selected!"
@@ -1120,9 +1191,37 @@ void setup_eeprom(void)
 
     xEEPROM.readBlock(EE_ADDR_SERIAL_NO, (byte *)serial_number, EE_LENGTH_SERIAL_NO);
     serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    xEEPROM.readBlock(EE_ADDR_DIMMERS, led_brightness, min(EE_LENGTH_DIMMERS, LENGTH_OF(led_brightness)));
 #elif HW_MC == HW_MC_MEGA_2560
-# error "Support for Mega 2560 not implemented"
-    signal_eeprom_access(9, 5000, true);     /* signal error */
+    if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    USB_baud_rate_code = EEPROM.read(EE_ADDR_USB_SPEED);
+    RS485_baud_rate_code = EEPROM.read(EE_ADDR_485_SPEED);
+    USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    if (USB_baud_rate == 0) {
+        EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
+        USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    }
+    if (RS485_baud_rate == 0) {
+        EEPROM.write(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_485_SPEED;
+        RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    }
+
+    for (int i=0; i<EE_LENGTH_SERIAL_NO; i++) {
+        serial_number[i] = EEPROM.read(EE_ADDR_SERIAL_NO+i);
+    }
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    for (int i=0; i<LENGTH_OF(led_brightness) && i < EE_LENGTH_DIMMERS; i++) {
+        led_brightness[i] = EEPROM.read(EE_ADDR_DIMMERS+i);
+    }
 #elif HW_MC == HW_MC_DUE
     signal_eeprom_access(9, 5000, true);     /* signal error */
 # warning "Arduino Due without external EEPROM module selected"
@@ -1151,6 +1250,10 @@ void setup_eeprom(void)
 
     for (int i=0; i<EE_LENGTH_SERIAL_NO; i++) {
         serial_number[i] = EEPROM.read(EE_ADDR_SERIAL_NO+i);
+    }
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    for (int i=0; i<LENGTH_OF(led_brightness) && i < EE_LENGTH_DIMMERS; i++) {
+        led_brightness[i] = EEPROM.read(EE_ADDR_DIMMERS+i);
     }
 #else
 # error "No valid HW_MC configured"
@@ -2589,3 +2692,52 @@ void play_sound(bool repeat, const byte *sequence, int sequence_length)
 }
 
 #endif /* !HAS_SPEAKER */
+
+void set_dimmer_value(byte led, byte level)
+{
+    if (led == STATUS_LED_OFF) {
+#if IS_READERBOARD
+        matrix_brightness = level;
+#endif
+        return;
+    }
+
+    if (led == STATUS_LED_ALL) {
+        for (int i=0; i < LENGTH_OF(led_brightness); i++) {
+            led_brightness[i] = level;
+            if (led_state[i]) {
+                discrete_set(i, true);
+            }
+        }
+        return;
+    }
+
+    if (led >= 0 && led < LENGTH_OF(led_brightness)) {
+        led_brightness[led] = level;
+        if (led_state[led]) {
+            discrete_set(led, true);
+        }
+    }
+}
+
+void report_dimmer(void (*sendfunc)(byte))
+{
+    (*sendfunc)('D');
+#if IS_READERBOARD
+    (*sendfunc)(encode_hex_nybble((matrix_brightness >> 4) & 0x0f));
+    (*sendfunc)(encode_hex_nybble((matrix_brightness     ) & 0x0f));
+#else
+    (*sendfunc)('_');
+    (*sendfunc)('_');
+#endif
+    for (int i=0; i < LENGTH_OF(led_brightness); i++) {
+        if (led_dimmable[i]) {
+            (*sendfunc)(encode_hex_nybble((led_brightness[i] >> 4) & 0x0f));
+            (*sendfunc)(encode_hex_nybble((led_brightness[i]     ) & 0x0f));
+        } else {
+            (*sendfunc)('_');
+            (*sendfunc)('_');
+        }
+    }
+    (*sendfunc)('$');
+}

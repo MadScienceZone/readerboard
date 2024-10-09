@@ -83,8 +83,12 @@
 //                          |       ____V___    |rgb0-rgb6
 //                          |      |BarColor|___+    
 //                          |      |        |------------------> END
-//                          |      |________|     rgb7
-//                          |
+//                          |      |________|     rgb7       ______
+//                          |                               |      |nybble1
+//                          |  D    _________  led  ________V__    |
+//                          +----->|DimmerLED|---->|DimmerLevel|---+
+//                          |      |_________|     |___________|-------------> END
+//                          |                                    nybble2
 //                          |                                                                          ____
 //                          |  I    __________ merge   ________ pos     _______________ trans  _______|_   |nybble (x3)
 //                          +----->|ImageMerge|------>|ImageCol|------>|ImageTransition|----->|ImageData|<-+    $
@@ -206,6 +210,8 @@ private:
         CollectAddressState,
         StartState,
         SetState,
+        SetPersistState,
+        SetPersistConfirmState,
         SetUspdState,
         SetRspdState,
         SetDgState,
@@ -222,6 +228,8 @@ private:
         BeepAccidentalState,
         BeepOctaveState,
         BeepDurationState,
+        DimmerLEDState,
+        DimmerLevelState,
 #if IS_READERBOARD
         ScrollState,
         ScrollTextState,
@@ -276,6 +284,7 @@ public:
     bool accept_encoded_int6(int inputchar);    // 6-bit unsigned integer
     void begin(void);
     void report_state(bool);
+    void report_dimmer_state(void);
     void reset(void);
 	void end_cmd(void);
     void set_lights(byte lights);
@@ -612,10 +621,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #endif
 
         case '=':
-            if (source != FROM_USB) {
-                error();
-                break;
-            }
             state = SetState;
             break;
 
@@ -645,6 +650,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             state = ImageStateMerge;
             break;
 #endif
+
+        case 'D':
+            state = DimmerLEDState;
+            break;
 
         case 'Q':
             if (!target_is_global) {
@@ -693,6 +702,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 }
                 sendbyte('$');
                 report_state(false);
+                report_dimmer_state();
 #if IS_READERBOARD
                 sendbyte('M');
                 for (int plane=0; plane<N_COLORS; plane++) {
@@ -804,11 +814,23 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
     // Set operational parameters
     case SetState:
         if (inputchar == '#') {
+            if (source != FROM_USB) {
+                error();
+                break;
+            }
             state = SetSNState;
             break;
         }
         if (inputchar == '*') {
             state = ShowBannerState;
+            break;
+        }
+        if (inputchar == '>') {
+            state = SetPersistState;
+            break;
+        }
+        if (source != FROM_USB) {
+            error();
             break;
         }
         state = SetUspdState;
@@ -817,6 +839,23 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         } else if (accept_encoded_int6(inputchar)) {
             append_bytebuf();
             break;
+        } else {
+            error();
+        }
+        break;
+
+    case SetPersistState:
+        if (inputchar == 'D') {
+            state = SetPersistConfirmState;
+        } else {
+            error();
+        }
+        break;
+
+    case SetPersistConfirmState:
+        if (inputchar == '=') {
+            store_dimmer_levels();
+            end_cmd();
         } else {
             error();
         }
@@ -1189,6 +1228,22 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         break;
 
+    case DimmerLEDState:
+        if (inputchar == '*') {
+            append_byte(STATUS_LED_ALL);
+        } else {
+            append_byte(parse_led_name(inputchar));
+        }
+        state = DimmerLevelState;
+        break;
+
+    case DimmerLevelState:
+        if (accept_hex_nybble(inputchar)) {
+            set_dimmer_value(buffer[0], bytebuf);
+            end_cmd();
+        }
+        break;
+
     default:
         error();
     }
@@ -1204,14 +1259,14 @@ void CommandStateMachine::report_state(bool terminate)
     void (*send_byte)(byte);
     void (*send_end)(void);
 
-    Stream *port;
-
     if (cmd_source == FROM_485) {
-        start_485_reply();
+        if (terminate)
+            start_485_reply();
         send_byte = send_485_byte;
         send_end = end_485_reply;
     } else {
-        start_usb_reply();
+        if (terminate)
+            start_usb_reply();
         send_byte = send_usb_byte;
         send_end = end_usb_reply;
     }
@@ -1228,9 +1283,23 @@ void CommandStateMachine::report_state(bool terminate)
     (*send_byte)('S');
     strober.report_state(send_byte);
     (*send_byte)('$');
-    if (terminate) 
+    if (terminate) {
         (*send_byte)('\n');
-    (*send_end)();
+        (*send_end)();
+    }
+}
+
+void CommandStateMachine::report_dimmer_state(void)
+{
+    void (*send_byte)(byte);
+
+    if (cmd_source == FROM_485) {
+        send_byte = send_485_byte;
+    } else {
+        send_byte = send_usb_byte;
+    }
+
+    report_dimmer(send_byte);
 }
 
 //

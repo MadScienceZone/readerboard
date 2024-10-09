@@ -13296,7 +13296,7 @@ Layer(1 "top" "copper")
 	Line[1020.00mil 3450.00mil 910.00mil 3340.00mil 10.00mil 20.00mil "clearline"]
 	Line[1425.00mil 3475.00mil 1015.00mil 3475.00mil 10.00mil 20.00mil "clearline"]
 	Line[1015.00mil 3475.00mil 890.00mil 3350.00mil 10.00mil 20.00mil "clearline"]
-	Text[15950.00mil 5025.00mil 0 100 "READERBOARD RGB MATRIX64X8 3.4.0-10/2024 SLW CS" "clearline"]
+	Text[15950.00mil 5025.00mil 0 100 "READERBOARD RGB MATRIX64X8 3.4.1-10/2024 SLW CS" "clearline"]
 )
 Layer(2 "ground" "copper")
 (
@@ -14372,7 +14372,7 @@ Layer(6 "bottom" "copper")
 	Line[1310.00mil 4070.00mil 1290.00mil 4050.00mil 25.00mil 20.00mil "clearline"]
 	Line[1290.00mil 4050.00mil 1240.00mil 4050.00mil 25.00mil 20.00mil "clearline"]
 	Line[1240.00mil 4050.00mil 1235.00mil 4045.00mil 25.00mil 20.00mil "clearline"]
-	Text[15950.00mil 4975.00mil 0 100 "READERBOARD RGB MATRIX64X8 3.4.0-10/2024 SLW SS" "clearline,onsolder"]
+	Text[15950.00mil 4975.00mil 0 100 "READERBOARD RGB MATRIX64X8 3.4.1-10/2024 SLW SS" "clearline,onsolder"]
 )
 Layer(7 "outline" "copper")
 (
@@ -15389,7 +15389,7 @@ Layer(10 "top silk" "silk")
 	Text[13490.00mil 780.00mil 0 100 "U9 STPIC6D595MTR" "clearline"]
 	Text[15260.00mil 780.00mil 0 100 "U10 STPIC6D595MTR" "clearline"]
 	Text[15125.00mil 4380.00mil 0 320 "64x8 RGB MATRIX LED DISPLAY" "clearline"]
-	Text[17350.00mil 4575.00mil 0 100 "REV 3.4.0 10/2024" "clearline"]
+	Text[17350.00mil 4575.00mil 0 100 "REV 3.4.1 10/2024" "clearline"]
 	Text[15125.00mil 4560.00mil 0 144 "STEVE WILLOUGHBY" "clearline"]
 	Text[1675.00mil 75.00mil 0 320 "0" "clearline"]
 	Text[3675.00mil 75.00mil 0 320 "1" "clearline"]
@@ -15548,10 +15548,10 @@ Layer(10 "top silk" "silk")
 	Text[1450.00mil 3270.00mil 1 100 "#12" "clearline"]
 	Text[3000.00mil 3260.00mil 1 100 "RxD" "clearline"]
 	Text[1090.00mil 3620.00mil 3 100 "J6 SPEAKER" "clearline"]
-	Text[880.00mil 3420.00mil 0 100 "C_ 100uF" "clearline"]
+	Text[1010.00mil 3340.00mil 0 100 "C13 100uF" "clearline"]
 	Text[1125.00mil 3900.00mil 0 100 "C9 0.01uF" "clearline"]
-	Text[1350.00mil 4140.00mil 0 100 "Q_ BC547" "clearline"]
-	Text[1250.00mil 4280.00mil 1 100 "R_ 10K" "clearline"]
+	Text[1350.00mil 4140.00mil 0 100 "Q24 BC547" "clearline"]
+	Text[1250.00mil 4280.00mil 1 100 "R54 10K" "clearline"]
 	Polygon("clearpoly")
 	(
 		[16125.00mil 4710.00mil] [17535.00mil 4710.00mil] [17535.00mil 5030.00mil] [16125.00mil 5030.00mil] 
