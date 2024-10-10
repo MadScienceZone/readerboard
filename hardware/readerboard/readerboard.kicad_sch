@@ -3073,6 +3073,169 @@
 				)
 			)
 		)
+		(symbol "Device:D_Filled"
+			(pin_numbers hide)
+			(pin_names
+				(offset 1.016) hide)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "D"
+				(at 0 2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "D_Filled"
+				(at 0 -2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Diode, filled shape"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Device" "D"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Pins" "1=K 2=A"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "diode"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "TO-???* *_Diode_* *SingleDiode* D_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "D_Filled_0_1"
+				(polyline
+					(pts
+						(xy -1.27 1.27) (xy -1.27 -1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 0) (xy -1.27 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 1.27) (xy 1.27 -1.27) (xy -1.27 0) (xy 1.27 1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+			)
+			(symbol "D_Filled_1_1"
+				(pin passive line
+					(at -3.81 0 0)
+					(length 2.54)
+					(name "K"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 3.81 0 180)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+		)
 		(symbol "Device:LED"
 			(pin_numbers hide)
 			(pin_names
@@ -6847,6 +7010,12 @@
 		(uuid "3b933da4-dc6e-4d2b-b9c1-ac911d2793eb")
 	)
 	(junction
+		(at 162.56 250.19)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "3be0b2e0-bae6-4858-b51d-cb5a698ef593")
+	)
+	(junction
 		(at 282.575 128.27)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -7001,12 +7170,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "9f7085f9-6fdd-4943-ae21-a5b68997d6b3")
-	)
-	(junction
-		(at 162.56 239.014)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "a1cb2c6d-e608-4dc8-80ae-a3f581a52a4d")
 	)
 	(junction
 		(at 186.69 181.61)
@@ -7611,6 +7774,16 @@
 			(type default)
 		)
 		(uuid "13aba384-0c2f-4174-9d48-2e723ffa28ce")
+	)
+	(wire
+		(pts
+			(xy 162.56 250.19) (xy 167.64 250.19)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "141f9d86-7efc-4f09-8138-6cb2cea0bed6")
 	)
 	(wire
 		(pts
@@ -9484,6 +9657,16 @@
 	)
 	(wire
 		(pts
+			(xy 162.56 243.84) (xy 162.56 250.19)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "93c80331-ee57-4aae-8b51-a02a48a9a51f")
+	)
+	(wire
+		(pts
 			(xy 153.035 67.31) (xy 160.655 67.31)
 		)
 		(stroke
@@ -9561,6 +9744,16 @@
 			(type default)
 		)
 		(uuid "9913815e-7873-4fbe-8631-5615eca18b8e")
+	)
+	(wire
+		(pts
+			(xy 162.56 223.52) (xy 162.56 236.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "992d8663-45b2-4f44-841f-afd84b71bec7")
 	)
 	(wire
 		(pts
@@ -9754,7 +9947,7 @@
 	)
 	(wire
 		(pts
-			(xy 156.21 236.22) (xy 156.21 239.014)
+			(xy 156.21 236.22) (xy 156.21 250.19)
 		)
 		(stroke
 			(width 0)
@@ -10184,16 +10377,6 @@
 	)
 	(wire
 		(pts
-			(xy 162.56 223.52) (xy 162.56 239.014)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c27d2547-3db8-4496-8d1f-9ddee344b2ce")
-	)
-	(wire
-		(pts
 			(xy 282.448 86.995) (xy 316.23 86.995)
 		)
 		(stroke
@@ -10614,7 +10797,7 @@
 	)
 	(wire
 		(pts
-			(xy 162.56 239.014) (xy 156.21 239.014)
+			(xy 156.21 250.19) (xy 162.56 250.19)
 		)
 		(stroke
 			(width 0)
@@ -10661,16 +10844,6 @@
 			(type default)
 		)
 		(uuid "e963d838-6b7c-4b06-a7e1-873cbedb24fd")
-	)
-	(wire
-		(pts
-			(xy 162.56 239.014) (xy 162.56 250.19)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "e9aee8fd-5aed-4ce5-931a-732e754971a6")
 	)
 	(wire
 		(pts
@@ -10871,16 +11044,6 @@
 			(type default)
 		)
 		(uuid "f8b0b693-9035-41ef-bae9-ee770d32626f")
-	)
-	(wire
-		(pts
-			(xy 167.64 250.19) (xy 162.56 250.19)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f95aaf08-337e-4257-b4da-a6e6874b9027")
 	)
 	(wire
 		(pts
@@ -11156,7 +11319,7 @@
 		)
 		(uuid "09428a45-a8d3-422b-8599-7a8b668b75d7")
 	)
-	(text "08-OCT-2024"
+	(text "09-OCT-2024"
 		(exclude_from_sim no)
 		(at 342.9 263.525 0)
 		(effects
@@ -17551,6 +17714,93 @@
 			(project "matrix64x8_rgb"
 				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
 					(reference "R32")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:D_Filled")
+		(at 162.56 240.03 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "7f7576a4-23cc-415b-b488-73ed1bf7aeb2")
+		(property "Reference" "D520"
+			(at 162.56 237.49 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "4A"
+			(at 162.56 242.824 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 162.56 240.03 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 162.56 240.03 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Diode, filled shape"
+			(at 162.56 240.03 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Sim.Device" "D"
+			(at 162.56 240.03 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Sim.Pins" "1=K 2=A"
+			(at 162.56 240.03 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "fbc932ef-5aa0-440f-812b-20fa36c8adf0")
+		)
+		(pin "1"
+			(uuid "7adf9b70-e142-4301-b15e-a403e8a40a43")
+		)
+		(instances
+			(project ""
+				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
+					(reference "D520")
 					(unit 1)
 				)
 			)
