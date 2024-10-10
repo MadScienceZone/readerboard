@@ -892,7 +892,7 @@ void LightBlinker::advance(void)
                 case RAMP_UP:
                     discrete_set(sequence[cur_index], true);
                     ramp_stage = RAMP_ON;
-                    timer.setPeriod(on_interval * 100);
+                    timer.setPeriod((on_interval + up_interval) * 100);
                     timer.reset();
                     break;
 
@@ -900,7 +900,7 @@ void LightBlinker::advance(void)
                 case RAMP_DOWN:
                     discrete_set(sequence[cur_index], false);
                     ramp_stage = RAMP_OFF;
-                    timer.setPeriod(off_interval * 100);
+                    timer.setPeriod((off_interval + down_interval) * 100);
                     timer.reset();
                     cur_index = (cur_index + 1) % sequence_length;
                     break;

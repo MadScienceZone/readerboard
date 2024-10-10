@@ -1724,6 +1724,11 @@ which do not support dimming, the values of \Var*{up} and \Var*{down} are treate
 were zero, instantly turning on or off the \led. (In the \acronym{HTTP} \acronym{API},
 the \Var*{sec} values are floating-point numbers of seconds; e.g., a value of 1.2 seconds would be
 expressed in the \acronym{API} as ``\z{up=1.2}'' and in the hardware protocol as ``\z{<}'').
+
+If you have set a dimmer level for any of the \led s, then the maximum brightness that they will
+ramp up to and down from will be that dimmer level. If the dimmer is set very low, then the
+effect of \Var*{up} and \Var*{down} won't be too noticeable since you didn't leave it much
+room to dim up and down within that range.
 			
 This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 
