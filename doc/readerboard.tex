@@ -2832,6 +2832,17 @@ those terminals to terminate the network at that point.
 %                                                         
 \chapter{Installing and Using the Readerboard and Busylight Units}
 \epigraph{See, unlike most hackers, I get little joy out of figuring out how to install the latest toy.}{---Jamie Zawinski}
+\section{Power}
+The readerboard units require an external 9\,V~DC power supply in order to sustaiin the power requirements of all of the
+\led s it uses. Always be sure that this power supply is connected and operating before plugging in the readerboard to \acronym{USB}.
+Otherwise, you may overload the \acronym{USB} port on the host computer and/or the Arduino microcontroller as it tries to power the readerboard by itself.
+
+Similarly, busylight units are designed to be powered from the \acronym{USB} connection \emph{or} from an external power source (such as a
+pair of power wires on the \acronym{CAT6} cable used for \acronym{RS-485} signals) but not both at the same time.
+
+Readerboard \acronym{PCB} revisions starting with 3.4.1 introduced diode D520 to mitigate this issue, so the \led s don't end up being powered by the
+Arduino. Busylight \acronym{PCB} revisions starting with 2.2.0 did the same with the introduction of D0.
+
 \section{Standalone Units}
 \section{Networked Units}
 \section{Compiling the Supporting Software}
