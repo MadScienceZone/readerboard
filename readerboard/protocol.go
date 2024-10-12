@@ -15,9 +15,9 @@ import (
 	"strings"
 )
 
-func encodeInt6(n int) byte {
+func EncodeInt6(n int) byte {
 	if n < 0 || n > 63 {
-		return '_'
+		return '.'
 	}
 	return byte(n) + '0'
 }
@@ -57,7 +57,7 @@ func parseBaudRateCode(code byte) (int, error) {
 	}
 }
 
-func encodeBaudRateCode(speed int) (byte, error) {
+func EncodeBaudRateCode(speed int) (byte, error) {
 	switch speed {
 	case 300:
 		return '0', nil
@@ -588,7 +588,7 @@ func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
 	if up == 0.0 && on == 0.0 && down == 0.0 && off == 0.0 {
 		return append([]byte{'F'}, l...), nil
 	} else {
-		return append([]byte{'F', '/', encodeInt6(int(up * 10)), encodeInt6(int(on * 10)), encodeInt6(int(down * 10)), encodeInt6(int(off * 10))}, l...), nil
+		return append([]byte{'F', '/', EncodeInt6(int(up * 10)), EncodeInt6(int(on * 10)), EncodeInt6(int(down * 10)), EncodeInt6(int(off * 10))}, l...), nil
 	}
 }
 
@@ -620,6 +620,71 @@ func Font(r url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'A', idx[0]}, nil
 }
 
+func colorParam8(r url.Values, key string) ([]byte, error) {
+	rgbString := r.Get(key)
+	if strings.ContainsRune(rgbString, ',') {
+		// comma-separated list of color names
+		rgbList := strings.Split(rgbString, ",")
+		if len(rgbList) != 8 {
+			return nil, fmt.Errorf("colors parameter requires eight color values")
+		}
+
+		var colors []byte
+		for _, code := range rgbList {
+			colors = append(colors, parseColorCode(code))
+		}
+		return colors, nil
+	}
+
+	if len(rgbString) != 8 {
+		return nil, fmt.Errorf("colors parameter requires eight color values")
+	}
+	return []byte(rgbString), nil
+}
+
+func colorParam(r url.Values, key string) byte {
+	return parseColorCode(r.Get(key))
+}
+
+func parseColorCode(code string) byte {
+	switch code {
+	case "0", "off", "black", "bk", "k":
+		return '0'
+	case "1", "red", "r":
+		return '1'
+	case "2", "green", "g":
+		return '2'
+	case "3", "amber", "yellow", "a", "y":
+		return '3'
+	case "4", "blue", "bl", "b":
+		return '4'
+	case "5", "magenta", "m":
+		return '5'
+	case "6", "cyan", "c":
+		return '6'
+	case "7", "white", "w":
+		return '7'
+	case "8", "flashing-off", "flashing-black", "fbk", "fk":
+		return '8'
+	case "9", "flashing-red", "fr":
+		return '9'
+	case "10", ":", "flashing-green", "fg":
+		return ':'
+	case "11", ";", "flashing-amber", "flashing-yellow", "fa", "fy":
+		return ';'
+	case "12", "<", "flashing-blue", "fb", "fbl":
+		return '<'
+	case "13", "=", "flashing-magenta", "fm":
+		return '='
+	case "14", ">", "flashing-cyan", "fc":
+		return '>'
+	case "15", "?", "flashing-white", "fw":
+		return '?'
+	default:
+		return '1'
+	}
+}
+
 // Graph plots a histogram graph data point on the display.
 //
 //	/readerboard/v1/graph?a=<targets>&v=<n>[&colors=<rgb>...]
@@ -630,14 +695,9 @@ func Graph(r url.Values, hw HardwareModel) ([]byte, error) {
 		return nil, fmt.Errorf("graph command not supported for hardware type %v", hw)
 	}
 	if r.Has("colors") {
-		rgb := r.Get("colors")
-		if len(rgb) != 8 {
-			return nil, fmt.Errorf("colors parameter requires eight values")
-		}
-		for i := 0; i < len(rgb); i++ {
-			if rgb[i] < '0' || rgb[i] > '?' {
-				return nil, fmt.Errorf("colors parameter value $%d %q out of range", i, rgb[i])
-			}
+		rgb, err := colorParam8(r, "colors")
+		if err != nil {
+			return nil, err
 		}
 		return append([]byte{'H', 'K'}, rgb...), nil
 	}
@@ -654,6 +714,56 @@ func Graph(r url.Values, hw HardwareModel) ([]byte, error) {
 	return []byte{'H', byte(value + '0')}, nil
 }
 
+func transitionParam(r url.Values) byte {
+	switch r.Get("trans") {
+	case "", "none", "_", ".":
+		return '.'
+	case ">", "scroll-right", "sr":
+		return '>'
+	case "<", "scroll-left", "sl":
+		return '<'
+	case "^", "scroll-up", "su":
+		return '^'
+	case "v", "V", "scroll-down", "sd":
+		return 'v'
+	case "L", "l", "wipe-left", "wl":
+		return 'L'
+	case "R", "r", "wipe-right", "wr":
+		return 'R'
+	case "U", "u", "wipe-up", "wu":
+		return 'U'
+	case "D", "d", "wipe-down", "wd":
+		return 'D'
+	case "|", "wipe-horiz", "wh":
+		return '|'
+	case "-", "wipe-vert", "wv":
+		return '-'
+	default:
+		return '.'
+	}
+}
+
+func alignmentParam(r url.Values) byte {
+	switch r.Get("align") {
+	case "", ".", "none", "_":
+		return '.'
+	case "<", "left":
+		return '<'
+	case ">", "right":
+		return '>'
+	case "^", "center":
+		return '^'
+	case "R", "r", "local-right", "lr":
+		return 'R'
+	case "L", "l", "local-center-left", "lcl", "cl":
+		return 'L'
+	case "C", "c", "local-center-right", "lcr", "cr":
+		return 'C'
+	default:
+		return '.'
+	}
+}
+
 // Bitmap displays a bitmap image on the display
 //
 //	/readerboard/v1/bitmap?a=<targets>[&merge=<bool]&pos=<pos>[&trans=<trans>]&image=<redcols>$<greencols>$<bluecols>$<flashcols>
@@ -663,14 +773,7 @@ func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
 		return nil, fmt.Errorf("bitmap command not supported for hardware type %v", hw)
 	}
 	merge := boolParam(r, "merge", '.', 'M')
-	trans := r.Get("trans")
-	if trans == "" {
-		trans = "."
-	}
-	if len(trans) != 1 {
-		return nil, fmt.Errorf("transition code must be a single character")
-		// TODO: allow key names here too
-	}
+	trans := transitionParam(r)
 	image := r.Get("image")
 	pos, err := posParam(r)
 	if err != nil {
@@ -709,7 +812,7 @@ func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
 	if currentColor != "flashing" {
 		return nil, fmt.Errorf("not enough color bitplanes provided (ended at %s)", currentColor)
 	}
-	return append(append([]byte{'I', merge, pos, trans[0]}, []byte(image)...), '$'), nil
+	return append(append([]byte{'I', merge, pos, trans}, []byte(image)...), '$'), nil
 }
 
 // Color sets the current drawing color.
@@ -720,18 +823,8 @@ func Color(r url.Values, hw HardwareModel) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("color command not supported for hardware type %v", hw)
 	}
-	color := r.Get("color")
-	if color == "" {
-		color = "1"
-	}
-	if len(color) != 1 {
-		return nil, fmt.Errorf("color codes must be a single character")
-		// TODO: allow names too
-	}
-	if color[0] < '0' || color[0] > '?' {
-		return nil, fmt.Errorf("invalid color code")
-	}
-	return []byte{'K', color[0]}, nil
+	color := colorParam(r, "color")
+	return []byte{'K', color}, nil
 }
 
 // Move repositions the text cursor.
@@ -807,27 +900,13 @@ func Text(r url.Values, hw HardwareModel) ([]byte, error) {
 		return nil, fmt.Errorf("text command not supported for hardware type %v", hw)
 	}
 	merge := boolParam(r, "merge", '.', 'M')
-	align := r.Get("align")
-	trans := r.Get("trans")
+	align := alignmentParam(r)
+	trans := transitionParam(r)
 	text, err := textParam(r)
 	if err != nil {
 		return nil, err
 	}
-	if align == "" {
-		align = "."
-	}
-	if trans == "" {
-		trans = "."
-	}
-	if len(align) != 1 {
-		return nil, fmt.Errorf("alignment value must be a single character")
-		// TODO: allow names too
-	}
-	if len(trans) != 1 {
-		return nil, fmt.Errorf("transition value must be a single character")
-		// TODO: allow names too
-	}
-	return append([]byte{'T', merge, align[0], trans[0]}, text...), nil
+	return append([]byte{'T', merge, align, trans}, text...), nil
 }
 
 func ConfigureDevice(r url.Values, hw HardwareModel) ([]byte, error) {
@@ -847,18 +926,18 @@ func ConfigureDevice(r url.Values, hw HardwareModel) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("global paramater invalid (%v)", err)
 	}
-	RspeedCode, err := encodeBaudRateCode(Rspeed)
+	RspeedCode, err := EncodeBaudRateCode(Rspeed)
 	if err != nil {
 		return nil, fmt.Errorf("rspeed paramater invalid (%v)", err)
 	}
-	UspeedCode, err := encodeBaudRateCode(Uspeed)
+	UspeedCode, err := EncodeBaudRateCode(Uspeed)
 	if err != nil {
 		return nil, fmt.Errorf("rspeed paramater invalid (%v)", err)
 	}
 	if MyAddrValid {
-		return []byte{'=', encodeInt6(MyAddr), UspeedCode, RspeedCode, encodeInt6(GlobalAddr)}, nil
+		return []byte{'=', EncodeInt6(MyAddr), UspeedCode, RspeedCode, EncodeInt6(GlobalAddr)}, nil
 	} else {
-		return []byte{'=', '.', UspeedCode, RspeedCode, encodeInt6(GlobalAddr)}, nil
+		return []byte{'=', '.', UspeedCode, RspeedCode, EncodeInt6(GlobalAddr)}, nil
 	}
 }
 
@@ -1072,7 +1151,7 @@ func QueryStatus() (func(url.Values, HardwareModel) ([]byte, error), func(Hardwa
 func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareModel, []byte) (any, error)) {
 	return func(_ url.Values, _ HardwareModel) ([]byte, error) {
 			return []byte{'Q'}, nil
-		}, func(hw HardwareModel, in []byte) (any, error) {
+		}, func(_ HardwareModel, in []byte) (any, error) {
 			// parse the response data, returning the data structure represented or the number of additional bytes
 			// still needed before we can have a successful read
 			var err error

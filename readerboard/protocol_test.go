@@ -3,6 +3,8 @@ package readerboard
 import (
 	"net/url"
 	"testing"
+
+	"github.com/MadScienceZone/go-gma/v5/util"
 )
 
 func TestEscape485(t *testing.T) {
@@ -99,7 +101,7 @@ func TestHTTPCommands(t *testing.T) {
 		{Off, []int{2}, nil, []byte{0x92, 'X'}, []byte("\004X\004"), false, false, Readerboard3RGB},
 		// 12
 		{Color, []int{2}, map[string][]string{"color": []string{"4"}}, []byte{0x92, 'K', '4'}, []byte("\004K4\004"), false, false, Readerboard3RGB},
-		{Color, []int{2}, map[string][]string{"color": []string{"42"}}, []byte{0x92, 'K', '4'}, []byte("\004K4\004"), true, false, Readerboard3RGB},
+		{Color, []int{2}, map[string][]string{"color": []string{"42"}}, []byte{0x92, 'K', '1'}, []byte("\004K1\004"), false, false, Readerboard3RGB},
 		{Color, []int{2}, map[string][]string{"color": []string{""}}, []byte{0x92, 'K', '1'}, []byte("\004K1\004"), false, false, Readerboard3RGB},
 		// 15
 		{Flash, []int{5}, map[string][]string{"l": []string{"AB_C"}}, []byte{0x95, 'F', 'A', 'B', '_', 'C', '$'}, []byte("\004FAB_C$\004"), false, false, Readerboard3RGB},
@@ -137,8 +139,8 @@ func TestHTTPCommands(t *testing.T) {
 		{Scroll, []int{14}, map[string][]string{"t": []string{"Hello, $W\004orld!"}}, []byte{0x9e, '<', '.', 'H', 'e', 'l', 'l', 'o', ',', ' ', '$', 'W', 'o', 'r', 'l', 'd', '!', 0x1b}, []byte("\004<.Hello, $World!\033\004"), true, false, Readerboard3RGB},
 		{Scroll, []int{14}, map[string][]string{"t": []string{"Hello, $W\033orld!"}}, []byte{0x9e, '<', '.', 'H', 'e', 'l', 'l', 'o', ',', ' ', '$', 'W', 'o', 'r', 'l', 'd', '!', 0x1b}, []byte("\004<.Hello, $World!\033\004"), true, false, Readerboard3RGB},
 		// 43
-		{Text, []int{14}, map[string][]string{"merge": []string{"false"}, "t": []string{"Hello, $World!"}}, []byte{0x9e, 'T', '.', '<', '.', 'H', 'e', 'l', 'l', 'o', ',', ' ', '$', 'W', 'o', 'r', 'l', 'd', '!', 0x1b}, []byte("\004T.<.Hello, $World!\033\004"), false, false, Readerboard3RGB},
-		{Text, []int{14}, map[string][]string{"merge": []string{""}, "align": []string{"|"}, "trans": []string{">"}, "t": []string{"Hello, $World!"}}, []byte{0x9e, 'T', 'M', '|', '>', 'H', 'e', 'l', 'l', 'o', ',', ' ', '$', 'W', 'o', 'r', 'l', 'd', '!', 0x1b}, []byte("\004TM|>Hello, $World!\033\004"), false, false, Readerboard3RGB},
+		{Text, []int{14}, map[string][]string{"merge": []string{"false"}, "t": []string{"Hello, $World!"}}, []byte{0x9e, 'T', '.', '.', '.', 'H', 'e', 'l', 'l', 'o', ',', ' ', '$', 'W', 'o', 'r', 'l', 'd', '!', 0x1b}, []byte("\004T...Hello, $World!\033\004"), false, false, Readerboard3RGB},
+		{Text, []int{14}, map[string][]string{"merge": []string{""}, "align": []string{"center"}, "trans": []string{"scroll-right"}, "t": []string{"Hello, $World!"}}, []byte{0x9e, 'T', 'M', '^', '>', 'H', 'e', 'l', 'l', 'o', ',', ' ', '$', 'W', 'o', 'r', 'l', 'd', '!', 0x1b}, []byte("\004TM^>Hello, $World!\033\004"), false, false, Readerboard3RGB},
 	} {
 		directConnection := DirectDriver{BaseNetworkDriver{GlobalAddress: 15}}
 		serialNetwork := RS485Driver{BaseNetworkDriver{GlobalAddress: 15}}
@@ -186,21 +188,21 @@ func TestHTTPCommands(t *testing.T) {
 		}
 
 		if len(o485) != len(tcase.expected485) {
-			t.Fatalf("test case %d: 485 output %v length %d, expected %v (length %d)", i, o485, len(o485), tcase.expected485, len(tcase.expected485))
+			t.Fatalf("test case %d: 485 output %v length %d, expected %v (length %d)", i, util.Hexdump(o485), len(o485), util.Hexdump(tcase.expected485), len(tcase.expected485))
 		}
 		for j := 0; j < len(o485); j++ {
 			if o485[j] != tcase.expected485[j] {
-				t.Fatalf("test case %d: 485 output differs at byte %d (%d vs %d); actual %v, expected %v",
-					i, j, o485[j], tcase.expected485[j], o485, tcase.expected485)
+				t.Fatalf("test case %d: 485 output differs at byte %d (%d vs %d); actual:\n%v\nexpected:\n%v",
+					i, j, o485[j], tcase.expected485[j], util.Hexdump(o485), util.Hexdump(tcase.expected485))
 			}
 		}
 		if len(tcase.expectedUSB) != len(oUSB) {
-			t.Fatalf("test case %d: USB output was %q, expected %q", i, oUSB, tcase.expectedUSB)
+			t.Fatalf("test case %d: USB output was %q, expected %q", i, util.Hexdump(oUSB), util.Hexdump(tcase.expectedUSB))
 		}
 		for j := 0; j < len(oUSB); j++ {
 			if oUSB[j] != tcase.expectedUSB[j] {
-				t.Fatalf("test case %d: 485 output differs at byte %d (%d vs %d); actual %v, expected %v",
-					i, j, oUSB[j], tcase.expectedUSB[j], oUSB, tcase.expectedUSB)
+				t.Fatalf("test case %d: USB output differs at byte %d (%d vs %d); actual:\n%v\nexpected:\n%v",
+					i, j, oUSB[j], tcase.expectedUSB[j], util.Hexdump(oUSB), util.Hexdump(tcase.expectedUSB))
 			}
 		}
 	}

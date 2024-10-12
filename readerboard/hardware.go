@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MadScienceZone/go-gma/v5/util"
 	"go.bug.st/serial"
 )
 
@@ -257,6 +258,7 @@ type BaseNetworkDriver struct {
 	Port          serial.Port
 	isPortOpen    bool
 	GlobalAddress int
+	NetworkID     string
 }
 
 type DirectDriver struct {
@@ -277,6 +279,7 @@ func (d *DirectDriver) Attach(netID, device string, baudRate, globalAddress int)
 		return fmt.Errorf("attach attempted to nil device %s", netID)
 	}
 	d.Detach()
+	d.NetworkID = netID
 	d.GlobalAddress = globalAddress
 	if d.Port, err = serial.Open(device, &serial.Mode{BaudRate: baudRate}); err == nil {
 		d.isPortOpen = true
@@ -358,6 +361,7 @@ func (d *RS485Driver) Attach(netID, device string, baudRate, globalAddress int) 
 		return fmt.Errorf("attach attempted to nil device %s", netID)
 	}
 	d.Detach()
+	d.NetworkID = netID
 	d.GlobalAddress = globalAddress
 	if d.Port, err = serial.Open(device, &serial.Mode{BaudRate: baudRate}); err == nil {
 		d.isPortOpen = true
@@ -713,16 +717,24 @@ func (d *RS485Driver) Send(command string) error {
 }
 
 func (d *DirectDriver) SendBytes(command []byte) error {
-	log.Printf("-> %s", command)
+	pf1 := fmt.Sprintf("-> (USB %s) ", d.NetworkID)
+	pf2 := fmt.Sprintf("        %*s  ", len(d.NetworkID), "")
+	for _, s := range util.LineWrap(util.Hexdump(command, util.WithoutNewline), pf1+"[", pf1+"\u250c", pf2+"\u2502", pf2+"\u2514") {
+		log.Print(s)
+	}
 	if _, err := d.Port.Write(command); err != nil {
 		log.Printf("%v", err)
 		return err
 	}
-	log.Printf("draining")
 	return d.Port.Drain()
 }
 
 func (d *RS485Driver) SendBytes(command []byte) error {
+	pf1 := fmt.Sprintf("-> (485 %s) ", d.NetworkID)
+	pf2 := fmt.Sprintf("        %*s  ", len(d.NetworkID), "")
+	for _, s := range util.LineWrap(util.Hexdump(command, util.WithoutNewline), pf1+"[", pf1+"\u250c", pf2+"\u2502", pf2+"\u2514") {
+		log.Print(s)
+	}
 	if _, err := d.Port.Write(command); err != nil {
 		return err
 	}
