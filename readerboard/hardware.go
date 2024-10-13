@@ -243,6 +243,49 @@ type DiscreteLEDStatus struct {
 	StroberStatus LEDSequence
 }
 
+func (s *DiscreteLEDStatus) clear(lightsInstalled string) {
+	s.StatusLights = strings.Repeat("_", len(lightsInstalled))
+	s.FlasherStatus.clear()
+	s.StroberStatus.clear()
+}
+
+func (s *DiscreteLEDStatus) setLights(lights []byte, lightsInstalled string) {
+	l := bytes.Repeat([]byte{'_'}, len(lightsInstalled))
+	for _, lightToSet := range lights {
+		if idx := strings.IndexByte(lightsInstalled, lightToSet); idx >= 0 {
+			l[idx] = lightToSet
+		} else if lightToSet >= '0' && lightToSet <= '9' && int(lightToSet-'0') < len(l) {
+			l[lightToSet-'0'] = lightToSet
+		}
+	}
+
+	s.StatusLights = string(l)
+}
+
+func (s *LEDSequence) clear() {
+	s.IsRunning = false
+}
+
+func (s *LEDSequence) set(l []byte, up, on, down, off float64) {
+	if len(l) == 0 {
+		s.clear()
+		return
+	}
+	s.IsRunning = true
+	s.Position = 0
+	s.Sequence = make(LightList, len(l))
+	copy(s.Sequence, l)
+	if up == 0.0 && on == 0.0 && down == 0.0 && off == 0.0 {
+		s.CustomTiming.Enabled = false
+	} else {
+		s.CustomTiming.Enabled = true
+	}
+	s.CustomTiming.Up = up
+	s.CustomTiming.Down = down
+	s.CustomTiming.On = on
+	s.CustomTiming.Off = off
+}
+
 type NetworkDriver interface {
 	Attach(netID, device string, baudRate, globalAddress int) error
 	AllLightsOffBytes([]int, []byte) ([]byte, error)
@@ -505,7 +548,7 @@ func ProbeDevices(configData *ConfigData) error {
 		log.Printf("Device address %d: type=%v; net=%s (%s; s/n=%s)", id, dev.DeviceType, dev.NetworkID, dev.Description, dev.Serial)
 		sender, parser := Query()
 		if net, ok := configData.Networks[dev.NetworkID]; ok {
-			if commands, err = sender(nil, dev.DeviceType); err != nil {
+			if commands, err = sender(nil, dev.DeviceType, nil, configData); err != nil {
 				return fmt.Errorf("error getting bytestream for unit %d: %v", id, err)
 			}
 

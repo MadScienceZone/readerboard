@@ -119,11 +119,11 @@ func main() {
 	http.HandleFunc("/readerboard/v1/query", readerboard.WrapReplyHandler(readerboard.Query, configData))
 	http.HandleFunc("/readerboard/v1/busy", readerboard.WrapReplyHandler(readerboard.QueryStatus, configData))
 
-	http.HandleFunc("/readerboard/v1/current", readerboard.WrapInternalHandler(readerboard.Current, configData))
-	http.HandleFunc("/readerboard/v1/post", readerboard.WrapInternalHandler(readerboard.Post, configData))
-	http.HandleFunc("/readerboard/v1/postlist", readerboard.WrapInternalHandler(readerboard.PostList, configData))
-	http.HandleFunc("/readerboard/v1/unpost", readerboard.WrapInternalHandler(readerboard.Unpost, configData))
-	http.HandleFunc("/readerboard/v1/update", readerboard.WrapInternalHandler(readerboard.Update, configData))
+	http.HandleFunc("/readerboard/v1/current", readerboard.WrapInternalHandler(readerboard.Current, configData, true))
+	http.HandleFunc("/readerboard/v1/post", readerboard.WrapInternalHandler(readerboard.Post, configData, true))
+	http.HandleFunc("/readerboard/v1/postlist", readerboard.WrapInternalHandler(readerboard.PostList, configData, true))
+	http.HandleFunc("/readerboard/v1/unpost", readerboard.WrapInternalHandler(readerboard.Unpost, configData, true))
+	http.HandleFunc("/readerboard/v1/update", readerboard.WrapInternalHandler(readerboard.Update, configData, false))
 
 	go func() {
 		defer serverDone.Done()

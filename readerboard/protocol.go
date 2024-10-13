@@ -221,7 +221,7 @@ func reportErrorJSON(w http.ResponseWriter, errors int, message string) {
 	io.WriteString(w, string(resp)+"\n")
 }
 
-func WrapReplyHandler(f func() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareModel, []byte) (any, error)), config *ConfigData) func(http.ResponseWriter, *http.Request) {
+func WrapReplyHandler(f func() (func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]byte, error), func(HardwareModel, []byte) (any, error)), config *ConfigData) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sender, parser := f()
 		var received []byte
@@ -241,7 +241,7 @@ func WrapReplyHandler(f func() (func(url.Values, HardwareModel) ([]byte, error),
 					dt = netID.DeviceType
 
 					// force command execution to target ONE device only.
-					tNet := make(map[netTargetKey][]int)
+					tNet := make(deviceTargetSet)
 					tNet[netID] = []int{dev}
 
 					lockNetwork(netID.NetworkID)
@@ -289,12 +289,14 @@ func WrapReplyHandler(f func() (func(url.Values, HardwareModel) ([]byte, error),
 	}
 }
 
+type deviceTargetSet map[netTargetKey][]int
+
 type netTargetKey struct {
 	NetworkID  string
 	DeviceType HardwareModel
 }
 
-func WrapHandler(f func(url.Values, HardwareModel) ([]byte, error), config *ConfigData, globalAllowed bool) func(http.ResponseWriter, *http.Request) {
+func WrapHandler(f func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]byte, error), config *ConfigData, globalAllowed bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		targetNetworks, errors, isGlobal := getTargetList(r, config)
 		if isGlobal && !globalAllowed {
@@ -314,7 +316,7 @@ func WrapHandler(f func(url.Values, HardwareModel) ([]byte, error), config *Conf
 	}
 }
 
-func getTargetList(r *http.Request, config *ConfigData) (map[netTargetKey][]int, int, bool) {
+func getTargetList(r *http.Request, config *ConfigData) (deviceTargetSet, int, bool) {
 	var errors int
 	isGlobal := false
 
@@ -327,7 +329,7 @@ func getTargetList(r *http.Request, config *ConfigData) (map[netTargetKey][]int,
 	// organize our target list by the networks they're attached to, grouped together by device model
 	// so that we can optimize by sending a single multi-target command where that sort of thing is
 	// possible but send separate commands to targets when we need to.
-	targetNetworks := make(map[netTargetKey][]int)
+	targetNetworks := make(deviceTargetSet)
 	if targets[0] == config.GlobalAddress {
 		// add everything
 		isGlobal = true
@@ -349,13 +351,13 @@ func getTargetList(r *http.Request, config *ConfigData) (map[netTargetKey][]int,
 	return targetNetworks, errors, isGlobal
 }
 
-func sendCommandToHardware(f func(url.Values, HardwareModel) ([]byte, error), targetNetworks map[netTargetKey][]int, r *http.Request, config *ConfigData, doLocks bool) int {
+func sendCommandToHardware(f func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]byte, error), targetNetworks deviceTargetSet, r *http.Request, config *ConfigData, doLocks bool) int {
 	var rawBytes []byte
 	errors := 0
 
 	// Try sending the commands to the devices
 	for targetNetwork, targetList := range targetNetworks {
-		commands, err := f(r.Form, targetNetwork.DeviceType)
+		commands, err := f(r.Form, targetNetwork.DeviceType, targetNetworks, config)
 		if err != nil {
 			errors++
 			log.Printf("error preparing request for %s: %v", targetNetwork.NetworkID, err)
@@ -371,9 +373,9 @@ func sendCommandToHardware(f func(url.Values, HardwareModel) ([]byte, error), ta
 			// special case for "all lights off" command
 			rawBytes, err = config.Networks[targetNetwork.NetworkID].driver.AllLightsOffBytes(targetList, commands[1:])
 			if err != nil {
-				if b, err := Off(nil, targetNetwork.DeviceType); err != nil {
+				if b, err := Off(nil, targetNetwork.DeviceType, targetNetworks, config); err != nil {
 					if rawBytes, err = config.Networks[targetNetwork.NetworkID].driver.Bytes(targetList, b); err != nil {
-						if b, err = Clear(nil, targetNetwork.DeviceType); err != nil {
+						if b, err = Clear(nil, targetNetwork.DeviceType, targetNetworks, config); err != nil {
 							if rb, err := config.Networks[targetNetwork.NetworkID].driver.Bytes(targetList, b); err != nil {
 								rawBytes = append(rawBytes, rb...)
 							} else {
@@ -500,7 +502,20 @@ func posParam(r url.Values) (byte, error) {
 // signal which can be very different on RS-485 networks; for direct connections this
 // can be sent as multiple commands. So we assume RS-485 drivers completely ignore our
 // output and USB ones ignore the first byte and allow embedded ^D terminators.
-func AllLightsOff(_ url.Values, hw HardwareModel) ([]byte, error) {
+func AllLightsOff(_ url.Values, hw HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
+	// note that we are turning these off
+	if config != nil && targets != nil {
+		for _, devIDs := range targets {
+			for _, devID := range devIDs {
+				func() {
+					lockDevice(devID)
+					defer unlockDevice(devID)
+					config.Devices[devID].LastKnownState.clear(config.Devices[devID].LightsInstalled)
+				}()
+			}
+		}
+	}
+
 	if IsBusylightModel(hw) {
 		return []byte{0xff, 'X'}, nil
 	}
@@ -511,7 +526,7 @@ func AllLightsOff(_ url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/clear?a=<targets>
 //	-> C
-func Clear(_ url.Values, hw HardwareModel) ([]byte, error) {
+func Clear(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("clear command not supported for hardware type %v", hw)
 	}
@@ -523,7 +538,7 @@ func Clear(_ url.Values, hw HardwareModel) ([]byte, error) {
 //  /readerboard/v1/dim?a=<targets>&l=<led>|*|_&d=<level>
 //  -> D led h h
 //
-func Dim(r url.Values, hw HardwareModel) ([]byte, error) {
+func Dim(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
@@ -550,7 +565,7 @@ func encode_hex_nybble(v byte) byte {
 // Test runs a test pattern on the target device.
 //
 //	/readerboard/v1/test?a=<targets>
-func Test(_ url.Values, hw HardwareModel) ([]byte, error) {
+func Test(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if IsReaderboardModel(hw) || BusylightModelVersion(hw) > 1 {
 		return []byte{'%'}, nil
 	}
@@ -563,7 +578,7 @@ func Test(_ url.Values, hw HardwareModel) ([]byte, error) {
 //	-> F l0 l1 ... lN $
 //  -> F / up on down off l0 l1 ... lN $
 //
-func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
+func Flash(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
@@ -585,6 +600,24 @@ func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
 		return nil, err
 	}
 
+	// note that we are turning these on
+	if config != nil && targets != nil {
+		for _, devIDs := range targets {
+			for _, devID := range devIDs {
+				func() {
+					lockDevice(devID)
+					defer unlockDevice(devID)
+					if len(l) == 0 || l[0] == '$' {
+						config.Devices[devID].LastKnownState.FlasherStatus.clear()
+					} else {
+						config.Devices[devID].LastKnownState.setLights(l[0:1], config.Devices[devID].LightsInstalled)
+						config.Devices[devID].LastKnownState.FlasherStatus.set(l[:len(l)-1], up, on, down, off)
+					}
+				}()
+			}
+		}
+	}
+
 	if up == 0.0 && on == 0.0 && down == 0.0 && off == 0.0 {
 		return append([]byte{'F'}, l...), nil
 	} else {
@@ -596,7 +629,7 @@ func Flash(r url.Values, _ HardwareModel) ([]byte, error) {
 //
 //  /readerboard/v1/sound?a=<targets>[&loop]&notes=...
 //  -> B L|. notes... $
-func Sound(r url.Values, hw HardwareModel) ([]byte, error) {
+func Sound(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	loop := boolParam(r, "loop", '.', 'L')
 	notes, err := stringParam(r, "notes")
 	if err != nil {
@@ -609,7 +642,7 @@ func Sound(r url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/font?a=<targets>&idx=<digit>
 //	-> A digit
-func Font(r url.Values, hw HardwareModel) ([]byte, error) {
+func Font(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("font command not supported for hardware type %v", hw)
 	}
@@ -690,7 +723,7 @@ func parseColorCode(code string) byte {
 //	/readerboard/v1/graph?a=<targets>&v=<n>[&colors=<rgb>...]
 //	-> H n
 //	-> H K rgb0 ... rgb7
-func Graph(r url.Values, hw HardwareModel) ([]byte, error) {
+func Graph(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("graph command not supported for hardware type %v", hw)
 	}
@@ -768,7 +801,7 @@ func alignmentParam(r url.Values) byte {
 //
 //	/readerboard/v1/bitmap?a=<targets>[&merge=<bool]&pos=<pos>[&trans=<trans>]&image=<redcols>$<greencols>$<bluecols>$<flashcols>
 //	-> I M/. pos trans R0 ... RN $ G0 ... GN $ B0 ... BN $ F0 ... FN $
-func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
+func Bitmap(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("bitmap command not supported for hardware type %v", hw)
 	}
@@ -819,7 +852,7 @@ func Bitmap(r url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/color?a=<targets>&color=<rgb>
 //	-> K rgb
-func Color(r url.Values, hw HardwareModel) ([]byte, error) {
+func Color(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("color command not supported for hardware type %v", hw)
 	}
@@ -831,7 +864,7 @@ func Color(r url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/move?a=<targets>&pos=<pos>
 //	-> @ pos
-func Move(r url.Values, hw HardwareModel) ([]byte, error) {
+func Move(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("move command not supported for hardware type %v", hw)
 	}
@@ -846,7 +879,19 @@ func Move(r url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/off?a=<targets>
 //	-> X
-func Off(r url.Values, _ HardwareModel) ([]byte, error) {
+func Off(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
+	// note that we are turning these off
+	if config != nil && targets != nil {
+		for _, devIDs := range targets {
+			for _, devID := range devIDs {
+				func() {
+					lockDevice(devID)
+					defer unlockDevice(devID)
+					config.Devices[devID].LastKnownState.clear(config.Devices[devID].LightsInstalled)
+				}()
+			}
+		}
+	}
 	return []byte{'X'}, nil
 }
 
@@ -854,7 +899,7 @@ func Off(r url.Values, _ HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/scroll?a=<targets>&t=<text>[&loop=<bool>]
 //	-> < L/. text
-func Scroll(r url.Values, hw HardwareModel) ([]byte, error) {
+func Scroll(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("scroll command not supported for hardware type %v", hw)
 	}
@@ -871,7 +916,7 @@ func Scroll(r url.Values, hw HardwareModel) ([]byte, error) {
 //  /readerboard/v1/diag-banners
 //  -> = * =
 //
-func DiagBanners(_ url.Values, hw HardwareModel) ([]byte, error) {
+func DiagBanners(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	return []byte{'=', '*', '='}, nil
 }
 
@@ -880,7 +925,7 @@ func DiagBanners(_ url.Values, hw HardwareModel) ([]byte, error) {
 //  /readerboard/v1/save?a=<targets>&type="D"
 //  --> = & D =
 //
-func Save(r url.Values, hw HardwareModel) ([]byte, error) {
+func Save(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	settingType := r.Get("type")
 	if settingType == "" {
 		return nil, fmt.Errorf("save type parameter is required")
@@ -895,7 +940,7 @@ func Save(r url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/text?a=<targets>&t=<text>[&merge=<bool>][&align=<align>][&trans=<trans>]
 //	-> T M/. align trans text
-func Text(r url.Values, hw HardwareModel) ([]byte, error) {
+func Text(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("text command not supported for hardware type %v", hw)
 	}
@@ -909,7 +954,7 @@ func Text(r url.Values, hw HardwareModel) ([]byte, error) {
 	return append([]byte{'T', merge, align, trans}, text...), nil
 }
 
-func ConfigureDevice(r url.Values, hw HardwareModel) ([]byte, error) {
+func ConfigureDevice(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	Rspeed, err := intParam(r, "rspeed")
 	if err != nil {
 		return nil, fmt.Errorf("rspeed paramater invalid (%v)", err)
@@ -945,11 +990,26 @@ func ConfigureDevice(r url.Values, hw HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/light?a=<targets>&l=<leds>
 //	-> L l0 l1 ... lN $
-func Light(r url.Values, hw HardwareModel) ([]byte, error) {
+func Light(r url.Values, hw HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
 	}
+
+	// note that we are turning these on
+	if config != nil && targets != nil {
+		for _, devIDs := range targets {
+			for _, devID := range devIDs {
+				func() {
+					lockDevice(devID)
+					defer unlockDevice(devID)
+					config.Devices[devID].LastKnownState.setLights(l, config.Devices[devID].LightsInstalled)
+					config.Devices[devID].LastKnownState.FlasherStatus.clear()
+				}()
+			}
+		}
+	}
+
 	if len(l) == 2 {
 		return []byte{'S', l[0]}, nil
 	}
@@ -964,7 +1024,7 @@ func Light(r url.Values, hw HardwareModel) ([]byte, error) {
 //  /readerboard/v1/morse?a=<targets>&t=<message>&l=<led>
 //  -> M led message... $
 //
-func Morse(r url.Values, _ HardwareModel) ([]byte, error) {
+func Morse(r url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
@@ -983,10 +1043,23 @@ func Morse(r url.Values, _ HardwareModel) ([]byte, error) {
 //
 //	/readerboard/v1/strobe?a=<targets>&l=<leds>
 //	-> * l0 l1 ... ln $
-func Strobe(r url.Values, _ HardwareModel) ([]byte, error) {
+func Strobe(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
+	}
+
+	// note that we are turning these on
+	if config != nil && targets != nil {
+		for _, devIDs := range targets {
+			for _, devID := range devIDs {
+				func() {
+					lockDevice(devID)
+					defer unlockDevice(devID)
+					config.Devices[devID].LastKnownState.StroberStatus.set(l[:len(l)-1], 0, 0, 0, 0)
+				}()
+			}
+		}
 	}
 	return append([]byte{'*'}, l...), nil
 }
@@ -1124,8 +1197,8 @@ func parseStatusLEDs(in []byte, idx int) (DiscreteLEDStatus, int, error) {
 	return stat, idx, nil
 }
 
-func QueryStatus() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareModel, []byte) (any, error)) {
-	return func(_ url.Values, _ HardwareModel) ([]byte, error) {
+func QueryStatus() (func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]byte, error), func(HardwareModel, []byte) (any, error)) {
+	return func(_ url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 			return []byte{'?'}, nil
 		}, func(hw HardwareModel, in []byte) (any, error) {
 			// parse the response data, returning the data structure represented or the number of additional bytes
@@ -1148,8 +1221,8 @@ func QueryStatus() (func(url.Values, HardwareModel) ([]byte, error), func(Hardwa
 		}
 }
 
-func Query() (func(url.Values, HardwareModel) ([]byte, error), func(HardwareModel, []byte) (any, error)) {
-	return func(_ url.Values, _ HardwareModel) ([]byte, error) {
+func Query() (func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]byte, error), func(HardwareModel, []byte) (any, error)) {
+	return func(_ url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 			return []byte{'Q'}, nil
 		}, func(_ HardwareModel, in []byte) (any, error) {
 			// parse the response data, returning the data structure represented or the number of additional bytes
@@ -1273,16 +1346,30 @@ func parseAddress(b byte) byte {
 	return b - '0'
 }
 
-func WrapInternalHandler(f func([]int, url.Values) error, config *ConfigData) func(http.ResponseWriter, *http.Request) {
+func WrapInternalHandler(f func(deviceTargetSet, url.Values, http.ResponseWriter, *ConfigData) error, config *ConfigData, targetsRequired bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		targets, err := reqInit(r, config.GlobalAddress)
-		if err != nil {
-			log.Printf("invalid request: %v", err)
-			io.WriteString(w, "invalid request\n")
+		var (
+			targetNetworks deviceTargetSet
+			errors         int
+		)
+
+		if targetsRequired {
+			targetNetworks, errors, _ = getTargetList(r, config)
+			if errors > 0 {
+				log.Printf("invalid request: could not understand target list")
+				reportErrorJSON(w, errors, "could not understand target list")
+				return
+			}
+		} else {
+			if err := r.ParseForm(); err != nil {
+				log.Printf("invalid request: could not parse HTTP request data")
+				reportErrorJSON(w, errors, "could not parse HTTP request data")
+				return
+			}
 		}
-		if err := f(targets, r.Form); err != nil {
+		if err := f(targetNetworks, r.Form, w, config); err != nil {
 			log.Printf("requested internal command failed: %v", err)
-			io.WriteString(w, fmt.Sprintf("error: %v\n", err))
+			reportErrorJSON(w, 1, err.Error())
 		}
 	}
 }
@@ -1291,8 +1378,24 @@ func WrapInternalHandler(f func([]int, url.Values) error, config *ConfigData) fu
 //
 //  /readerboard/v1/current?a=<targets>
 //
-func Current(_ []int, _ url.Values) error {
-	return fmt.Errorf("not yet implemented")
+func Current(targets deviceTargetSet, _ url.Values, w http.ResponseWriter, config *ConfigData) error {
+	currentState := make(map[string]DiscreteLEDStatus)
+
+	for _, devs := range targets {
+		for _, devID := range devs {
+			func() {
+				lockDevice(devID)
+				defer unlockDevice(devID)
+				currentState[strconv.Itoa(devID)] = config.Devices[devID].LastKnownState
+			}()
+		}
+	}
+	response, err := json.Marshal(currentState)
+	if err != nil {
+		return err
+	}
+	io.WriteString(w, string(response)+"\n")
+	return nil
 }
 
 // Post displays a message
@@ -1303,7 +1406,7 @@ func Current(_ []int, _ url.Values) error {
 //        |  <day>
 //        |  <duration>
 //
-func Post(_ []int, _ url.Values) error {
+func Post(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
 	return fmt.Errorf("not yet implemented")
 }
 
@@ -1311,7 +1414,7 @@ func Post(_ []int, _ url.Values) error {
 //
 //  /readerboard/v1/postlist?a=<targets>[&id={/<regex> | <id>}]
 //
-func PostList(_ []int, _ url.Values) error {
+func PostList(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
 	return fmt.Errorf("not yet implemented")
 }
 
@@ -1319,7 +1422,7 @@ func PostList(_ []int, _ url.Values) error {
 //
 //  /readerboard/v1/unpost?a=<targets>&id={/ <regex> | <id>}
 //
-func Unpost(_ []int, _ url.Values) error {
+func Unpost(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
 	return fmt.Errorf("not yet implemented")
 }
 
@@ -1327,6 +1430,24 @@ func Unpost(_ []int, _ url.Values) error {
 //
 //  /readerboard/v1/update?name0=value0&name1=value1&...&nameN=valueN
 //
-func Update(_ []int, _ url.Values) error {
-	return fmt.Errorf("not yet implemented")
+func Update(_ deviceTargetSet, r url.Values, _ http.ResponseWriter, config *ConfigData) error {
+	lockVariables()
+	defer unlockVariables()
+
+	if config.UserVariables == nil {
+		config.UserVariables = make(map[string]string)
+		log.Print("created map")
+	}
+
+	for name, val := range r {
+		if len(val) == 0 || val[0] == "" {
+			delete(config.UserVariables, name)
+			log.Printf("undefined {$%s}", name)
+		} else {
+			config.UserVariables[name] = val[0]
+			log.Printf("defined {$%s}=\"%s\"", name, val[0])
+		}
+	}
+	// TODO: send updates to signs displaying messages with these variables
+	return nil
 }

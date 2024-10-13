@@ -61,6 +61,16 @@ field (q.v.).
 .B Description
 An arbitrary description of the device, its location, purpose, or whatever other information about it is useful to note.
 .TP
+.B LightsInstalled
+If this unit's discrete status LEDs are a non-standard configuration, this field
+specifies the one-letter codes to represent the color of LED installed at each
+level, starting with the bottom LED. If left blank or omitted, this will default
+to the standard configuration, which is
+.RB \*(lq GyYrRBW \*(rq
+for busylights and
+.RB \*(lq GyYrRbBW \*(rq
+for readerboards.
+.TP
 .B Serial
 The serial number of the device. The server will check this by probing the unit and comparing the serial number it reports,
 to help identify mistakes in the server configuration.
@@ -117,6 +127,18 @@ shuts down.
 .B Endpoint
 This gives the TCP endpoint which is to accept HTTP requests. It has the form
 .RI [ hostname ] \fB:\fPport .
+.TP
+.BI "UserVariables " (object)
+This lists a set of user-defined variables which can be included in posted
+messages. The value is a map of variable names to their values. A variable name
+listed here as
+.RB \*(lq name \*(rq
+can be inserted into a posted message as
+.RB \*(lq {$name} \*(rq.
+The server will start with this set of variables defined. More may be added
+using the
+.B update
+web service API call.
 .SS "Example Configuration"
 .na
 .nf
@@ -156,6 +178,10 @@ This gives the TCP endpoint which is to accept HTTP requests. It has the form
 			"Device": "/dev/usbtty1",
 			"BaudRate": 9600
 		}
+	},
+	"UserVariables": {
+		"shift": "day",
+		"SecretWord": "albatross"
 	}
 }
 .ft
@@ -555,7 +581,7 @@ Removes all messages matching the
 .I id
 or regular expression from the display list of the target devices.
 .TP
-.BI update ... & k0 = v0...kn = vn
+.BI update ... & k0 = v0... & kn = vn
 Update the value of one or more user variables which may be substituted into posted display lists.
 \".SS "Encoded Values"
 \".TP

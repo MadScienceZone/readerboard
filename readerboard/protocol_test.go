@@ -67,7 +67,7 @@ func TestUnescape485(t *testing.T) {
 
 func TestHTTPCommands(t *testing.T) {
 	for i, tcase := range []struct {
-		handler            func(url.Values, HardwareModel) ([]byte, error)
+		handler            func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]byte, error)
 		addrs              []int
 		data               url.Values
 		expected485        []byte
@@ -145,7 +145,7 @@ func TestHTTPCommands(t *testing.T) {
 		directConnection := DirectDriver{BaseNetworkDriver{GlobalAddress: 15}}
 		serialNetwork := RS485Driver{BaseNetworkDriver{GlobalAddress: 15}}
 
-		command, err := tcase.handler(tcase.data, tcase.model)
+		command, err := tcase.handler(tcase.data, tcase.model, nil, nil)
 		if tcase.expectError {
 			if err == nil {
 				t.Fatalf("test case %d: handler error expected but none returned", i)

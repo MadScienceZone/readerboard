@@ -164,7 +164,7 @@ func main() {
 func describeDevice(deviceDesc any) {
 	dev, ok := deviceDesc.(readerboard.DeviceStatus)
 	if !ok {
-		log.Fatal("Unable to understand device status (internal bug -- returned data type %T is not supported)", deviceDesc)
+		log.Fatalf("Unable to understand device status (internal bug -- returned data type %T is not supported)", deviceDesc)
 	}
 	fmt.Printf("Target device class:   %s\n", readerboard.ModelClassName(dev.DeviceModelClass))
 	if dev.DeviceAddress == 255 {

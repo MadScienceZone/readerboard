@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -35,14 +36,31 @@ type ConfigData struct {
 
 	// Server endpoint
 	Endpoint string
+
+	// User-defined varaibles for posted messages
+	UserVariables map[string]string
 }
 
-type DevMap map[int]DeviceDescription
+//
+// Init sets up the internal state of a DeviceDescription.
+//
+func (d *DeviceDescription) Init() {
+	if d.LightsInstalled == "" {
+		if d.DeviceType == Busylight1 || d.DeviceType == Busylight2 {
+			d.LightsInstalled = "GyYrRBW"
+		} else if d.DeviceType == Readerboard3RGB || d.DeviceType == Readerboard3Mono {
+			d.LightsInstalled = "GyYrRbBW"
+		}
+	}
+	d.LastKnownState.StatusLights = strings.Repeat("_", len(d.LightsInstalled))
+}
+
+type DevMap map[int]*DeviceDescription
 
 func (dm DevMap) MarshalJSON() ([]byte, error) {
 	sm := make(map[string]DeviceDescription)
 	for k, v := range dm {
-		sm[strconv.Itoa(k)] = v
+		sm[strconv.Itoa(k)] = *v
 	}
 	return json.Marshal(sm)
 }
@@ -58,7 +76,8 @@ func (dm *DevMap) UnmarshalJSON(b []byte) error {
 		if err != nil {
 			return err
 		}
-		(*dm)[sk] = v
+		v.Init()
+		(*dm)[sk] = &v
 	}
 	return nil
 }
@@ -87,6 +106,7 @@ type NetworkDescription struct {
 var (
 	networkLocks map[string]*sync.Mutex
 	deviceLocks  map[int]*sync.Mutex
+	varLock      *sync.Mutex = &sync.Mutex{}
 )
 
 func lockDevice(id int) {
@@ -111,6 +131,14 @@ func unlockNetwork(id string) {
 
 func createNetworkLock(id string) {
 	networkLocks[id] = &sync.Mutex{}
+}
+
+func lockVariables() {
+	varLock.Lock()
+}
+
+func unlockVariables() {
+	varLock.Unlock()
 }
 
 func init() {
@@ -169,9 +197,14 @@ type DeviceDescription struct {
 	// may indicate that the wrong device is configured at this target address.
 	Serial string
 
+	// The physical status LEDs installed on this unit. By default, this would
+	// be "GyYrRbBW" for readerboards and "GyYrRBW" for busylights, but can be
+	// anything if you build the units with different colors.
+	LightsInstalled string
+
 	// State tracking is recorded here so we can report back what we laste told
 	// the device to do without taking the time to ask the device itself.
-	LastKnownState DiscreteLEDStatus
+	LastKnownState DiscreteLEDStatus `json:"-"`
 }
 
 type HardwareModel byte
