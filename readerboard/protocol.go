@@ -316,6 +316,18 @@ func WrapHandler(f func(url.Values, HardwareModel, deviceTargetSet, *ConfigData)
 	}
 }
 
+func collapseTargetList(targets deviceTargetSet) []int {
+	var t []int
+
+	for _, targetIDs := range targets {
+		for _, targetID := range targetIDs {
+			t = append(t, targetID)
+		}
+	}
+
+	return t
+}
+
 func getTargetList(r *http.Request, config *ConfigData) (deviceTargetSet, int, bool) {
 	var errors int
 	isGlobal := false
@@ -1344,110 +1356,4 @@ func parseAddress(b byte) byte {
 		return 0xff
 	}
 	return b - '0'
-}
-
-func WrapInternalHandler(f func(deviceTargetSet, url.Values, http.ResponseWriter, *ConfigData) error, config *ConfigData, targetsRequired bool) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			targetNetworks deviceTargetSet
-			errors         int
-		)
-
-		if targetsRequired {
-			targetNetworks, errors, _ = getTargetList(r, config)
-			if errors > 0 {
-				log.Printf("invalid request: could not understand target list")
-				reportErrorJSON(w, errors, "could not understand target list")
-				return
-			}
-		} else {
-			if err := r.ParseForm(); err != nil {
-				log.Printf("invalid request: could not parse HTTP request data")
-				reportErrorJSON(w, errors, "could not parse HTTP request data")
-				return
-			}
-		}
-		if err := f(targetNetworks, r.Form, w, config); err != nil {
-			log.Printf("requested internal command failed: %v", err)
-			reportErrorJSON(w, 1, err.Error())
-		}
-	}
-}
-
-// Current returns what we last told a device to display on its discrete LEDs
-//
-//  /readerboard/v1/current?a=<targets>
-//
-func Current(targets deviceTargetSet, _ url.Values, w http.ResponseWriter, config *ConfigData) error {
-	currentState := make(map[string]DiscreteLEDStatus)
-
-	for _, devs := range targets {
-		for _, devID := range devs {
-			func() {
-				lockDevice(devID)
-				defer unlockDevice(devID)
-				currentState[strconv.Itoa(devID)] = config.Devices[devID].LastKnownState
-			}()
-		}
-	}
-	response, err := json.Marshal(currentState)
-	if err != nil {
-		return err
-	}
-	io.WriteString(w, string(response)+"\n")
-	return nil
-}
-
-// Post displays a message
-//
-//  /readerboard/v1/post?a=<targets>&t=<text>&id=<id>[&trans=<transition>][&until=<dt>][&hold=<dur>][&color=<rgb>][&visible=<dur>][&show=<dur>][&repeat=<dur>]
-//
-//  <dt> ::= [<day>@][<hour>]:<min>[:<sec>]
-//        |  <day>
-//        |  <duration>
-//
-func Post(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
-	return fmt.Errorf("not yet implemented")
-}
-
-// Postlist returns the message queue
-//
-//  /readerboard/v1/postlist?a=<targets>[&id={/<regex> | <id>}]
-//
-func PostList(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
-	return fmt.Errorf("not yet implemented")
-}
-
-// Unpost removes a message
-//
-//  /readerboard/v1/unpost?a=<targets>&id={/ <regex> | <id>}
-//
-func Unpost(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
-	return fmt.Errorf("not yet implemented")
-}
-
-// Update sets user variables inside messages
-//
-//  /readerboard/v1/update?name0=value0&name1=value1&...&nameN=valueN
-//
-func Update(_ deviceTargetSet, r url.Values, _ http.ResponseWriter, config *ConfigData) error {
-	lockVariables()
-	defer unlockVariables()
-
-	if config.UserVariables == nil {
-		config.UserVariables = make(map[string]string)
-		log.Print("created map")
-	}
-
-	for name, val := range r {
-		if len(val) == 0 || val[0] == "" {
-			delete(config.UserVariables, name)
-			log.Printf("undefined {$%s}", name)
-		} else {
-			config.UserVariables[name] = val[0]
-			log.Printf("defined {$%s}=\"%s\"", name, val[0])
-		}
-	}
-	// TODO: send updates to signs displaying messages with these variables
-	return nil
 }

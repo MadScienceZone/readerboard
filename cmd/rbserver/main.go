@@ -125,6 +125,8 @@ func main() {
 	http.HandleFunc("/readerboard/v1/unpost", readerboard.WrapInternalHandler(readerboard.Unpost, configData, true))
 	http.HandleFunc("/readerboard/v1/update", readerboard.WrapInternalHandler(readerboard.Update, configData, false))
 
+	go readerboard.ManageMessageQueue(configData)
+
 	go func() {
 		defer serverDone.Done()
 		log.Printf("Starting to serve HTTP on %s", configData.Endpoint)

@@ -39,6 +39,12 @@ type ConfigData struct {
 
 	// User-defined varaibles for posted messages
 	UserVariables map[string]string
+
+	messageManager struct {
+		post   chan ManagedMessage
+		unpost chan PostIDs
+		update chan string
+	}
 }
 
 //

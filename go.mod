@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/MadScienceZone/go-gma/v5 v5.24.0
+	github.com/pdevine/goMoonPhase v0.0.0-20180124195458-2a9432a62575
 	go.bug.st/serial v1.6.2
 )
 
