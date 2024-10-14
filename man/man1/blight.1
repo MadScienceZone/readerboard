@@ -1,0 +1,110 @@
+.TH BLIGHT 1 1.9.1 30-Sep-2024 "User Commands"
+.SH NAME
+blight \- GUI frontend to busylight
+.SH SYNOPSIS
+.na
+.RB [ wish8.6 ]
+.B blight.tcl
+.ad
+.SH DESCRIPTION
+.LP
+The
+.B blight.tcl
+script is a simple GUI front-end to the
+.BR busylight (1)
+program. It provides an on-screen indication of the light status (helpful if you can't physically
+see the LEDs) and a row of buttons to click on to easily change the light status.
+.LP
+All of its operations are carried out via the
+.RB rbserver (1)
+web service API.
+.LP
+Every 5 minutes, it will query the state of the lights and update its on-screen indicator accordingly,
+but it will also do this when you manually change the status or click the
+.B refresh
+button.
+.LP
+Buttons are provided for each of the defined status values in your
+.B ~/.busylight/config.json
+file (except the
+.B start
+and
+.B stop
+statuses).
+'\", as well as a series of buttons labelled
+'\".BR "server mute" ,
+'\".BR "server open" ,
+'\"etc., which allow you to set the daemon's state.
+'\".LP
+.SH ACTIVITIES
+.LP
+.B Blight
+adds another feature not otherwise provided by
+.BR busylight .
+It allows for activity tracking. To use this feature, you will need to create a file
+called
+.B ~/.busylight/activities.json
+which contains a JSON array of objects, each of which has the following fields:
+.TP 9
+.B Name
+This should be a short (preferably one-word) name of the activity to be tracked.
+.TP
+.B Lights
+A string of light codes to light up when this status should be shown. Note that Busylight
+units cannot illuminate more than one light at once, so this should normally be a single
+light code (but you can accent it by combining with a strobe pattern or use a flash sequence
+instead); Readerboards can illuminate any combination of lights at once.
+.RS
+.LP
+If the string of light codes begins with a star
+.RB (\*(lq * \*(rq),
+then the codes are taken to be a flash sequence (each light in the list is lit up in turn).
+.RE
+.TP
+.B Strober
+A string of light codes which are set as the strober sequence on the status display, in addition
+to the steady-burning or flashing lights.
+.RE
+.TP
+.B Unless
+A list of light code strings. If any of them match the set of illuminated lights currently
+displayed on the unit, then this status will not be set because what's already on the display
+is a higher-priority status. If a string begins with a star
+.RB (\*(lq * \*(rq),
+then it matches the current flash sequence. If a string begins with two stars
+.RB (\*(lq ** \*(rq),
+then it matches the current strober sequence.
+.TP
+.B Elapsed
+An integer value giving the number of minutes spent so far on that activity.
+.LP
+An example
+.B activities.json
+file might look like this:
+.LP
+.na
+.nf
+[
+\ {"Name":"Meetings", "Status":"R", "Unless":["*Rr"], "Elapsed":0},
+\ {"Name":"Idle", "Status":"G", "Unless":["Y","R","*Rr"], "Elapsed":12},
+\ {"Name":"Games", "Status":"Y", "Strober":"G", "Elapsed":120}
+]
+.fi
+.ad
+.LP
+The
+.B blight
+script will update this file with new 
+.B Elapsed
+values while activities are active.
+.LP
+To start an activity, click on its button. That will set the lights for the activity and
+start the timer to track time for that activity. Clicking other buttons will change lights
+but not change the running timer. Clicking another activity will stop the current one before
+starting the new activity. Clicking the
+.B "(stop activity)"
+button will stop the activity timer without starting a new one.
+.SH AUTHOR
+.LP
+Steve Willoughby 
+.I "<steve@madscience.zone>"

@@ -16,19 +16,21 @@ import (
 	moon "github.com/pdevine/goMoonPhase"
 )
 
+//
+// ManagedMessage describes a posted message in our managed message queue.
+//
 type ManagedMessage struct {
-	ID         string
-	Text       string
-	Targets    []int
-	Transition byte
-	Color      byte // TODO
-
-	Until     TimeSpec
-	Hold      time.Duration
-	Visible   [][2]TimeSpec
-	Show      time.Duration
-	Repeat    time.Duration
-	NextEvent time.Time
+	ID         string        // unique identifier for the message
+	Text       string        // message content, may include {tokens}
+	Targets    []int         // list of device IDs to display the message
+	Transition byte          // transition to use to introduce the message
+	Color      byte          // color to set for the message TODO
+	Until      TimeSpec      // expiration time for the message
+	Hold       time.Duration // length of time to display this before moving on to next message
+	Visible    [][2]TimeSpec // set of time ranges during which message can be shown
+	Show       time.Duration // show the message for this long after posting, then hide (but leave in queue)
+	Repeat     time.Duration // unhide after being hidden for this long
+	NextEvent  time.Time     // time when we need to do the next thing with this message; TODO do we need this?
 }
 
 type DayOfWeek byte
@@ -44,14 +46,22 @@ const (
 	Saturday
 )
 
+//
+// TimeSpec represents a time of day or day of week as used for scheduling
+// posted messages.
+//
 type TimeSpec struct {
+	// If IsRelative is true, Duration gives a relative time from Baseline for the event.
+	// Otherwise, the other fields specify an absolute point in time.
 	IsRelative bool
-	Weekday    DayOfWeek
-	Hours      int
-	Minutes    int
-	Seconds    int
 	Duration   time.Duration
 	Baseline   time.Time
+
+	// The absolute time of day
+	Weekday DayOfWeek
+	Hours   int
+	Minutes int
+	Seconds int
 }
 
 //
@@ -125,7 +135,7 @@ func ParseTimeSpec(s string) (ts TimeSpec, err error) {
 
 //
 // TimeUntil returns the length of time between now and the time indicated by the TimeSpec.
-//
+// TODO
 func (t TimeSpec) TimeUntil() time.Duration {
 	if t.IsRelative {
 		return t.Baseline.Add(t.Duration).Sub(time.Now())
@@ -133,13 +143,6 @@ func (t TimeSpec) TimeUntil() time.Duration {
 	return 0
 }
 
-//
-// until   TimeSpec      expiration
-// hold    time.Duration display this long before moving on
-// show    time.Duration keep the message for this long before hiding
-// repeat  time.Duration show again after being hidden this long
-// visible [][2]TimeSpec regardless of the above, suppress except between these time range(s)
-//
 func WrapInternalHandler(f func(deviceTargetSet, url.Values, http.ResponseWriter, *ConfigData) error, config *ConfigData, targetsRequired bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
