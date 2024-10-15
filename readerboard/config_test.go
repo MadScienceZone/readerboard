@@ -5,6 +5,32 @@ import (
 	"testing"
 )
 
+func TestInstalledLights(t *testing.T) {
+	for i, tcase := range []struct {
+		input          string
+		expected       DiscreteLEDStatus
+		expectedLights string
+	}{
+		{`{"DeviceType":"Busylight1"}`, DiscreteLEDStatus{StatusLights: "_______"}, "GyYrRBW"},
+		{`{"DeviceType":"Busylight2"}`, DiscreteLEDStatus{StatusLights: "_______"}, "GyYrRBW"},
+		{`{"DeviceType":"Readerboard3_RGB"}`, DiscreteLEDStatus{StatusLights: "________"}, "GyYrRbBW"},
+		{`{"DeviceType":"Readerboard3_Monochrome"}`, DiscreteLEDStatus{StatusLights: "________"}, "GyYrRbBW"},
+		{`{"DeviceType":"Readerboard3_RGB", "LightsInstalled":"ABCDEF"}`, DiscreteLEDStatus{StatusLights: "______"}, "ABCDEF"},
+	} {
+		var d DeviceDescription
+		if err := json.Unmarshal([]byte(tcase.input), &d); err != nil {
+			t.Fatalf("test case %d: %v", i, err.Error())
+		}
+		d.Init()
+		if d.LightsInstalled != tcase.expectedLights {
+			t.Errorf("test case %d: expected installed=%s but found %s", i, tcase.expectedLights, d.LightsInstalled)
+		}
+		if d.LastKnownState.StatusLights != tcase.expected.StatusLights {
+			t.Errorf("test case %d: expected status %s but found %s", i, tcase.expected.StatusLights, d.LastKnownState.StatusLights)
+		}
+	}
+}
+
 func TestMarshalDevMap(t *testing.T) {
 	for i, tcase := range []struct {
 		input         string
@@ -13,35 +39,43 @@ func TestMarshalDevMap(t *testing.T) {
 	}{
 		{"{\"1\":{\"DeviceType\":\"Busylight1.x\",\"NetworkID\":\"net1\",\"Description\":\"Some device\",\"Serial\":\"123\"}}",
 			DevMap{
-				1: DeviceDescription{
-					DeviceType:  Busylight1,
-					NetworkID:   "net1",
-					Description: "Some device",
-					Serial:      "123",
+				1: &DeviceDescription{
+					DeviceType:      Busylight1,
+					NetworkID:       "net1",
+					Description:     "Some device",
+					Serial:          "123",
+					LightsInstalled: "GyYrRBW",
+					LastKnownState:  DiscreteLEDStatus{StatusLights: "_______"},
 				},
 			}, false},
 		{"{\"x1\":{\"DeviceType\":\"Busylight1.x\",\"NetworkID\":\"net1\",\"Description\":\"Some device\",\"Serial\":\"123\"}}",
 			DevMap{
-				1: DeviceDescription{
-					DeviceType:  Busylight1,
-					NetworkID:   "net1",
-					Description: "Some device",
-					Serial:      "123",
+				1: &DeviceDescription{
+					DeviceType:      Busylight1,
+					NetworkID:       "net1",
+					Description:     "Some device",
+					Serial:          "123",
+					LightsInstalled: "GyYrRBW",
+					LastKnownState:  DiscreteLEDStatus{StatusLights: "_______"},
 				},
 			}, true},
 		{"{\"123\":{\"DeviceType\":\"Busylight2.x\",\"NetworkID\":\"net1\",\"Serial\":\"123\"},\"456\":{\"NetworkID\":\"net2\",\"DeviceType\":\"Readerboard\"}}",
 			DevMap{
-				123: DeviceDescription{
-					DeviceType:  Busylight2,
-					NetworkID:   "net1",
-					Serial:      "123",
-					Description: "",
+				123: &DeviceDescription{
+					DeviceType:      Busylight2,
+					NetworkID:       "net1",
+					Serial:          "123",
+					Description:     "",
+					LightsInstalled: "GyYrRBW",
+					LastKnownState:  DiscreteLEDStatus{StatusLights: "_______"},
 				},
-				456: DeviceDescription{
-					DeviceType:  Readerboard3RGB,
-					NetworkID:   "net2",
-					Serial:      "",
-					Description: "",
+				456: &DeviceDescription{
+					DeviceType:      Readerboard3RGB,
+					NetworkID:       "net2",
+					Serial:          "",
+					Description:     "",
+					LightsInstalled: "GyYrRbBW",
+					LastKnownState:  DiscreteLEDStatus{StatusLights: "________"},
 				},
 			}, false},
 	} {
@@ -63,11 +97,41 @@ func TestMarshalDevMap(t *testing.T) {
 			if !ok {
 				t.Fatalf("test case %d, expected key %v missing from actual result", i, k)
 			}
-			if v != vv {
+			if !isDDEqual(v, vv) {
 				t.Fatalf("test case %d, expected %v, got %v", i, v, vv)
 			}
 		}
 	}
+}
+
+func isDDEqual(v, vv *DeviceDescription) bool {
+	if v.DeviceType != vv.DeviceType ||
+		v.NetworkID != vv.NetworkID ||
+		v.Description != vv.Description ||
+		v.Serial != vv.Serial ||
+		v.LastKnownState.StatusLights != vv.LastKnownState.StatusLights {
+		return false
+	}
+	return isLSEqual(&v.LastKnownState.FlasherStatus, &vv.LastKnownState.FlasherStatus) && isLSEqual(&v.LastKnownState.StroberStatus, &vv.LastKnownState.StroberStatus)
+}
+
+func isLSEqual(v, vv *LEDSequence) bool {
+	if v.IsRunning != vv.IsRunning ||
+		v.CustomTiming.Enabled != vv.CustomTiming.Enabled ||
+		v.CustomTiming.Up != vv.CustomTiming.Up ||
+		v.CustomTiming.On != vv.CustomTiming.On ||
+		v.CustomTiming.Down != vv.CustomTiming.Down ||
+		v.CustomTiming.Off != vv.CustomTiming.Off ||
+		v.Position != vv.Position ||
+		len(v.Sequence) != len(vv.Sequence) {
+		return false
+	}
+	for i, vs := range v.Sequence {
+		if vs != vv.Sequence[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestMarshalNetworkType(t *testing.T) {

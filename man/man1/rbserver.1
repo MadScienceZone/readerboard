@@ -61,6 +61,16 @@ field (q.v.).
 .B Description
 An arbitrary description of the device, its location, purpose, or whatever other information about it is useful to note.
 .TP
+.B LightsInstalled
+If this unit's discrete status LEDs are a non-standard configuration, this field
+specifies the one-letter codes to represent the color of LED installed at each
+level, starting with the bottom LED. If left blank or omitted, this will default
+to the standard configuration, which is
+.RB \*(lq GyYrRBW \*(rq
+for busylights and
+.RB \*(lq GyYrRbBW \*(rq
+for readerboards.
+.TP
 .B Serial
 The serial number of the device. The server will check this by probing the unit and comparing the serial number it reports,
 to help identify mistakes in the server configuration.
@@ -117,6 +127,18 @@ shuts down.
 .B Endpoint
 This gives the TCP endpoint which is to accept HTTP requests. It has the form
 .RI [ hostname ] \fB:\fPport .
+.TP
+.BI "UserVariables " (object)
+This lists a set of user-defined variables which can be included in posted
+messages. The value is a map of variable names to their values. A variable name
+listed here as
+.RB \*(lq name \*(rq
+can be inserted into a posted message as
+.RB \*(lq {$name} \*(rq.
+The server will start with this set of variables defined. More may be added
+using the
+.B update
+web service API call.
 .SS "Example Configuration"
 .na
 .nf
@@ -156,6 +178,10 @@ This gives the TCP endpoint which is to accept HTTP requests. It has the form
 			"Device": "/dev/usbtty1",
 			"BaudRate": 9600
 		}
+	},
+	"UserVariables": {
+		"shift": "day",
+		"SecretWord": "albatross"
 	}
 }
 .ft
@@ -243,7 +269,40 @@ Clear the LED matrix so all pixels are off.
 .BI color ... &color= c
 Sets the current color to the specified color code.
 .TP
-.BI flash ... &l= L0L1...LN
+.BI configure-device ... &rspeed= baud &uspeed= baud &address= a' &global= g'
+Sets configuration values for the target device, which must be a single device connected via USB, since the
+devices will refuse to accept this command over RS-485. Generally, these settings would be made via the
+stand-alone
+.BR setsn (1)
+program before adding the device to the server.
+.RS
+.LP
+This sets the device's address to
+.IR a' ,
+global address to
+.IR g' ,
+and baud rates for USB and RS-485 interfaces.
+.RE
+.TP
+.B diag-banners
+Causes the target device to display the power-on banner messages again, showing its configuration values.
+It will be unresponsive to commands until this display is finished.
+.TP
+.BI dim ... &l= led &d= level
+Sets the brightness
+.I level
+for the specified
+.I led
+(either an LED code (q.v.) or
+.RB \*(lq * \*(rq
+to dim all discrete status LEDs or
+.RB \*(lq _ \*(rq
+to dim the LED matrix).
+The values range from 0 (fully off) to 255 (fully on).
+The LED matrix works best at or near full brightness, but the discrete LEDs can be dimmed to any levels.
+Note that not all devices support dimming on all LEDs.
+.TP
+.BI flash ... &l= L0L1...LN \fR[\fP&up= time &on= time &down= time &off= time \fR]\fP
 Sets a pattern of 0\-64 lights which will be illuminated in sequence on the discrete
 status LEDs. Each value
 .IR L0 ,
@@ -255,6 +314,21 @@ which means no light should be on at that place in the sequence.
 There are no delimiters between each
 value in the sequence list. A sequence of zero length turns off the flasher entirely. A sequence of a single value merely
 blinks that one LED on and off.
+.RS
+.LP
+If the
+.BR up ,
+.BR on ,
+.BR down ,
+and
+.B off
+values are given, they specifiy custom flashing and fading effects. Each light in the sequence will fade up
+from fully off to fully on (or to the set brightness value if the dimmer was adjusted for that light) over the
+course of the duration specified to the
+.B up
+parameter, which is a value in the range 0\-63 in units of 1/10 second. Likewise the other parameters indicate
+how long the light is held on, the time over which it fades down to off, and how long it remains off.
+.RE
 .TP
 .BI font ... &idx= f
 Select the font with ID number
@@ -266,6 +340,10 @@ Add a data element to the scrolling histogram display where the color of each pi
 (for the top pixel in the column) through
 .I r7
 (the bottom pixel).
+The colors are either a string of eight single-character color codes such as
+.RB \*(lq RRYYGGGG \*(rq
+or a comma-separated list of eight color names such as
+.RB \*(lq red,red,yellow,yellow,green,green,green,green \*(rq.
 .TP
 .BI graph ... &v= n
 Add a data element to the scrolling histogram display as a stack of
@@ -280,11 +358,50 @@ This command disables the flasher if it was running, but does not affect
 the strober, thus allowing a steady pattern with a strobe as a secondary status indicator. Busylight units can only
 light a single LED level at a time, while readerboard units can light any number.
 .TP
+.BI morse ... &t= message &l= led
+Sends
+.I message
+via Morse code on the speaker (if
+.I led
+is
+.RB \*(lq _ \*(rq)
+or by flashing the designated LED.
+Sends the prosign SK at the end of the message. Other prosigns may be given by putting the following
+codes in the message (shown here using URL encoding):
+.TS
+center;
+cB lB
+cB l.
+Code	Prosign
+%1802	AR (start message)
+%1803	SK (end of message)
+%1806	VE/SN (verified)
+%1807	KA/CT (attention)
+%1811	SOS (distress)
+%1812	DDD (relayed distress
+%1813	AS (wait)
+%181E	BT (break)
+%187F	HH (correction)
+.TE
+.TP
 .BI move ... &pos= n
 Move the cursor to the specified absolute column number. 
 .TP
 .B off
 Turn off the discrete status LED set on the target devices. The flasher and strober are stopped.
+.TP
+.BI save ... &type= type
+Save the current settings of the given
+.I type
+to EEPROM, so they will remain in effect even after the device is rebooted.
+The
+.I type
+value may be:
+.RS
+.TP
+.B D
+Save all dimmer values.
+.RE
 .TP
 .BR scroll ...[ &loop ] &t=\fItext\fP
 Scrolls
@@ -306,7 +423,7 @@ the URL encoding as normally specified in the URL sent to the server):
 '\"(encoded as a six-bit integer value).
 .TP
 .BI %06 f
-Switch the font to the one with the specified ID
+Switch the font to the one with the specified ID (index)
 .IR f .
 '\".TP
 '\".BI %08 pos
@@ -315,7 +432,7 @@ Switch the font to the one with the specified ID
 '\"columns to the left.
 .TP
 .BI %0B c
-Switch to the specified color.
+Switch to the specified color. This must be a single-character color code.
 '\".TP
 '\".BI %0C pos
 '\"Move the cursor
@@ -325,6 +442,38 @@ Switch to the specified color.
 .BI %18 hh
 Insert character with the codepoint given by the two-digit hex number
 .IR hh .
+.RE
+.TP
+.BI sound ... \fR[\fP&loop\fR]\fP&notes= notes
+Make a sound on the device's built-in speaker. Some devices are only capable of making a single frequency \*(lqbeep\*(rq (in which case
+all notes will sound at that pitch), while others can play a range of musical notes.  If
+.B loop
+is given, the sound will play repeatedly until another
+.B sound
+command is sent.
+.RS
+.LP
+If
+.I notes
+is empty or missing, any sound currently playing is stopped. Otherwise it gives a string of notes to be played. Each note
+is
+.B R
+for a rest period or a letter
+.BR A \- G
+to indicate a musical note to play. The note may be followed by
+.B b
+or
+.B #
+to indicate a flat or sharp, and is then followed by a digit
+.BR 0 \- 8
+to indicate the octave number. Following this is a two-digit hex value giving the
+duration to play the note (or rest) in 1/100ths of a second. Notes may range from
+.B B0
+to
+.BR D#8 .
+.LP
+An example three-note attention sequence is
+.RB \*(lq notes=G432E532C564 \*(rq.
 .RE
 .TP
 .BI strobe ... &l= L0L1...LN
@@ -432,7 +581,7 @@ Removes all messages matching the
 .I id
 or regular expression from the display list of the target devices.
 .TP
-.BI update ... & k0 = v0...kn = vn
+.BI update ... & k0 = v0... & kn = vn
 Update the value of one or more user variables which may be substituted into posted display lists.
 \".SS "Encoded Values"
 \".TP
@@ -505,6 +654,8 @@ Update the value of one or more user variables which may be substituted into pos
 \".TP
 \".B Transitions
 .SH "SEE ALSO"
+.LP
+.BR setsn (1).
 .LP
 More details about how values are encoded and handled by devices and the server are described
 in greater detail in the

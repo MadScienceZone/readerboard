@@ -1,0 +1,101 @@
+.TH CALMOND 1 0.0.0 30-Sep-2024 "User Commands"
+.SH NAME
+calmond \- daemon to monitor Google calendars for rbserver
+.SH SYNOPSIS
+.na
+.B calmond
+.SH DESCRIPTION
+.LP
+.B Calmond
+monitors a set of Google calendars, reporting busy/free times to a running
+instance of
+.BR rbserver (1)
+to indicate the user's availability status.
+.SH CONFIGURATION
+.LP
+.B Calmond
+and the other tools which support readerboards and busylight units require a few files to be placed in the user's
+.B ~/.busylight
+directory. The overall tool configuration will be in a file called
+.B busylight-config.json
+in that directory. (See
+.BR busylight-config.json (5)
+for details.)
+.SH AUTHENTICATION
+.LP
+In order to use the 
+.B calmond
+daemon to query Google calendar busy/free times, you first need to obtain an API key from Google.
+This will go in your
+.B ~/.busylight/credentials.json
+file (or whatever you named it in
+.BR ~/.busylight/config.json ).
+An example of this file is:
+.RS
+.nf
+.na
+{
+   "installed" : {
+      "client_id": "...",
+      "project_id": "...",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_secret":"...",
+      "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob","http://localhost"]
+   }
+}
+.ad
+.fi
+.RE
+.LP
+Next, you will need to manually authenticate to Google once before the daemon can continue
+to poll the calendar API on its own. To do this, run the
+.BR upcoming (1)
+program. If you already have valid access tokens cached, it will simply report your busy/free
+times for the next 8 hours. Otherwise, it will print a lengthy URL on its standard output and wait
+for your response.
+.LP
+Copy that URL into a web browser. This will take you to Google where it will ask you to log in to
+the Google account whose calendars you wish to have monitored. You will also be asked if you are
+sure you want to give permissions to the app to have acceess to all of your calendars. If you agree,
+Google will give you an access token string.
+.LP
+Copy that string and paste it into the terminal where you are running
+.B upcoming
+so it is sent to 
+.BR upcoming 's
+standard input and press the return key.
+.LP
+This will authorize the client to access the calendar API, so
+.B upcoming
+will then print out its report of your upcoming appointment times. But in doing so it will also
+have cached your authentication token in the 
+.B ~/.busylight/auth.json
+file (or whatever you named it in
+.BR config.json ),
+so the programs documented here may freely poll the calendar service using that token.
+.LP
+If the busylight tools suddenly stop being able to access the calendar, simply delete the
+.B auth.json
+file and repeat this process to get a new token cached.
+.SS "Security Implications"
+.LP
+Protect the data in the
+.B auth.json
+file carefully. Any program with access to that data will have full rights to view and modify your Google calendars.
+.LP
+When you no longer wish to authorize these tools to access your calendars, you may go into your Google
+account settings on Google's website to revoke that authorization.
+.SH HISTORY
+.LP
+.B Calmond
+replaces some of the functionality of the now-obsolete
+.BR upcoming (1)
+and
+.BR busylightd (1)
+programs.
+.SH AUTHOR
+.LP
+Steve Willoughby 
+.I "<steve@madscience.zone>"

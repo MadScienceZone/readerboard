@@ -143,8 +143,13 @@ green, and blue \led\ elements.
 Note that the discrete status \led s are mislabeled on the revision 3.2.2 \acronym{PCB}. L$_0$ should be the \led\
 on the bottom (canonically green) and L$_7$ is on top (white).
 
-\subsection{Version 3.3.1 (current model)}
-Version 3.3.0 of the hardware corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
+\subsection{Version 3.4.1 (current model)}
+Version 3.4 added support for playing sounds on a speaker and added a diode (D520) to prevent
+the Arduino from trying to power the \led s by itself if it is powered from the \acronym{USB}
+port but the external 9\,V supply is not active.
+
+\subsection{Version 3.3.1}
+Version 3.3 of the hardware corrects some minor issues with the 3.2.2 revision by adding a cutout to avoid colliding with the
 connectors on the Arduino board and adjusting the mounting holes slightly. It also corrects the mislabeled L$_0$--L$_7$ \led s
 
 Additionally, it adds R51 for Arduino Due reset circuits, J3 to manually reset the Arduino, and J4, R52, R53, and U16 to support the addition of a external
@@ -228,7 +233,7 @@ in the way of connecting subsequent ones. For example:
 			\item U11: THVD1439DR (Note that this chip is oriented 180$^{\circ}$ from the other chips on the board, with pin~1 to the lower right.)
 			\item If needed for your microcontroller (Arduino Due, usually), solder U16: AT24C256 \acronym{EEPROM} chip.
 		\end{itemize}
-	\item Solder the discrete resistors: R0--R7, R24--R50 (and optionally, R52 and R53). See below first to ensure the correct values are used
+	\item Solder the discrete resistors: R0--R7, R24--R51, and R54 (and optionally, R52 and R53). See below first to ensure the correct values are used
 		for R24--R31 based on your choice of corresponding \led s.
 		\begin{itemize}
 			\item R0--R7, R35--50: 1K
@@ -236,6 +241,7 @@ in the way of connecting subsequent ones. For example:
 			\item R25--R28: 360$\Omega$
 			\item R32--R34: 10K
 			\item If U16 is installed, solder in R52--R53: 10K
+			\item If using sound output, solder in R54: 10K
 		\end{itemize}
 	\item Solder the \SI{0.1}{\micro\farad} capacitors: C0--C9, C11--C12.
 	\item Solder the resistor arrays: R8--R23.
@@ -318,7 +324,7 @@ the electronic components themselves from harm due to heat or static electricity
 		&7&&\led\ ring printed circuit board (if desired)\\
 		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C, \strong{5\,V version}\\
 		&1&&Arduino stacking pin set\\
-		C0&1&&0.1 $\mu$F capacitor\\
+		C0&1&&\SI{0.1}{\micro\farad} capacitor\\
 		J0&1&&8-pin DIN connector, \acronym{PCB} mount\\
 		J1&1&&16-pin Euro-style terminal block\\
 		P0&1&&8-pin DIN plug\\
@@ -898,7 +904,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\multicolumn{1}{c}{\bfseries Description}&
 			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
 			\z{strobe}&\z{*} & Strobe \led s in Sequence & [1]\\
-			\z{busy}&\z{?} & Query discrete \led\ status & [1] [2]\\
+			\z{busy}&\z{?} & Query discrete \led\ status & [1] [2] [5]\\
 			\z{flash}&\z{F} & Flash \led s in Sequence & [1]\\
 			\z{light}&\z{L} & Light one or more \led s steady & [3]\\
 			\z{light}&\z{S} & Light one \led\ steady & [1]\\
@@ -907,10 +913,10 @@ The remaining commands are used for management of the matrix display. All comman
 			&\z{\textasciicircum D} & Abort/terminate command & \\
 			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
-			\z{configure-device}&\z{=} & Set operational parameters &[4]\\
+			\z{configure-device}&\z{=} & Set operational parameters &[4] [5]\\
 			\z{diag-banners}&\z{=*=}&Display POST banners&\\
 			\z{save}&\z{=\&}&Persist Settings in EEPROM&\\
-			&\z{=\#}&Set serial number & [4]\\
+			&\z{=\#}&Set serial number & [4] [5]\\
 			\z{move}&\z{@} & Move current column cursor & \\
 			\z{font}&\z{A} & Select character font & \\
 			\z{sound}&\z{B}&Beep / Play sounds&\\
@@ -920,7 +926,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{bitmap}&\z{I} & Draw bitmap graphic image & \\
 			\z{color}&\z{K} & Set current color & \\
 			\z{morse}&\z{M}&Send message via Morse code&\\
-			\z{query}&\z{Q} & Query full device status & [2]\\
+			\z{query}&\z{Q} & Query full device status & [2] [5]\\
 			\z{text}&\z{T} & Display text on display & \\
 			\midrule
 			\z{current}&& Report current status display& \\
@@ -1744,9 +1750,13 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 \begin{Coding}
 	|/readerboard/v1/graph?a=|\Var*{ad}|&v=|\Var*{n}
 \end{Coding}
-\end{center}
 
-\begin{center}
+\smallskip
+
+or
+
+\smallskip
+
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
 	\bitheader{0-7} \\
 	\bitbox{1}{\z{H}} &
