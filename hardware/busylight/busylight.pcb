@@ -1020,19 +1020,6 @@ Element["" "" "" "" 1190.00mil 920.00mil 0.0000 0.0000 0 100 ""]
 
 	)
 
-Element["" "" "R3" "" 2800.00mil 750.00mil 21.00mil -103.00mil 0 100 ""]
-(
-	Pin[0.0000 0.0000 60.00mil 30.00mil 60.00mil 28.00mil "" "1" "edge2"]
-	Pin[300.00mil 0.0000 60.00mil 30.00mil 60.00mil 28.00mil "" "2" "edge2"]
-	ElementLine [50.00mil 0.0000 90.00mil 0.0000 10.00mil]
-	ElementLine [90.00mil -40.00mil 90.00mil 40.00mil 10.00mil]
-	ElementLine [90.00mil -40.00mil 210.00mil -40.00mil 10.00mil]
-	ElementLine [210.00mil -40.00mil 210.00mil 40.00mil 10.00mil]
-	ElementLine [90.00mil 40.00mil 210.00mil 40.00mil 10.00mil]
-	ElementLine [210.00mil 0.0000 250.00mil 0.0000 10.00mil]
-
-	)
-
 Element["" "Transistor" "" "TO92" 3000.00mil 975.00mil 10.00mil -130.00mil 0 100 ""]
 (
 	Pin[200.00mil 0.0000 72.00mil 30.00mil 78.00mil 42.00mil "1" "1" "square,edge2"]
@@ -1061,6 +1048,19 @@ Element["" "Axial diode (pin 1 is cathode)" "" "ALF300" 70.00mil 1065.00mil -50.
 	ElementLine [-50.00mil -200.00mil 50.00mil -200.00mil 10.00mil]
 	ElementLine [50.00mil -200.00mil 0.0000 -100.00mil 10.00mil]
 	ElementLine [-50.00mil -100.00mil 50.00mil -100.00mil 10.00mil]
+
+	)
+
+Element["" "" "R3" "" 2900.00mil 750.00mil 21.00mil -103.00mil 0 100 ""]
+(
+	Pin[0.0000 0.0000 60.00mil 30.00mil 60.00mil 28.00mil "" "1" "edge2"]
+	Pin[300.00mil 0.0000 60.00mil 30.00mil 60.00mil 28.00mil "" "2" "edge2"]
+	ElementLine [50.00mil 0.0000 90.00mil 0.0000 10.00mil]
+	ElementLine [90.00mil -40.00mil 90.00mil 40.00mil 10.00mil]
+	ElementLine [90.00mil -40.00mil 210.00mil -40.00mil 10.00mil]
+	ElementLine [210.00mil -40.00mil 210.00mil 40.00mil 10.00mil]
+	ElementLine [90.00mil 40.00mil 210.00mil 40.00mil 10.00mil]
+	ElementLine [210.00mil 0.0000 250.00mil 0.0000 10.00mil]
 
 	)
 Layer(1 "top" "copper")
@@ -1339,11 +1339,9 @@ Layer(6 "bottom" "copper")
 	Line[1715.00mil 1195.00mil 1685.00mil 1165.00mil 25.00mil 20.00mil "clearline"]
 	Line[1710.00mil 1190.00mil 1715.00mil 1195.00mil 25.00mil 20.00mil "clearline"]
 	Line[1715.00mil 1195.00mil 2470.00mil 1195.00mil 25.00mil 20.00mil "clearline"]
-	Line[2800.00mil 975.00mil 2800.00mil 750.00mil 25.00mil 20.00mil "clearline"]
-	Line[2800.00mil 750.00mil 2950.00mil 750.00mil 25.00mil 20.00mil "clearline"]
-	Line[2950.00mil 750.00mil 3100.00mil 900.00mil 25.00mil 20.00mil "clearline"]
+	Line[2900.00mil 750.00mil 2950.00mil 750.00mil 25.00mil 20.00mil "clearline"]
 	Line[3100.00mil 900.00mil 3100.00mil 975.00mil 25.00mil 20.00mil "clearline"]
-	Line[3100.00mil 750.00mil 3200.00mil 850.00mil 25.00mil 20.00mil "clearline"]
+	Line[3200.00mil 750.00mil 3200.00mil 850.00mil 25.00mil 20.00mil "clearline"]
 	Line[3200.00mil 850.00mil 3200.00mil 1075.00mil 25.00mil 20.00mil "clearline"]
 	Line[3200.00mil 1075.00mil 3050.00mil 1225.00mil 25.00mil 20.00mil "clearline"]
 	Line[72.2960mm 1365.00mil 72.2960mm 32.4790mm 25.00mil 20.00mil "clearline"]
@@ -1353,6 +1351,12 @@ Layer(6 "bottom" "copper")
 	Line[2700.00mil 975.00mil 2690.00mil 975.00mil 25.00mil 20.00mil "clearline"]
 	Line[2690.00mil 975.00mil 2470.00mil 1195.00mil 25.00mil 20.00mil "clearline"]
 	Line[2470.00mil 1195.00mil 2440.00mil 1195.00mil 25.00mil 20.00mil "clearline"]
+	Line[2800.00mil 975.00mil 2800.00mil 795.00mil 25.00mil 20.00mil "clearline"]
+	Line[2800.00mil 795.00mil 2845.00mil 750.00mil 25.00mil 20.00mil "clearline"]
+	Line[2845.00mil 750.00mil 2895.00mil 750.00mil 25.00mil 20.00mil "clearline"]
+	Line[3100.00mil 920.00mil 3100.00mil 790.00mil 25.00mil 20.00mil "clearline"]
+	Line[3100.00mil 790.00mil 3060.00mil 750.00mil 25.00mil 20.00mil "clearline"]
+	Line[3060.00mil 750.00mil 2940.00mil 750.00mil 25.00mil 20.00mil "clearline"]
 	Text[84.2977mm 17.7080mm 3 100 "V.2.2.0" "clearline,onsolder"]
 	Text[84.3301mm 31.7868mm 3 100 "BUSYLIGHT SHIELD" "clearline,onsolder"]
 )
@@ -1577,12 +1581,12 @@ Layer(10 "top silk" "silk")
 	Text[2600.00mil 1445.00mil 0 100 "GND" "clearline"]
 	Text[2925.00mil 1085.00mil 0 100 "Q0 BC547" "clearline"]
 	Text[2625.00mil 800.00mil 0 100 "C1 100uF" "clearline"]
-	Text[2905.00mil 645.00mil 0 100 "10K" "clearline"]
 	Text[2975.00mil 870.00mil 0 100 "E" "clearline"]
 	Text[3205.00mil 870.00mil 0 100 "C" "clearline"]
 	Text[3210.00mil 1400.00mil 1 188 "B" "clearline"]
 	Text[80.1296mm 32.3306mm 1 100 "S/N" "clearline"]
 	Text[45.00mil 1125.00mil 0 100 "D0" "clearline"]
+	Text[3105.00mil 645.00mil 0 100 "10K" "clearline"]
 	Polygon("clearpoly")
 	(
 		[3220.00mil 1030.00mil] [3330.00mil 1030.00mil] [3330.00mil 1340.00mil] [3220.00mil 1340.00mil] 
