@@ -2617,28 +2617,42 @@ int  play_sequence_idx = 0;
 bool play_loop = false;
 #endif
 
+void append_morse_char_notes(const char *morse_char)
+{
+    for (const char *c = morse_char; *c != '\0' && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH; c++) {
+        if (*c == '@') {
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dit / 10) & 0x00ff);
+        } else if (*c == '=') {
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dah / 10) & 0x00ff);
+        }
+        if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((intrachar_audio / 10) & 0x00ff);
+    }
+    if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+        play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interchar / 10) & 0x00ff);
+}
+
 void send_morse(byte led, const char *text, int maxlen)
 {
+    int src_i;
+
     if (led == STATUS_LED_OFF) {
 #if HAS_SPEAKER
         play_stop();
-        // MAX_PLAY_SEQUENCE_LENGTH - 17 allows room for all the elements in a character
-        for (int src_i=0, play_sequence_idx=0; src_i<maxlen && text[src_i] != '\0' && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH-17; src_i++) {
+        //                                                                                 __
+        // MAX_PLAY_SEQUENCE_LENGTH - 33 allows room for all the elements in a character + SK
+        for (src_i=0, play_sequence_idx=0; src_i<maxlen && text[src_i] != '\0' && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH-33; src_i++) {
             if (text[src_i] == ' ') {
-                play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+                if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+                    play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
             }
             else if (*morse[text[src_i]] != '\0') {
-                for (const char *c = morse[text[src_i]]; *c != '\0'; c++) {
-                    if (*c == '@') {
-                        play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dit / 10) & 0x00ff);
-                    } else if (*c == '=') {
-                        play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dah / 10) & 0x00ff);
-                    }
-                    play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((intrachar_audio / 10) & 0x00ff);
-                }
-                play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+                append_morse_char_notes(morse[text[src_i]]);
             }
         }
+        if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+        append_morse_char_notes(morse[ps_SK]);
         play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
         play_start();
 #endif
@@ -2655,7 +2669,7 @@ void send_morse(byte led, const char *text, int maxlen)
         }
         else {
             send_morse_char(led, text[i] & 0x7f);
-            delay(interchar);
+            delay(intrachar_light);
         }
     }
     delay(interword);
