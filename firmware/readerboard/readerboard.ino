@@ -246,7 +246,7 @@ const int PIN_SPKR  =  5;   // PWM output driving speaker
 //const int PIN_SPKR = 5;
 #endif
 #ifdef SN_RB0000
-# define HAS_SPEAKER (false)
+# define HAS_SPEAKER (true)
 # define HAS_TONE_SUPPORT (false)
 #endif
 
@@ -2344,6 +2344,60 @@ void debug_hw_buffer(void)
     }
 }
 
+void debug_bytes(const char *title, const byte *data, int length)
+{
+    char dbuf[32];
+    int i;
+
+    Serial.write(title);
+    Serial.write("\r\n");
+    for (int addr = 0; addr < length; addr += 16) {
+        sprintf(dbuf, "%08X: ", addr);
+        Serial.write(dbuf);
+        for (i = 0; i < 16; i++) {
+            if (addr+i < length) {
+                sprintf(dbuf, "%02X ", data[addr + i]);
+                Serial.write(dbuf);
+            } else {
+                Serial.write("   ");
+            }
+        }
+        Serial.write(" |");
+        for (i = 0; i < 16; i++) {
+            if (addr+i < length) {
+                Serial.write(data[addr + i] >= ' ' && data[addr + i] <= '~' ? data[addr+i] : '.');
+            } else {
+                Serial.write(' ');
+            }
+        }
+        Serial.write("|\r\n");
+    }
+}
+
+void debug_words(const char *title, const word *data, int length)
+{
+    char dbuf[32];
+    int i;
+
+    Serial.write(title);
+    Serial.write("\r\n");
+    sprintf(dbuf, "@%08X\r\n", data);
+    Serial.write(dbuf);
+    for (int addr = 0; addr < length; addr += 16) {
+        sprintf(dbuf, "%08X: ", addr);
+        Serial.write(dbuf);
+        for (i = 0; i < 16; i++) {
+            if (addr+i < length) {
+                sprintf(dbuf, "%04X ", data[addr + i]);
+                Serial.write(dbuf);
+            } else {
+                Serial.write("     ");
+            }
+        }
+        Serial.write("\r\n");
+    }
+}
+
 void shift_left(byte buffer[N_ROWS][N_COLS])
 {
     for (int col=0; col < N_COLS - 1; col++) {
@@ -2558,8 +2612,9 @@ const word PLAY_NOTE_B0 =(0xc200);
 const word PLAY_NOTE_C5 =(0x2300);
 const word PLAY_NOTE_REST =(0x0000);
 const word PLAY_END_OF_SEQUENCE = (0xf800);
-word play_sequence[MAX_PLAY_SEQUENCE_LENGTH];
+word play_sequence[MAX_PLAY_SEQUENCE_LENGTH+1];
 int  play_sequence_idx = 0;
+bool play_loop = false;
 #endif
 
 void send_morse(byte led, const char *text, int maxlen)
@@ -2664,15 +2719,18 @@ void play_init(void)
 
 void play_sound(bool repeat, const byte *sequence, int sequence_length)
 {
+    int i;
     play_stop();
+    play_loop = false;
 
     // truncate to even number of bytes
     sequence_length &= ~1;
     if (sequence_length > 0) {
-        for (int i=0, play_sequence_idx=0; i < sequence_length && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH; i+=2) {
+        for (i=0, play_sequence_idx=0; i < sequence_length && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH; i+=2) {
             play_sequence[play_sequence_idx++] = (sequence[i] << 8) | (sequence[i+1] & 0xff);
         }
         play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
+        play_loop = repeat;
         play_start();
     }
 }
@@ -2765,8 +2823,12 @@ void sound_player(void)
         return;
     }
     if (++play_sequence_idx >= MAX_PLAY_SEQUENCE_LENGTH || play_sequence[play_sequence_idx] == PLAY_END_OF_SEQUENCE) {
-        play_stop();
-        return;
+        if (play_loop) {
+            play_sequence_idx = 0;
+        } else {
+            play_stop();
+            return;
+        }
     }
 # if HAS_TONE_SUPPORT
     if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_B0) {
@@ -2791,6 +2853,7 @@ void sound_player(void)
     }
 # endif
     sound_timer.setPeriod((play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    sound_timer.reset();
 }
 
 void play_start(void)

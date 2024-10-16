@@ -1263,6 +1263,11 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         else if (inputchar == '#') {
             buffer[buffer_idx-1] |= 0x40;
         }
+        else if (buffer[buffer_idx-1] == 0b00000010 && inputchar == '0') {
+            // special case for note B0
+            buffer[buffer_idx-1] = 0b11000010;
+            state = BeepDurationState;
+        }
         else if (inputchar >= '1' && inputchar <= '8') {
             buffer[buffer_idx-1] |= (((inputchar - '1') << 3) & 0x38);
             state = BeepDurationState;
