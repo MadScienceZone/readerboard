@@ -36,10 +36,20 @@
 }
 \thispagestyle{empty}
 	\begin{center}
-		\Huge Readerboard \\ User's Guide \\
-		WORKING\\DRAFT
+		{\Huge Readerboard and Busylight \\ User's Guide}
+
+		\bigskip
+
+		{\large Includes details on assembly, installation, and programming these messaging units.}
+
 	\end{center}
 
+\vfill
+\begin{center}
+\includegraphics[width=\textwidth]{images/readerboard_photo.png}
+
+\includegraphics[width=.5\textwidth]{images/busylight_photo.png}
+\end{center}
 \vfill
 %\end{flushright}
 \newpage
@@ -62,7 +72,7 @@ materials are suitable for your purpose and function as expected.
 
 \begin{center}\bfseries
 	For Readerboard hardware (\acronym{PCB}) version 3.4.1, 
-	Busylight hardware version 2.2 (light tree version 1.1), and firmware version 2.1.4.
+	Busylight hardware version 2.2 (light tree version 1.1), and firmware version 2.3.7.
 \end{center}
 
 \strut\vfill
@@ -914,7 +924,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{test}&\z{\%} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
 			\z{configure-device}&\z{=} & Set operational parameters &[4] [5]\\
-			\z{diag-banners}&\z{=*=}&Display POST banners&\\
+			\z{diag-banners}&\z{=*}&Display POST banners&\\
 			\z{save}&\z{=\&}&Persist Settings in EEPROM&\\
 			&\z{=\#}&Set serial number & [4] [5]\\
 			\z{move}&\z{@} & Move current column cursor & \\
@@ -1155,7 +1165,7 @@ This command may only be sent over the \acronym{USB} port.
 The serial number may be arbitrary alphanumeric text of up to six characters.
 Numbers \z{RB0000}--\z{RB0299} and \z{B00000}--\z{B00299} are reserved for use by the author.
 
-\section{\z{=*=}---Display POST Banners}
+\section{\z{=*}---Display POST Banners}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
 	\bitheader{0-2} \\
@@ -1620,7 +1630,7 @@ value from \z{00}$_{16}$ (fully off) to \z{FF}$_{16}$ (fully on). (In the \acron
 The specific lamp to adjust is given by \Var*{led}, and can have any of the values shown in Table~\ref{tbl:lightcodes} to dim one of the
 discrete status \led s, or ``\z{\_}'' to dim the matrix \led s, or ``\z{*}'' to dim all the discrete status \led s to the same value.
 
-Not all \led s are dimmable, depending on the hardware configuration. All \led s on readerboard models from revision 3.\Var{x} and after. On the busylight
+Not all \led s are dimmable, depending on the specific hardware capabilities. All \led s on readerboard models from revision 3.\Var{x} and after. On the busylight
 hardware, only the third, fifth, and seventh, \led\ tiers (usually assigned amber, red, and white colors) are dimmable.
 
 Note that the readerboards were designed to run best at full brightness. Dimming the matrix display too much may result in the display
@@ -3156,9 +3166,9 @@ to codes with a digit that matches the light number. For example, for a three-co
 Move on to the version number banners.
 
 \begin{SourceCode}
-#define BANNER_HARDWARE_VERS "HW 3.2.3  "
-#define BANNER_FIRMWARE_VERS "FW 2.1.4  "
-#define SERIAL_VERSION_STAMP "V3.2.3$R2.1.4$"
+#define BANNER_HARDWARE_VERS "HW 3.4.1  "
+#define BANNER_FIRMWARE_VERS "FW 2.3.7  "
+#define SERIAL_VERSION_STAMP "V3.4.1$R2.3.7$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
