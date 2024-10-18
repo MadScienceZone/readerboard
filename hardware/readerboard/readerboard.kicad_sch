@@ -7787,16 +7787,6 @@
 	)
 	(wire
 		(pts
-			(xy 332.74 151.13) (xy 278.13 151.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "159fa85b-a3f0-41d9-9b24-1403a2eb2427")
-	)
-	(wire
-		(pts
 			(xy 276.225 168.91) (xy 243.84 168.91)
 		)
 		(stroke
@@ -7874,16 +7864,6 @@
 			(type default)
 		)
 		(uuid "1913b6d5-2de9-4154-b27f-8b35e1103f03")
-	)
-	(wire
-		(pts
-			(xy 340.36 151.13) (xy 341.63 151.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "19228612-1926-418b-871d-f849294274a2")
 	)
 	(wire
 		(pts
@@ -9547,6 +9527,16 @@
 	)
 	(wire
 		(pts
+			(xy 278.13 151.13) (xy 293.37 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8df80fa6-6af6-4303-b90b-400d853bf745")
+	)
+	(wire
+		(pts
 			(xy 319.405 166.37) (xy 329.565 166.37)
 		)
 		(stroke
@@ -10144,6 +10134,16 @@
 			(type default)
 		)
 		(uuid "b12f68d2-0771-4b1b-8a9a-fa553510deb7")
+	)
+	(wire
+		(pts
+			(xy 300.99 151.13) (xy 312.42 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b178f1a0-4030-49ba-ac31-24df7f36c1d0")
 	)
 	(wire
 		(pts
@@ -10824,6 +10824,16 @@
 			(type default)
 		)
 		(uuid "e8add834-e0f3-41b2-bae5-026a3fa4be36")
+	)
+	(wire
+		(pts
+			(xy 320.04 151.13) (xy 341.63 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e8cbc16f-13de-4b66-8e52-0298912d2acc")
 	)
 	(wire
 		(pts
@@ -11823,6 +11833,16 @@
 			(justify left bottom)
 		)
 		(uuid "62c6f0dc-1865-4ec3-a3e6-3205f7ce4da3")
+	)
+	(text "Optional series resistor\n(or jumper wire)"
+		(exclude_from_sim no)
+		(at 317.5 146.05 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "656f9875-5eba-40f3-80ea-c884dc10c7bd")
 	)
 	(text "A3 CABLE CHECK SEND IN"
 		(exclude_from_sim no)
@@ -14530,6 +14550,73 @@
 			(project "matrix64x8_rgb"
 				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
 					(reference "#PWR022")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Polarized_US")
+		(at 297.18 151.13 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "21e89503-656f-4b9f-8887-6a0f7e345d18")
+		(property "Reference" "C13"
+			(at 297.18 144.78 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "100μF"
+			(at 297.18 147.32 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 297.18 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 297.18 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Polarized capacitor, US symbol"
+			(at 297.18 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "e1919cfc-7f96-4296-b512-f18eba6ceeb7")
+		)
+		(pin "1"
+			(uuid "9373085f-e995-4e96-96f2-b99cc2324a84")
+		)
+		(instances
+			(project "readerboard"
+				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
+					(reference "C13")
 					(unit 1)
 				)
 			)
@@ -17380,6 +17467,75 @@
 	)
 	(symbol
 		(lib_id "Device:R_US")
+		(at 316.23 151.13 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "7434577d-14d5-452e-8481-a9857068f2b3")
+		(property "Reference" "R55"
+			(at 316.23 146.05 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "R_US"
+			(at 316.23 147.32 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" ""
+			(at 316.484 150.114 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 316.23 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 316.23 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "4f57c3ec-baab-4b4a-b28c-a9bb699ad241")
+		)
+		(pin "2"
+			(uuid "cfbd1995-3f67-45c9-8e73-d7d44b20ab7f")
+		)
+		(instances
+			(project "readerboard"
+				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
+					(reference "R55")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_US")
 		(at 226.314 198.882 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19476,73 +19632,6 @@
 			(project "matrix64x8_rgb"
 				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
 					(reference "#PWR013")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:C_Polarized_US")
-		(at 336.55 151.13 270)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "c12c312e-97ad-44da-9ab7-30b85f1d8718")
-		(property "Reference" "C13"
-			(at 336.55 144.78 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "100μF"
-			(at 336.55 147.32 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 336.55 151.13 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 336.55 151.13 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Polarized capacitor, US symbol"
-			(at 336.55 151.13 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "f0751ab5-9b10-4fec-be0b-fb9c72c1594b")
-		)
-		(pin "1"
-			(uuid "f2c7f39c-19e8-4248-9bfb-4fc9c032368e")
-		)
-		(instances
-			(project ""
-				(path "/68206880-187a-441b-ad1d-285a8d6fa444"
-					(reference "C13")
 					(unit 1)
 				)
 			)
