@@ -71,10 +71,11 @@
 //  |SetRspd| |SetSN2|      |  A    __________  n
 //  |_______| |______|      +----->|SelectFont|-----> END
 //    | speed   |#          |      |__________|
-//   _V_____   _V____       |           ____
-//  |SetDg  | |SetSN3|      |  F    ___|_   |led
-//  |_______| |______|      +----->|Flash|<-+      $
-//    | Addr    |=          |      |_____|----------> END
+//   _V_____   _V____       |                                                                                              ____
+//  |SetDg  | |SetSN3|      |  F    __________ /   ___________ i   ___________ i   _____________ i   ____________ i    ___|_   |led
+//  |_______| |______|      +----->|FlashTimes|-->|FlashTimeUp|-->|FlashTimeOn|-->|FlashTimeDown|-->|FlashTimeOff|--->|Flash|<-+      $
+//    | Addr    |=          |      |__________|---------------------------------------------------------------------->|_____|----------> END
+//    |         |           |                   *
 //    V         V           |  H    ________  n
 //   END       END          +----->|BarGraph|-------> END
 //                          |      |________|                                                         
@@ -83,8 +84,12 @@
 //                          |       ____V___    |rgb0-rgb6
 //                          |      |BarColor|___+    
 //                          |      |        |------------------> END
-//                          |      |________|     rgb7
-//                          |
+//                          |      |________|     rgb7       ______
+//                          |                               |      |nybble1
+//                          |  D    _________  led  ________V__    |
+//                          +----->|DimmerLED|---->|DimmerLevel|---+
+//                          |      |_________|     |___________|-------------> END
+//                          |                                    nybble2
 //                          |                                                                          ____
 //                          |  I    __________ merge   ________ pos     _______________ trans  _______|_   |nybble (x3)
 //                          +----->|ImageMerge|------>|ImageCol|------>|ImageTransition|----->|ImageData|<-+    $
@@ -108,8 +113,22 @@
 //                          |
 //                          |  K    ________  rgb
 //                          +----->|SetColor|--------> END
-//                                 |________|
-//
+//                          |      |________|
+//                          |  M    ________       _________   char
+//                          +----->|MorseLED|led  |MorseText|--+
+//                          |      |        |---->|         |<-+         ESC
+//                          |      |________|     |_________|----------------> END
+//                          |                                              1-8
+//                          |                                            +----------------------------------+    +-------+
+//                          |  B    ________ .L   ________  A-G    ______|_______  B#   __________  1-8   __V____|____   | nybble1
+//                          +----->|BeepLoop|--->|BeepNote|------>|BeepAccidental|---->|BeepOctave|----->|BeepDuration|<-+
+//                                 |________|    |        | R     |______________|     |__________|      |            |
+//                                               |        |--------------------------------------------->|____________|
+//                                               |        |                                                      |nybble2
+//                                               |        |<-----------------------------------------------------+
+//                                               |________|---------> END
+//                                                           $/ESC
+//                                 
 // Recognized commands:
 //     <addr>         ::= <eint>          (device address)
 //     <align>        ::= '.' | '<' | '|' | '>' (.=none, <=left, |=center, >=right)
@@ -162,13 +181,13 @@
 //     'H' (<digit> | 'K' <rgb>*8)  Draw bar graph data point
 //     'I' <merge> <pos> <trans> <col>* $ <col>* $ <col>* $
 //                                  Draw bitmap image starting at <pos>
-//::   'K' <rgb>                    Change current color
+//     'K' <rgb>                    Change current color
 //     'Q'                          Query status (replies with <qreply>)
-//::   '<' <loop> <string> ESCAPE   Scroll <string> across display, optionally looping repeatedly.
-//::   'T' <merge> <align> <trans> <string>* ESCAPE 
-//::                                Print string in current font from current cursor position
-//::   '@' <pos>                    Move cursor to specified column number
-//::   'A' <digit>                  Select font
+//     '<' <loop> <string> ESCAPE   Scroll <string> across display, optionally looping repeatedly.
+//     'T' <merge> <align> <trans> <string>* ESCAPE 
+//                                  Print string in current font from current cursor position
+//     '@' <pos>                    Move cursor to specified column number
+//     'A' <digit>                  Select font
 //     '%'                          Run test pattern set
 //     '=' <addr> <uspd> <rspd> <glob>
 //
@@ -192,15 +211,31 @@ private:
         CollectAddressState,
         StartState,
         SetState,
+        SetPersistState,
+        SetPersistConfirmState,
         SetUspdState,
         SetRspdState,
         SetDgState,
         StrobeState, 
         FlashState, 
+        FlashTimeState,
+        FlashTimeUpState,
+        FlashTimeOnState,
+        FlashTimeDownState,
+        FlashTimeOffState,
         LightOnState, 
         SetSNState,
         SetSN2State,
         SetSN3State,
+        MorseTextState,
+        MorseLEDState,
+        BeepLoopState,
+        BeepNoteState,
+        BeepAccidentalState,
+        BeepOctaveState,
+        BeepDurationState,
+        DimmerLEDState,
+        DimmerLevelState,
 #if IS_READERBOARD
         ScrollState,
         ScrollTextState,
@@ -218,11 +253,12 @@ private:
         ImageStateMerge,
         ImageStateTransition,
         LightSetState,
-        ShowBannerState,
 #endif
+        ShowBannerState,
     } state;
     byte LEDset;
     byte command_in_progress;
+    bool repeat;
 #if IS_READERBOARD
     bool merge;
     TransitionEffect transition;
@@ -230,9 +266,8 @@ private:
     byte column;
     byte font;
     byte color;
-    bool repeat;
-    bool nybble;
 #endif
+    bool nybble;
     byte buffer[CSM_BUFSIZE];
     byte buffer_idx;
     byte bytebuf;
@@ -244,8 +279,8 @@ private:
 
 public:
     void accept(serial_source_t source, int inputchar);
-#if IS_READERBOARD
     bool accept_hex_nybble(int inputchar);
+#if IS_READERBOARD
     bool accept_encoded_pos(int inputchar);     // 6-bit position or ~ for current
     bool accept_encoded_rgb(int inputchar);     // 4-bit color code
     bool accept_encoded_transition(int inputchar);
@@ -255,6 +290,7 @@ public:
     bool accept_encoded_int6(int inputchar);    // 6-bit unsigned integer
     void begin(void);
     void report_state(bool);
+    void report_dimmer_state(void);
     void reset(void);
 	void end_cmd(void);
     void set_lights(byte lights);
@@ -377,7 +413,6 @@ void CommandStateMachine::append_byte(byte n)
 //   If an error is encountered, the state machine is reset with an error condition, which
 //   should interrupt whatever operation was in progress automatically.
 //
-#if IS_READERBOARD
 bool CommandStateMachine::accept_hex_nybble(int inputchar)
 {
     byte val;
@@ -402,7 +437,6 @@ bool CommandStateMachine::accept_hex_nybble(int inputchar)
     nybble = true;
     return false;
 }
-#endif
 
 //
 // (CSM) end_cmd()
@@ -580,6 +614,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             strober.stop();
             break;
 
+        case 'B':
+            state = BeepLoopState;
+            break;
+
 #if IS_READERBOARD
         case 'C':
             clear_all_buffers();
@@ -589,17 +627,18 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #endif
 
         case '=':
-            if (source != FROM_USB) {
-                error();
-                break;
-            }
             state = SetState;
             break;
+
+        case 'M':
+          state = MorseLEDState;
+          break;
 
 #if IS_READERBOARD
         case '<':
           state = ScrollState;
           break;
+
 
         case '@':
             state = SetColState;
@@ -618,6 +657,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             break;
 #endif
 
+        case 'D':
+            state = DimmerLEDState;
+            break;
+
         case 'Q':
             if (!target_is_global) {
                 void (*sendbyte)(byte);
@@ -631,6 +674,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 }
 
                 sendbyte('Q');
+                sendbyte('0');  // RESPONSE FORMAT Q0
 #if HW_MODEL == MODEL_3xx_MONOCHROME
                 sendbyte('M');
 #elif HW_MODEL == MODEL_3xx_RGB
@@ -655,6 +699,15 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 #else
                 sendbyte('I');
 #endif
+#if HAS_SPEAKER
+# if HAS_TONE_SUPPORT
+                sendbyte('T');
+# else
+                sendbyte('S');
+# endif
+#else
+                sendbyte('_');
+#endif
                 sendbyte('$');
                 for (const char *c = SERIAL_VERSION_STAMP; *c != '\0'; c++) {
                     sendbyte(*c);
@@ -665,6 +718,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 }
                 sendbyte('$');
                 report_state(false);
+                report_dimmer_state();
 #if IS_READERBOARD
                 sendbyte('M');
                 for (int plane=0; plane<N_COLORS; plane++) {
@@ -696,7 +750,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
         case 'F':
         case 'f':
-            state = FlashState;
+            state = FlashTimeState;
             flasher.stop();
             break;
 
@@ -751,11 +805,60 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         break;
 //
 //    // Collecting LED numbers to form a flash or strobe sequence
+    case FlashTimeUpState:
+        state = FlashTimeOnState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeOnState:
+        state = FlashTimeDownState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeDownState:
+        state = FlashTimeOffState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeOffState:
+        state = FlashState;
+        if (accept_encoded_int6(inputchar)) {
+            append_bytebuf();
+        } else {
+            error();
+        }
+        break;
+
+    case FlashTimeState:
+        if (inputchar == '/') {
+            state = FlashTimeUpState;
+            break;
+        }
+        state = FlashState;
+        /* FALLTHRU */
+
     case FlashState:
     case StrobeState:
         if (inputchar == '$' || inputchar == '\x1b') {
             discrete_all_off(false);
             if (state == FlashState) {
+                if (buffer_idx == 4) {
+                    flasher.SetTiming(buffer[0], buffer[1], buffer[2], buffer[3]);
+                } else {
+                    flasher.DefaultTiming();
+                }
                 flasher.start();
             }
             else {
@@ -775,16 +878,22 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
     // Set operational parameters
     case SetState:
-        if (inputchar == '#') {
-            state = SetSNState;
-            break;
-        }
-#if IS_READERBOARD
         if (inputchar == '*') {
             state = ShowBannerState;
             break;
         }
-#endif
+        if (inputchar == '&') {
+            state = SetPersistState;
+            break;
+        }
+        if (source != FROM_USB) {
+            error();
+            break;
+        }
+        if (inputchar == '#') {
+            state = SetSNState;
+            break;
+        }
         state = SetUspdState;
         if (inputchar == '.') {
             append_byte(EE_ADDRESS_DISABLED);
@@ -796,7 +905,23 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         break;
 
-#if IS_READERBOARD
+    case SetPersistState:
+        if (inputchar == 'D') {
+            state = SetPersistConfirmState;
+        } else {
+            error();
+        }
+        break;
+
+    case SetPersistConfirmState:
+        if (inputchar == '=') {
+            store_dimmer_levels();
+            end_cmd();
+        } else {
+            error();
+        }
+        break;
+
     case ShowBannerState:
         if (inputchar == '=') {
             show_banner();
@@ -805,7 +930,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             error();
         }
         break;
-#endif
 
     case SetSNState:
         if (inputchar == '\033' || inputchar == '$') {
@@ -1057,6 +1181,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             error();
         break;
 
+
     case ScrollTextState:
         if (inputchar == '\x1b') {
             append_byte(0);
@@ -1069,7 +1194,121 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         if (inputchar != '\0')
             append_byte(inputchar);
         break;
-#endif
+#endif /* IS_READERBOARD */
+
+   case MorseLEDState:
+        append_byte(parse_led_name(inputchar));
+        state = MorseTextState;
+        break;
+
+    case MorseTextState:
+        if (inputchar == '\x1b') {
+            append_byte(0);
+            send_morse(buffer[0], (const char *)buffer+1, CSM_BUFSIZE);
+            end_cmd();
+            break;
+        }
+        if (inputchar != '\0')
+            append_byte(inputchar);
+        break;
+
+        // repeat = loop            7  6  5  4  3  2  1  0
+        // 0 | Note           |-->| b| #|octave-1|  note  |     0=rest, 1=A ... 7=G
+        //                          1| 1| 0  0  0| 0  1  0|     special code for B0
+        //                          1| 1| x  x  x| x  x  x|     Otherswise 11xxxxxx is invalid
+        // 1 | Duration       |   |      duration         |
+        // :       :                 
+    case BeepLoopState:
+        state = BeepNoteState;
+        if (inputchar == '.')
+            repeat = false;
+        else if (inputchar == 'L')
+            repeat = true;
+        else 
+            error();
+        break;
+        
+    case BeepNoteState:
+        state = BeepAccidentalState;
+        switch (inputchar) {
+            case 'A': case 'a': append_byte(1); break;
+            case 'B': case 'b': append_byte(2); break;
+            case 'C': case 'c': append_byte(3); break;
+            case 'D': case 'd': append_byte(4); break;
+            case 'E': case 'e': append_byte(5); break;
+            case 'F': case 'f': append_byte(6); break;
+            case 'G': case 'g': append_byte(7); break;
+            case 'R': case 'r': 
+                append_byte(0); 
+                state = BeepDurationState;
+                break;
+
+            case '$':
+            case 0x1b:
+                play_sound(repeat, buffer, buffer_idx);
+                end_cmd();
+                break;
+
+            default:
+                error();
+                break;
+        }
+        break;
+
+    case BeepAccidentalState:
+        state = BeepOctaveState;
+        if (inputchar == 'b' || inputchar == 'B') {
+            buffer[buffer_idx-1] |= 0x80;
+        }
+        else if (inputchar == '#') {
+            buffer[buffer_idx-1] |= 0x40;
+        }
+        else if (buffer[buffer_idx-1] == 0b00000010 && inputchar == '0') {
+            // special case for note B0
+            buffer[buffer_idx-1] = 0b11000010;
+            state = BeepDurationState;
+        }
+        else if (inputchar >= '1' && inputchar <= '8') {
+            buffer[buffer_idx-1] |= (((inputchar - '1') << 3) & 0x38);
+            state = BeepDurationState;
+        }
+        else {
+            error();
+        }
+        break;
+
+    case BeepOctaveState:
+        state = BeepDurationState;
+        if (inputchar >= '1' && inputchar <= '8') {
+            buffer[buffer_idx-1] |= (((inputchar - '1') << 3) & 0x38);
+        }
+        else {
+            error();
+        }
+        break;
+
+    case BeepDurationState:
+        if (accept_hex_nybble(inputchar)) {
+            state = BeepNoteState;
+            append_bytebuf();
+        }
+        break;
+
+    case DimmerLEDState:
+        if (inputchar == '*') {
+            append_byte(STATUS_LED_ALL);
+        } else {
+            append_byte(parse_led_name(inputchar));
+        }
+        state = DimmerLevelState;
+        break;
+
+    case DimmerLevelState:
+        if (accept_hex_nybble(inputchar)) {
+            set_dimmer_value(buffer[0], bytebuf);
+            end_cmd();
+        }
+        break;
 
     default:
         error();
@@ -1086,20 +1325,21 @@ void CommandStateMachine::report_state(bool terminate)
     void (*send_byte)(byte);
     void (*send_end)(void);
 
-    Stream *port;
-
     if (cmd_source == FROM_485) {
-        start_485_reply();
+        if (terminate)
+            start_485_reply();
         send_byte = send_485_byte;
         send_end = end_485_reply;
     } else {
-        start_usb_reply();
+        if (terminate)
+            start_usb_reply();
         send_byte = send_usb_byte;
         send_end = end_usb_reply;
     }
 
     int i = 0;
     (*send_byte)('L');
+    (*send_byte)('0'); // Response format L0
     for (i = 0; i < LENGTH_OF(discrete_led_set); i++) {
         (*send_byte)(discrete_query(i) ? encode_led(i) : '_');
     }
@@ -1110,9 +1350,23 @@ void CommandStateMachine::report_state(bool terminate)
     (*send_byte)('S');
     strober.report_state(send_byte);
     (*send_byte)('$');
-    if (terminate) 
+    if (terminate) {
         (*send_byte)('\n');
-    (*send_end)();
+        (*send_end)();
+    }
+}
+
+void CommandStateMachine::report_dimmer_state(void)
+{
+    void (*send_byte)(byte);
+
+    if (cmd_source == FROM_485) {
+        send_byte = send_485_byte;
+    } else {
+        send_byte = send_usb_byte;
+    }
+
+    report_dimmer(send_byte);
 }
 
 //

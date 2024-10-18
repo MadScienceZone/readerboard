@@ -1,12 +1,15 @@
 /*
  ____  _____    _    ____  _____ ____  ____   ___    _    ____  ____  
-|  _ \| ____|  / \  |  _ \| ____|  _ \| __ ) / _ \  / \  |  _ \|  _ \ 
+|  _ \| ____|  / \  |  _ \| ____|  _ \| __ ) / _ \  / \  |  _ \|  _ \
 | |_) |  _|   / _ \ | | | |  _| | |_) |  _ \| | | |/ _ \ | |_) | | | |
 |  _ <| |___ / ___ \| |_| | |___|  _ <| |_) | |_| / ___ \|  _ <| |_| |
 |_| \_\_____/_/   \_\____/|_____|_| \_\____/ \___/_/   \_\_| \_\____/ 
                                                                       
 Libraries Required:
+    EEPROM 2.0
+	I2C_EEPROM 1.8.5
 	TimerEvent 0.5.0
+	Wire 1.0
 */
 
 
@@ -94,15 +97,21 @@ Libraries Required:
 #define B_STATUS_LED_COLOR_L6 ('W')
 //
 // TODO: Adjust these for your version and serial number
-#if HW_MODEL == MODEL_3xx_MONOCHROME || HW_MODEL == MODEL_3xx_RGB
 #define BANNER_HARDWARE_VERS "HW 3.2.2  "
-#define BANNER_FIRMWARE_VERS "FW 2.1.8  "
-#endif
-#define SERIAL_VERSION_STAMP "V3.2.2$R2.1.8$"
+#define BANNER_FIRMWARE_VERS "FW 2.3.7  "
+#define SERIAL_VERSION_STAMP "V3.2.2$R2.3.7$"
 //                             \___/  \___/
 //                               |      |
 //                  Hardware version    |
 //                         Firmware version
+//
+// Uncomment and adjust the following #define symbol ONLY IF
+// you built a non-standard unit with respect to whether it
+// has a speaker installed. If SPEAKER_INSTALLED is not defined
+// AT ALL, the default sound configuration will be assumed for
+// a unit of its type. The value is a boolean which is true
+// if a speaker is present on the device.
+//#define SPEAKER_INSTALLED (false)
 //
 //
 // Uncomment and adjust the following #define symbol ONLY IF
@@ -120,15 +129,16 @@ Libraries Required:
 
 // Some definitions for known prototype devices and their nonstandard hardware configurations
 //#define SN_B0001
-//#define SN_RB0000
+#define SN_RB0000
 
 #ifdef SN_B0001
 # define HW_MODEL (MODEL_BUSYLIGHT_1)
-# define SERIAL_VERSION_STAMP "V1.0.2$R2.1.8$"
+# define SERIAL_VERSION_STAMP "V1.0.2$R2.3.7$"
+# define BANNER_HARDWARE_VERS "HW 1.0.2  "
 # define HW_MC (HW_MC_PRO)
 #endif
 #ifdef SN_RB0000
-# define SERIAL_VERSION_STAMP "V3.2.2$R2.1.8$"
+# define SERIAL_VERSION_STAMP "V3.2.2$R2.3.7$"
 # define BANNER_HARDWARE_VERS "HW 3.2.2  "
 //# define BANNER_SERIAL_NUMBER "S/N RB0000"
 # define HW_MC (HW_MC_DUE)
@@ -241,13 +251,15 @@ extern byte my_device_address;
 extern byte global_device_address;
 extern int USB_baud_rate;
 extern int RS485_baud_rate;
+extern void send_morse(byte led, const char *text, int maxlen=0);
+extern void play_sound(bool repeat, const byte *sequence, int sequence_length);
 
 typedef enum {FROM_USB, FROM_485} serial_source_t;
 
 extern void store_serial_number(const char *sn);
 extern void discrete_all_off(bool stop_blinkers);
 extern bool discrete_query(byte lightno);
-extern void discrete_set(byte lightno, bool value);
+extern void discrete_set(byte lightno, bool value, byte fraction=255);
 extern byte encode_int6(byte n);
 extern byte encode_hex_nybble(byte n);
 extern int parse_baud_rate_code(byte code);
@@ -264,6 +276,10 @@ extern void end_usb_reply(void);
 extern void test_pattern(void);
 extern byte parse_led_name(byte ch);
 const byte STATUS_LED_OFF = 0xff;
+const byte STATUS_LED_ALL = 0xfe;
+extern void set_dimmer_value(byte led, byte level);
+extern void report_dimmer(void (*sendfunc)(byte));
+extern void store_dimmer_levels(void);
 
 // #define SERIAL_DEBUG
 // #define START_TEST_PATTERN

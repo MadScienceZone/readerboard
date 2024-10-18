@@ -53,9 +53,25 @@ void debug_hw_buffer(void);
 // $03 485 baud rate code
 // $04 device address
 // $05 global address
-// $06 0x4B (sentinel)
+// $06 serial number [0]       <-- EE_ADDR_SERIAL_NO
+// $07 serial number [1]                 |
+// $08 serial number [2]                 V +EE_LENGTH_SERIAL_NO
+// $09 serial number [3]
+// $0A serial number [4]
+// $0B serial number [5]
+// $0C serial number [6]
+// $0D matrix dimmer           <-- EE_ADDR_DIMMERS
+// $0E L0 dimmer                         |
+// $0F L1 dimmer                         V +EE_LENGTH_DIMMERS
+// $10 L2 dimmer
+// $11 L3 dimmer
+// $12 L4 dimmer
+// $13 L5 dimmer
+// $14 L6 dimmer
+// $15 L7 dimmer
+// $16 0x4B (sentinel)
 //
-#define EE_VALUE_LAYOUT (0)
+#define EE_VALUE_LAYOUT (1)
 #define EE_VALUE_SENTINEL (0x4b)
 
 #define EE_ADDR_SENTINEL  (0x00)
@@ -66,7 +82,9 @@ void debug_hw_buffer(void);
 #define EE_ADDR_GLOBAL_ADDR (0x05)
 #define EE_ADDR_SERIAL_NO (0x06)
 #define EE_LENGTH_SERIAL_NO (7)
-#define EE_ADDR_SENTINEL2  (EE_ADDR_SERIAL_NO+EE_LENGTH_SERIAL_NO)
+#define EE_ADDR_DIMMERS (EE_ADDR_SERIAL_NO + EE_LENGTH_SERIAL_NO)
+#define EE_LENGTH_DIMMERS (8)
+#define EE_ADDR_SENTINEL2  (EE_ADDR_DIMMERS + EE_LENGTH_DIMMERS)
 char serial_number[EE_LENGTH_SERIAL_NO] = "";
 
 /* I/O port to use for full 8-bit write operations to the sign board */
@@ -100,7 +118,7 @@ const int PIN_STATUS_LED = 13;
 // Hardware notes
 // DUE    MEGA                 READERBOARD              DUE    MEGA     PRO
 //                                                  LED 13~    13~
-//                                                      12~    12~
+//                                    SPEAKER           12~    12~      05
 //                                                      11~    11~
 //                                                      10~    10~
 //                                    L4                09~    09~      06
@@ -173,6 +191,21 @@ const int PIN_L6    =  7;   // discrete LED 6
 const int PIN_L7    =  6;   // discrete LED 7 (top) 
 const int PIN_DE    = 16;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   = 17;   // RS-485 ~receiver enable (0=enabled)
+const int PIN_SPKR  = 12;   // PWM output driving speaker
+# ifdef SPEAKER_INSTALLED
+#  define HAS_SPEAKER (SPEAKER_INSTALLED)
+# else
+#  define HAS_SPEAKER (true)
+# endif
+
+# if HAS_SPEAKER
+#  if HW_MC == HW_MC_DUE
+#   define HAS_TONE_SUPPORT (false)
+#  else
+#   define HAS_TONE_SUPPORT (true)
+# endif
+# endif
+
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_1xx
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
@@ -181,6 +214,7 @@ const int PIN_L3    =  8;   // discrete LED 3
 const int PIN_L4    =  6;   // discrete LED 4 
 const int PIN_L5    =  7;   // discrete LED 5 
 const int PIN_L6    = 10;   // discrete LED 6 (top)
+# define HAS_SPEAKER (false)
 #elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_2xx
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
@@ -191,11 +225,36 @@ const int PIN_L5    =  7;   // discrete LED 5
 const int PIN_L6    = 10;   // discrete LED 6 (top)
 const int PIN_DE    =  2;   // RS-485 driver enable (1=enabled)
 const int PIN__RE   =  3;   // RS-485 ~receiver enable (0=enabled)
+const int PIN_SPKR  =  5;   // PWM output driving speaker
+# ifdef SPEAKER_INSTALLED
+#  define HAS_SPEAKER (SPEAKER_INSTALLED)
+# else
+#  define HAS_SPEAKER (true)
+# endif
+
+# if HAS_SPEAKER
+#  define HAS_TONE_SUPPORT (false)
+# endif
+
 #else
 # error "HW_CONTROL_LOGIC not defined to supported model"
 #endif
 
+#ifdef SN_B0001
+# define HAS_SPEAKER (false)
+# define HAS_TONE_SUPPORT (false)
+//const int PIN_SPKR = 5;
+#endif
+#ifdef SN_RB0000
+# define HAS_SPEAKER (true)
+# define HAS_TONE_SUPPORT (false)
+#endif
+
 #if IS_READERBOARD
+byte matrix_brightness = 255;
+byte led_brightness[8] = {255, 255, 255, 255, 255, 255, 255, 255};
+bool led_state[8] = {false, false, false, false, false, false, false, false};
+const bool led_dimmable[8] = {true, true, true, true, true, true, true, true};
 const int discrete_led_set[8] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6, PIN_L7};
 const byte discrete_led_labels[8] = {
     R_STATUS_LED_COLOR_L0,
@@ -209,17 +268,12 @@ const byte discrete_led_labels[8] = {
 };
 const byte column_block_set[8] = {PIN_D0, PIN_D1, PIN_D2, PIN_D3, PIN_D4, PIN_D5, PIN_D6, PIN_D7};
 #else
+byte led_brightness[7] = {255, 255, 255, 255, 255, 255, 255};
+bool led_state[7] = {false, false, false, false, false, false, false};
+// The busylight only has PWM dimming on ports 6, 9, and 10, which corresponds to L2, L4, and L6.
+const bool led_dimmable[7] = {false, false, true, false, true, false, true};
 const int discrete_led_set[7] = {PIN_L0, PIN_L1, PIN_L2, PIN_L3, PIN_L4, PIN_L5, PIN_L6};
 const byte discrete_led_labels[7] = {
-# ifdef SN_B0001
-    '0',
-    '1',
-    'G',
-    'Y',
-    'R',
-    'r',
-    'B',
-# else
     B_STATUS_LED_COLOR_L0,
     B_STATUS_LED_COLOR_L1,
     B_STATUS_LED_COLOR_L2,
@@ -227,7 +281,6 @@ const byte discrete_led_labels[7] = {
     B_STATUS_LED_COLOR_L4,
     B_STATUS_LED_COLOR_L5,
     B_STATUS_LED_COLOR_L6,
-# endif
 };
 #endif
 
@@ -685,6 +738,15 @@ class LightBlinker {
     byte         cur_index;
     byte         sequence_length;
     byte         sequence[LED_SEQUENCE_LEN];
+
+    bool         custom_timings;
+    byte         cur_ramp_value;
+    enum {RAMP_UP, RAMP_ON, RAMP_DOWN, RAMP_OFF} ramp_stage;
+    unsigned int up_interval;
+    unsigned int on_interval;
+    unsigned int down_interval;
+    unsigned int off_interval;
+
     TimerEvent   timer;
 
 public:
@@ -696,6 +758,8 @@ public:
     void advance(void);
     void start(void);
     void report_state(void (*sendfunc)(byte));
+    void SetTiming(unsigned int up, unsigned int on, unsigned int down, unsigned int off);
+    void DefaultTiming(void);
 };
 
 LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(void))
@@ -707,6 +771,23 @@ LightBlinker::LightBlinker(unsigned int on, unsigned int off, void (*callback)(v
     sequence_length = 0;
     on_period = on;
     off_period = off;
+    custom_timings = false;
+}
+
+void LightBlinker::SetTiming(unsigned int up, unsigned int on, unsigned int down, unsigned int off)
+{
+    up_interval = up;
+    on_interval = on;
+    down_interval = down;
+    off_interval = off;
+    cur_ramp_value = 0;
+    ramp_stage = RAMP_UP;
+    custom_timings = true;
+}
+
+void LightBlinker::DefaultTiming(void)
+{
+    custom_timings = false;
 }
 
 int LightBlinker::length(void)
@@ -723,6 +804,13 @@ void LightBlinker::append(byte v)
 
 void LightBlinker::report_state(void (*sendfunc)(byte))
 {
+    if (custom_timings) {
+        (*sendfunc)('/');
+        (*sendfunc)(encode_int6(up_interval));
+        (*sendfunc)(encode_int6(on_interval));
+        (*sendfunc)(encode_int6(down_interval));
+        (*sendfunc)(encode_int6(off_interval));
+    }
     (*sendfunc)(timer.isEnabled()? 'R' : 'S');
     if (sequence_length > 0) {
         (*sendfunc)(encode_int6(cur_index));
@@ -735,23 +823,92 @@ void LightBlinker::report_state(void (*sendfunc)(byte))
     }
 }
 
-void discrete_set(byte l, bool value)
+void discrete_set(byte l, bool value, byte fraction)
 {
-    if (l < 8) {
-        digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+    if (l < LENGTH_OF(discrete_led_set)) {
+        led_state[l] = value;
+        if (led_dimmable[l] && (led_brightness[l] != 255 || fraction != 255)) {
+            analogWrite(discrete_led_set[l], value ? (led_brightness[l] * fraction) / 255 : 0);
+        } else {
+            digitalWrite(discrete_led_set[l], value? HIGH : LOW);
+        }
     }
 }
 
 bool discrete_query(byte l)
 {
-    if (l < 8) {
-        return digitalRead(discrete_led_set[l]) == HIGH;
+    if (l < LENGTH_OF(discrete_led_set)) {
+        return led_state[l];
     }
     return false;
 }
         
 void LightBlinker::advance(void)
 {
+    if (sequence_length > LED_SEQUENCE_LEN)
+        sequence_length = LED_SEQUENCE_LEN;
+    
+    if (custom_timings) {
+        if (led_dimmable[sequence[cur_index]]) {
+            switch (ramp_stage) {
+                case RAMP_OFF:
+                    ramp_stage = RAMP_UP;
+                    timer.setPeriod((up_interval * 100) / 255);
+                    timer.reset();
+                    /* FALLTHRU */
+
+                case RAMP_UP:
+                    if (cur_ramp_value < 255) {
+                        discrete_set(sequence[cur_index], true, ++cur_ramp_value);
+                    } else {
+                        discrete_set(sequence[cur_index], true);
+                        ramp_stage = RAMP_ON;
+                        timer.setPeriod(on_interval * 100);
+                        timer.reset();
+                    }
+                    break;
+
+                case RAMP_ON:
+                    ramp_stage = RAMP_DOWN;
+                    timer.setPeriod((down_interval * 100) / 255);
+                    timer.reset();
+                    /* FALLTHRU */
+
+                case RAMP_DOWN:
+                    if (cur_ramp_value > 0) {
+                        discrete_set(sequence[cur_index], true, --cur_ramp_value);
+                    } else {
+                        discrete_set(sequence[cur_index], false);
+                        ramp_stage = RAMP_OFF;
+                        timer.setPeriod(off_interval * 100);
+                        timer.reset();
+                        cur_index = (cur_index + 1) % sequence_length;
+                    }
+                    break;
+            }
+        } else {
+            switch (ramp_stage) {
+                case RAMP_OFF:
+                case RAMP_UP:
+                    discrete_set(sequence[cur_index], true);
+                    ramp_stage = RAMP_ON;
+                    timer.setPeriod((on_interval + up_interval) * 100);
+                    timer.reset();
+                    break;
+
+                case RAMP_ON:
+                case RAMP_DOWN:
+                    discrete_set(sequence[cur_index], false);
+                    ramp_stage = RAMP_OFF;
+                    timer.setPeriod((off_interval + down_interval) * 100);
+                    timer.reset();
+                    cur_index = (cur_index + 1) % sequence_length;
+                    break;
+            }
+        }
+        return;
+    }
+            
     if (sequence_length < 2) {
         if (cur_state) {
             discrete_set(sequence[0], false);
@@ -768,9 +925,6 @@ void LightBlinker::advance(void)
         return;
     }
 
-    if (sequence_length > LED_SEQUENCE_LEN)
-        sequence_length = LED_SEQUENCE_LEN;
-    
     if (off_period == 0) {
         cur_state = true;
         discrete_set(sequence[cur_index], false);
@@ -806,11 +960,19 @@ void LightBlinker::stop(void)
 void LightBlinker::start(void)
 {
     if (sequence_length > 0) {
+        if (custom_timings) {
+            ramp_stage = RAMP_UP;
+            cur_ramp_value = 0;
+            discrete_set(sequence[0], true, 0);
+            timer.setPeriod((up_interval * 100) / 255);
+        }
+        else {
+            cur_state = true;
+            discrete_set(sequence[0], true);
+            timer.setPeriod(on_period);
+        }
         cur_index = 0;
-        cur_state = true;
-        discrete_set(sequence[0], true);
         timer.reset();
-        timer.setPeriod(on_period);
         timer.enable();
     }
     else {
@@ -858,7 +1020,7 @@ void discrete_all_off(bool stop_blinkers)
     strober.stop();
   }
   for (int i=0; i < LENGTH_OF(discrete_led_set); i++) {
-    digitalWrite(discrete_led_set[i], LOW);
+      discrete_set(i, false);
   }
 }
 
@@ -906,30 +1068,34 @@ void flag_test(void)
 {
 #if IS_READERBOARD
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], HIGH);
+        discrete_set(i, true);
         delay(100);
     }
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
         delay(100);
     }
 #else
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
     }
 #endif
 
     for (int i = 0; i < LENGTH_OF(discrete_led_set); i++) {
-        digitalWrite(discrete_led_set[i], HIGH);
+        discrete_set(i, true);
         delay(100);
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
     }
     for (int i = LENGTH_OF(discrete_led_set) - 1; i >= 0; i--) {
-        digitalWrite(discrete_led_set[i], HIGH);
+        discrete_set(i, true);
         delay(100);
-        digitalWrite(discrete_led_set[i], LOW);
+        discrete_set(i, false);
     }
 }
+
+#if HAS_SPEAKER
+TimerEvent sound_timer;
+#endif
 
 #if IS_READERBOARD
 TimerEvent status_timer;
@@ -975,7 +1141,15 @@ void reset_eeprom_values(void)
     || xEEPROM.writeByte(EE_ADDR_GLOBAL_ADDR, EE_DEFAULT_GLOBAL_ADDRESS) != 0
     || xEEPROM.writeByte(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL) != 0
     || xEEPROM.writeByte(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL) != 0
-    || xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0) != 0) {
+    || xEEPROM.writeByte(EE_ADDR_SERIAL_NO, 0) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+0, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+1, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+2, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+3, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+4, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+5, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+6, 255) != 0
+    || xEEPROM.writeByte(EE_ADDR_DIMMERS+7, 255) != 0) {
         signal_eeprom_access(9, 5000, true);     /* signal error */
     }
 #elif HW_MC != HW_MC_DUE
@@ -987,6 +1161,14 @@ void reset_eeprom_values(void)
     EEPROM.write(EE_ADDR_SENTINEL, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SENTINEL2, EE_VALUE_SENTINEL);
     EEPROM.write(EE_ADDR_SERIAL_NO, 0);
+    EEPROM.write(EE_ADDR_DIMMERS+0, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+1, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+2, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+3, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+4, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+5, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+6, 255);
+    EEPROM.write(EE_ADDR_DIMMERS+7, 255);
 #else
     signal_eeprom_access(9, 5000, true);     /* signal error */
 #endif
@@ -1003,19 +1185,34 @@ void store_serial_number(const char *sn)
     serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
 #elif HW_MC == HW_MC_DUE
     signal_eeprom_access(9, 5000, true);     /* signal error */
+    strncpy(serial_number, sn, EE_LENGTH_SERIAL_NO);
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
 #else
     int i;
     for (i=0; i<EE_LENGTH_SERIAL_NO-1 && sn[i] != '\0'; i++) {
-# if HW_MC != HW_MC_DUE
         EEPROM.write(EE_ADDR_SERIAL_NO+i, sn[i]);
-# endif
         serial_number[i] = sn[i];
     }
     for (; i<EE_LENGTH_SERIAL_NO; i++) {
-# if HW_MC != HW_MC_DUE
         EEPROM.write(EE_ADDR_SERIAL_NO+i, 0);
-# endif
         serial_number[i] = '\0'; 
+    }
+#endif
+}
+
+void store_dimmer_levels(void)
+{
+    signal_eeprom_access(3);
+#if HAS_I2C_EEPROM
+    if (xEEPROM.writeBlock(EE_ADDR_DIMMERS, (const byte *)led_brightness, min(EE_LENGTH_DIMMERS, LENGTH_OF(led_brightness))) != 0) {
+        signal_eeprom_access(9, 5000, true);     /* signal error */
+    }
+#elif HW_MC == HW_MC_DUE
+    signal_eeprom_access(9, 5000, true);     /* signal error */
+#else
+    int i;
+    for (i=0; i<EE_LENGTH_DIMMERS && i < LENGTH_OF(led_brightness); i++) {
+        EEPROM.write(EE_ADDR_DIMMERS+i, led_brightness[i]);
     }
 #endif
 }
@@ -1039,8 +1236,17 @@ void save_eeprom(void)
         signal_eeprom_access(9, 5000, true);     /* signal error */
     }
 #elif HW_MC == HW_MC_MEGA_2560
-# error "Support for Mega 2560 not implemented"
-    signal_eeprom_access(9, 5000, true);     /* signal error */
+    if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    EEPROM.write(EE_ADDR_USB_SPEED, USB_baud_rate_code);
+    EEPROM.write(EE_ADDR_485_SPEED, RS485_baud_rate_code);
+    EEPROM.write(EE_ADDR_DEVICE_ADDR, my_device_address);
+    EEPROM.write(EE_ADDR_GLOBAL_ADDR, global_device_address);
 #elif HW_MC == HW_MC_DUE
     signal_eeprom_access(9, 5000, true);     /* signal error */
 # warning "Arduino Due without external EEPROM module is selected!"
@@ -1109,9 +1315,37 @@ void setup_eeprom(void)
 
     xEEPROM.readBlock(EE_ADDR_SERIAL_NO, (byte *)serial_number, EE_LENGTH_SERIAL_NO);
     serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    xEEPROM.readBlock(EE_ADDR_DIMMERS, led_brightness, min(EE_LENGTH_DIMMERS, LENGTH_OF(led_brightness)));
 #elif HW_MC == HW_MC_MEGA_2560
-# error "Support for Mega 2560 not implemented"
-    signal_eeprom_access(9, 5000, true);     /* signal error */
+    if (EEPROM.read(EE_ADDR_SENTINEL) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_SENTINEL2) != EE_VALUE_SENTINEL
+    ||  EEPROM.read(EE_ADDR_LAYOUT) != EE_VALUE_LAYOUT) {
+        // apparently unset; store "factory default" values now
+        reset_eeprom_values();
+    }
+
+    USB_baud_rate_code = EEPROM.read(EE_ADDR_USB_SPEED);
+    RS485_baud_rate_code = EEPROM.read(EE_ADDR_485_SPEED);
+    USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    if (USB_baud_rate == 0) {
+        EEPROM.write(EE_ADDR_USB_SPEED, EE_DEFAULT_USB_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_USB_SPEED;
+        USB_baud_rate = parse_baud_rate_code(USB_baud_rate_code);
+    }
+    if (RS485_baud_rate == 0) {
+        EEPROM.write(EE_ADDR_485_SPEED, EE_DEFAULT_485_SPEED);
+        USB_baud_rate_code = EE_DEFAULT_485_SPEED;
+        RS485_baud_rate = parse_baud_rate_code(RS485_baud_rate_code);
+    }
+
+    for (int i=0; i<EE_LENGTH_SERIAL_NO; i++) {
+        serial_number[i] = EEPROM.read(EE_ADDR_SERIAL_NO+i);
+    }
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    for (int i=0; i<LENGTH_OF(led_brightness) && i < EE_LENGTH_DIMMERS; i++) {
+        led_brightness[i] = EEPROM.read(EE_ADDR_DIMMERS+i);
+    }
 #elif HW_MC == HW_MC_DUE
     signal_eeprom_access(9, 5000, true);     /* signal error */
 # warning "Arduino Due without external EEPROM module selected"
@@ -1140,6 +1374,10 @@ void setup_eeprom(void)
 
     for (int i=0; i<EE_LENGTH_SERIAL_NO; i++) {
         serial_number[i] = EEPROM.read(EE_ADDR_SERIAL_NO+i);
+    }
+    serial_number[EE_LENGTH_SERIAL_NO-1] = '\0';
+    for (int i=0; i<LENGTH_OF(led_brightness) && i < EE_LENGTH_DIMMERS; i++) {
+        led_brightness[i] = EEPROM.read(EE_ADDR_DIMMERS+i);
     }
 #else
 # error "No valid HW_MC configured"
@@ -1324,6 +1562,7 @@ void refresh_hw_buffer(void)
     static int row = 0;
 	static int flash_counter = 0;
 	static bool flash_off = false;
+    static int delay_passes = 0;
 
 	if ((++flash_counter % MATRIX_FLASH_INTERVAL) == 0) {
 		flash_off = !flash_off;
@@ -1337,6 +1576,11 @@ void refresh_hw_buffer(void)
 
     if (hw_active_color_planes == 0)
         return;
+
+    if (delay_passes > 0) {
+        --delay_passes;
+        return;
+    }
 
     if (++row >= N_ROWS) {
         do {
@@ -1418,6 +1662,10 @@ void refresh_hw_buffer(void)
     digitalWrite(PIN__G, LOW);          //   0     1  0   1    p  p  r  r  r  enable column sinks
     delayMicroseconds(ROW_HOLD_TIME_US);
     digitalWrite(PIN__G, HIGH);         //   0     1  1   1    p  p  r  r  r  disable column sinks
+                                        //
+    if (matrix_brightness < 255) {
+        delay_passes = 255 - matrix_brightness;
+    }
 }
 
 //
@@ -1476,8 +1724,12 @@ void setup(void)
     flasher.stop();
     strober.stop();
     setup_commands();
+#if HAS_SPEAKER
+    play_init();
+#endif
 #if IS_READERBOARD
     setup_buffers();
+
 	status_timer.set(0, strobe_status);
 	status_timer.reset();
 	status_timer.setPeriod(10);
@@ -1538,14 +1790,13 @@ void setup(void)
     setup_completed = true;
 }
 
-#if IS_READERBOARD
 void show_banner(void) {
     char rbuf[32];
+#if IS_READERBOARD
 	display_text(1, BANNER_HARDWARE_VERS, BIT_RGB_BLUE, 1500);
 	display_text(1, BANNER_FIRMWARE_VERS, BIT_RGB_BLUE, 1500);
     sprintf(rbuf, "S/N %s", serial_number);
     display_text(1, rbuf, BIT_RGB_BLUE, 1500);
-	//display_text(1, BANNER_SERIAL_NUMBER, BIT_RGB_BLUE, 1500);
     if (my_device_address == EE_ADDRESS_DISABLED) {
         display_text(0, "ADDRESS \0133\234\234", BIT_RGB_RED, 3000);
     } else {
@@ -1564,11 +1815,32 @@ void show_banner(void) {
     }
 	display_text(1, "MadScience", BIT_RGB_GREEN,  1500);
 	display_text(1, "Zone \0062\100\00612024",  BIT_RGB_GREEN, 1500);
-//	clear_matrix();
-//	// 300 600 1200 2400 4800 9600 14400 19200 28800 31250 38400 57600 115200 OFF
     clear_all_buffers();
-}
+#else
+    send_morse(0, BANNER_HARDWARE_VERS);
+    send_morse(0, BANNER_FIRMWARE_VERS);
+    sprintf(rbuf, "S/N %s", serial_number);
+    send_morse(0, rbuf, 32);
+
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        send_morse(0, "NO ADDRESS");
+    } else {
+        sprintf(rbuf, "ADDRESS %d", my_device_address);
+        send_morse(0, rbuf, 32);
+    }
+    sprintf(rbuf, "GLOBAL  %2d", global_device_address);
+    send_morse(0, rbuf, 32);
+    sprintf(rbuf, "USB %d", USB_baud_rate);
+    send_morse(0, rbuf, 32);
+    if (my_device_address == EE_ADDRESS_DISABLED) {
+        send_morse(0, "RS485 OFF");
+    } else {
+        sprintf(rbuf, "RS485 %d", RS485_baud_rate);
+        send_morse(0, rbuf, 32);
+    }
+    send_morse(0, "MADSCIENCE ZONE 2024");
 #endif
+}
 
 int parse_baud_rate_code(byte code)
 {
@@ -1638,6 +1910,9 @@ void loop(void)
     /* flash/strobe discrete LEDs as needed */
     flasher.update();
     strober.update();
+#if HAS_SPEAKER
+    sound_timer.update();
+#endif
 
     /* receive commands via serial port */
     if (Serial.available() > 0) {
@@ -2069,6 +2344,60 @@ void debug_hw_buffer(void)
     }
 }
 
+void debug_bytes(const char *title, const byte *data, int length)
+{
+    char dbuf[32];
+    int i;
+
+    Serial.write(title);
+    Serial.write("\r\n");
+    for (int addr = 0; addr < length; addr += 16) {
+        sprintf(dbuf, "%08X: ", addr);
+        Serial.write(dbuf);
+        for (i = 0; i < 16; i++) {
+            if (addr+i < length) {
+                sprintf(dbuf, "%02X ", data[addr + i]);
+                Serial.write(dbuf);
+            } else {
+                Serial.write("   ");
+            }
+        }
+        Serial.write(" |");
+        for (i = 0; i < 16; i++) {
+            if (addr+i < length) {
+                Serial.write(data[addr + i] >= ' ' && data[addr + i] <= '~' ? data[addr+i] : '.');
+            } else {
+                Serial.write(' ');
+            }
+        }
+        Serial.write("|\r\n");
+    }
+}
+
+void debug_words(const char *title, const word *data, int length)
+{
+    char dbuf[32];
+    int i;
+
+    Serial.write(title);
+    Serial.write("\r\n");
+    sprintf(dbuf, "@%08X\r\n", data);
+    Serial.write(dbuf);
+    for (int addr = 0; addr < length; addr += 16) {
+        sprintf(dbuf, "%08X: ", addr);
+        Serial.write(dbuf);
+        for (i = 0; i < 16; i++) {
+            if (addr+i < length) {
+                sprintf(dbuf, "%04X ", data[addr + i]);
+                Serial.write(dbuf);
+            } else {
+                Serial.write("     ");
+            }
+        }
+        Serial.write("\r\n");
+    }
+}
+
 void shift_left(byte buffer[N_ROWS][N_COLS])
 {
     for (int col=0; col < N_COLS - 1; col++) {
@@ -2117,3 +2446,509 @@ void shift_down(byte buffer[N_ROWS][N_COLS])
     }
 }
 #endif /* IS_READERBOARD */
+
+const int ps_SK = 0x03;
+const char *morse[] = {
+    /* 00 */ "",
+    /* 01 */ "",
+    /* 02 */ "@=@=@",       /* AR: start of message */
+    /* 03 */ "@@@=@=",      /* SK: end of message */
+    /* 04 */ "",
+    /* 05 */ "",
+    /* 06 */ "@@@=@",       /* VE/SN: verified */
+    /* 07 */ "=@=@=",       /* KA/CT: attention */
+    /* 08 */ "",
+    /* 09 */ "",
+    /* 0A */ "",
+    /* 0B */ "",
+    /* 0C */ "",
+    /* 0D */ "",
+    /* 0E */ "",
+    /* 0F */ "",
+    /* 10 */ "",
+    /* 11 */ "@@@===@@@",   /* SOS: distress */
+    /* 12 */ "=@@=@@=@@",   /* DDD: relayed distress */
+    /* 13 */ "@=@@@",       /* AS: wait */
+    /* 14 */ "",
+    /* 15 */ "",
+    /* 16 */ "",
+    /* 17 */ "",
+    /* 18 */ "",
+    /* 19 */ "",
+    /* 1A */ "",
+    /* 1B */ "",
+    /* 1C */ "",
+    /* 1D */ "",
+    /* 1E */ "=@@@=",       /* BT: break */
+    /* 1F */ "",
+    /* 20 */ "",
+    /* 21 ! */ "=@=@==",
+    /* 22 " */ "@=@@=@",
+    /* 23 # */ "",
+    /* 24 $ */ "@@@=@@=",
+    /* 25 % */ "",
+    /* 26 & */ "@=@@@",
+    /* 27 ' */ "@====@",
+    /* 28 ( */ "=@==@",
+    /* 29 ) */ "=@==@=",
+    /* 2A * */ "",
+    /* 2B + */ "@=@=@",
+    /* 2C , */ "==@@==",
+    /* 2D - */ "=@@@@=",
+    /* 2E . */ "@=@=@=",
+    /* 2F / */ "=@@=@",
+    /* 30 0 */ "=====",
+    /* 31 1 */ "@====",
+    /* 32 2 */ "@@===",
+    /* 33 3 */ "@@@==",
+    /* 34 4 */ "@@@@=",
+    /* 35 5 */ "@@@@@",
+    /* 36 6 */ "=@@@@",
+    /* 37 7 */ "==@@@",
+    /* 38 8 */ "===@@",
+    /* 39 9 */ "====@",
+    /* 3A : */ "===@@@",
+    /* 3B ; */ "=@=@=@",
+    /* 3C < */ "",
+    /* 3D = */ "",
+    /* 3E > */ "",
+    /* 3F ? */ "@@==@@",
+    /* 40 @ */ "@==@=@",
+    /* 41 A */ "@=",
+    /* 42 B */ "=@@@",
+    /* 43 C */ "=@=@",
+    /* 44 D */ "=@@",
+    /* 45 E */ "@",
+    /* 46 F */ "@@=@",
+    /* 47 G */ "==@",
+    /* 48 H */ "@@@@",
+    /* 49 I */ "@@",
+    /* 4A J */ "@===",
+    /* 4B K */ "=@=",
+    /* 4C L */ "@=@@",
+    /* 4D M */ "==",
+    /* 4E N */ "=@",
+    /* 4F O */ "===",
+    /* 50 P */ "@==@",
+    /* 51 Q */ "==@=",
+    /* 52 R */ "@=@",
+    /* 53 S */ "@@@",
+    /* 54 T */ "=",
+    /* 55 U */ "@@=",
+    /* 56 V */ "@@@=",
+    /* 57 W */ "@==",
+    /* 58 X */ "=@@=",
+    /* 59 Y */ "=@==",
+    /* 5A Z */ "==@@",
+    /* 5B [ */ "",
+    /* 5C \ */ "",
+    /* 5D ] */ "",
+    /* 5E ^ */ "",
+    /* 5F _ */ "@@==@=",
+    /* 60 ` */ "",
+    /* 61 a */ "@=",
+    /* 62 b */ "=@@@",
+    /* 63 c */ "=@=@",
+    /* 64 d */ "=@@",
+    /* 65 e */ "@",
+    /* 66 f */ "@@=@",
+    /* 67 g */ "==@",
+    /* 68 h */ "@@@@",
+    /* 69 i */ "@@",
+    /* 6A j */ "@===",
+    /* 6B k */ "=@=",
+    /* 6C l */ "@=@@",
+    /* 6D m */ "==",
+    /* 6E n */ "=@",
+    /* 6F o */ "===",
+    /* 70 p */ "@==@",
+    /* 71 q */ "==@=",
+    /* 72 r */ "@=@",
+    /* 73 s */ "@@@",
+    /* 74 t */ "=",
+    /* 75 u */ "@@=",
+    /* 76 v */ "@@@=",
+    /* 77 w */ "@==",
+    /* 78 x */ "=@@=",
+    /* 79 y */ "=@==",
+    /* 7A z */ "==@@",
+    /* 7B { */ "",
+    /* 7C | */ "",
+    /* 7D } */ "",
+    /* 7E ~ */ "",
+    /* 7F   */ "@@@@@@@@",    /* HH: correction */
+};
+
+/* 5 wpm Farnsworth spacing, 13 wpm characters */
+const int dit =              92;
+const int dah =             277;
+const int intrachar_audio =  92;
+const int intrachar_light = 184;  /* for lights it helps readability to delay a little more than for audio */
+const int interchar =      1443;
+const int interword =      3367 - interchar;
+
+void send_morse_char(byte led, byte ch)
+{
+    if (*morse[ch] == '\0') {
+        return;
+    }
+
+    for (const char *c = morse[ch]; *c != '\0'; c++) {
+        discrete_set(led, true);
+        if (*c == '@') {
+            delay(dit);
+        } else if (*c == '=') {
+            delay(dah);
+        }
+        discrete_set(led, false);
+        delay(intrachar_light);
+    }
+}
+
+#if HAS_SPEAKER
+# define MAX_PLAY_SEQUENCE_LENGTH (256) // leonardo
+const word PLAY_SRC_B0 =(0xc2);
+const word PLAY_NOTE_B0 =(0xc200);
+const word PLAY_NOTE_C5 =(0x2300);
+const word PLAY_NOTE_REST =(0x0000);
+const word PLAY_END_OF_SEQUENCE = (0xf800);
+word play_sequence[MAX_PLAY_SEQUENCE_LENGTH+1];
+int  play_sequence_idx = 0;
+bool play_loop = false;
+#endif
+
+void append_morse_char_notes(const char *morse_char)
+{
+    for (const char *c = morse_char; *c != '\0' && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH; c++) {
+        if (*c == '@') {
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dit / 10) & 0x00ff);
+        } else if (*c == '=') {
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_C5 | ((dah / 10) & 0x00ff);
+        }
+        if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((intrachar_audio / 10) & 0x00ff);
+    }
+    if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+        play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interchar / 10) & 0x00ff);
+}
+
+void send_morse(byte led, const char *text, int maxlen)
+{
+    int src_i;
+
+    if (led == STATUS_LED_OFF) {
+#if HAS_SPEAKER
+        play_stop();
+        //                                                                                 __
+        // MAX_PLAY_SEQUENCE_LENGTH - 33 allows room for all the elements in a character + SK
+        for (src_i=0, play_sequence_idx=0; src_i<maxlen && text[src_i] != '\0' && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH-33; src_i++) {
+            if (text[src_i] == ' ') {
+                if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+                    play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+            }
+            else if (*morse[text[src_i]] != '\0') {
+                append_morse_char_notes(morse[text[src_i]]);
+            }
+        }
+        if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+            play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+        append_morse_char_notes(morse[ps_SK]);
+        play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
+        play_start();
+#endif
+        return;
+    }
+
+    discrete_all_off(true);
+    if (maxlen == 0) {
+        maxlen = strlen(text);
+    }
+    for (int i = 0; i<maxlen && text[i] != '\0'; i++) {
+        if (text[i] == ' ') {
+            delay(interword);
+        }
+        else {
+            send_morse_char(led, text[i] & 0x7f);
+            delay(intrachar_light);
+        }
+    }
+    delay(interword);
+    send_morse_char(led, ps_SK);
+}
+
+//
+// The sequence represents each note as a pair of bytes:
+//  7 6 5 4 3 2 1 0
+// |b|#|oct-1|note |
+// |1 1 0 0 0 0 1 0| B0
+// |__duration_cs__|
+//
+// We store them in words encoded as
+//  F E D C B A 9 8 7 6 5 4 3 2 1 0
+// |b|#|oct-1|note_|__duration_cs__|
+// |1 1 0 0 0 0 1 0 x x x x x x x x| B0
+// |1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0| end of sequence marker
+//
+//   b   is 1 if the note is flat
+//   #   is 1 if the note is sharp
+// oct-1 is the octave number 1-8 minus 1
+// note  is 0=rest, 1=A, 2=B, 3=C, 4=D, 5=E, 6=F, 7=G
+//
+#if HAS_SPEAKER
+# if HAS_TONE_SUPPORT
+#  include <Tone.h>
+Tone tone1;
+# endif
+
+void play_init(void)
+{
+# if HAS_TONE_SUPPORT
+    tone1.begin(PIN_SPKR);
+# endif
+    sound_timer.set(0, sound_player);
+    sound_timer.reset();
+    sound_timer.disable();
+}
+
+/* copy source data received from host as byte pairs 
+//  7 6 5 4 3 2 1 0
+// |b|#|oct-1|note |
+// |1 1 0 0 0 0 1 0| B0
+// |__duration_cs__|
+//
+// we will re-encode them into words as
+//  F E D C B A 9 8 7 6 5 4 3 2 1 0
+// |b|#|oct-1|note_|__duration_cs__|
+// |1 1 0 0 0 0 1 0 x x x x x x x x| B0
+// |1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0| end of sequence marker
+// 
+// and store them in our sequence, then start the event timer to work through the list.
+// if the seuqence is empty, we don't do anything. In any event, an existing sound is stopped.
+//
+//   b   is 1 if the note is flat
+//   #   is 1 if the note is sharp
+// oct-1 is the octave number 1-8 minus 1
+// note  is 0=rest, 1=A, 2=B, 3=C, 4=D, 5=E, 6=F, 7=G
+*/
+
+void play_sound(bool repeat, const byte *sequence, int sequence_length)
+{
+    int i;
+    play_stop();
+    play_loop = false;
+
+    // truncate to even number of bytes
+    sequence_length &= ~1;
+    if (sequence_length > 0) {
+        for (i=0, play_sequence_idx=0; i < sequence_length && play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH; i+=2) {
+            play_sequence[play_sequence_idx++] = (sequence[i] << 8) | (sequence[i+1] & 0xff);
+        }
+        play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
+        play_loop = repeat;
+        play_start();
+    }
+}
+
+const int PLAY_NATURAL = 0;
+const int PLAY_SHARP = 1;
+const int PLAY_FLAT = 2;
+#if HAS_TONE_SUPPORT
+const int play_note_table[8][8][3] = {
+    {  
+        {0, 0, 0}, 
+        {NOTE_A1, NOTE_AS1, NOTE_GS1},
+        {NOTE_B1, 0,        NOTE_AS1},
+        {NOTE_C1, NOTE_CS1, 0},
+        {NOTE_D1, NOTE_DS1, NOTE_CS1},
+        {NOTE_E1, 0,        NOTE_DS1},
+        {NOTE_F1, NOTE_FS1, 0},
+        {NOTE_G1, NOTE_GS1, NOTE_FS1},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A2, NOTE_AS2, NOTE_GS2},
+        {NOTE_B2, 0,        NOTE_AS2},
+        {NOTE_C2, NOTE_CS2, 0},
+        {NOTE_D2, NOTE_DS2, NOTE_CS2},
+        {NOTE_E2, 0,        NOTE_DS2},
+        {NOTE_F2, NOTE_FS2, 0},
+        {NOTE_G2, NOTE_GS2, NOTE_FS2},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A3, NOTE_AS3, NOTE_GS3},
+        {NOTE_B3, 0,        NOTE_AS3},
+        {NOTE_C3, NOTE_CS3, 0},
+        {NOTE_D3, NOTE_DS3, NOTE_CS3},
+        {NOTE_E3, 0,        NOTE_DS3},
+        {NOTE_F3, NOTE_FS3, 0},
+        {NOTE_G3, NOTE_GS3, NOTE_FS3},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A4, NOTE_AS4, NOTE_GS4},
+        {NOTE_B4, 0,        NOTE_AS4},
+        {NOTE_C4, NOTE_CS4, 0},
+        {NOTE_D4, NOTE_DS4, NOTE_CS4},
+        {NOTE_E4, 0,        NOTE_DS4},
+        {NOTE_F4, NOTE_FS4, 0},
+        {NOTE_G4, NOTE_GS4, NOTE_FS4},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A5, NOTE_AS5, NOTE_GS5},
+        {NOTE_B5, 0,        NOTE_AS5},
+        {NOTE_C5, NOTE_CS5, 0},
+        {NOTE_D5, NOTE_DS5, NOTE_CS5},
+        {NOTE_E5, 0,        NOTE_DS5},
+        {NOTE_F5, NOTE_FS5, 0},
+        {NOTE_G5, NOTE_GS5, NOTE_FS5},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A6, NOTE_AS6, NOTE_GS6},
+        {NOTE_B6, 0,        NOTE_AS6},
+        {NOTE_C6, NOTE_CS6, 0},
+        {NOTE_D6, NOTE_DS6, NOTE_CS6},
+        {NOTE_E6, 0,        NOTE_DS6},
+        {NOTE_F6, NOTE_FS6, 0},
+        {NOTE_G6, NOTE_GS6, NOTE_FS6},
+    }, {
+        {0, 0, 0}, 
+        {NOTE_A7, NOTE_AS7, NOTE_GS7},
+        {NOTE_B7, 0,        NOTE_AS7},
+        {NOTE_C7, NOTE_CS7, 0},
+        {NOTE_D7, NOTE_DS7, NOTE_CS7},
+        {NOTE_E7, 0,        NOTE_DS7},
+        {NOTE_F7, NOTE_FS7, 0},
+        {NOTE_G7, NOTE_GS7, NOTE_FS7},
+    }, {
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+        {NOTE_C8, NOTE_CS8, 0},
+        {NOTE_D8, NOTE_DS8, NOTE_CS8},
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+        {0, 0, 0}, 
+    }
+};
+#endif
+
+void sound_player(void)
+{
+    // play next note
+    if (!sound_timer.isEnabled()) {
+        return;
+    }
+    if (++play_sequence_idx >= MAX_PLAY_SEQUENCE_LENGTH || play_sequence[play_sequence_idx] == PLAY_END_OF_SEQUENCE) {
+        if (play_loop) {
+            play_sequence_idx = 0;
+        } else {
+            play_stop();
+            return;
+        }
+    }
+# if HAS_TONE_SUPPORT
+    if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_B0) {
+        tone1.play(NOTE_B0, (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    } else if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_REST) {
+        tone1.stop();
+    } else if ((play_sequence[play_sequence_idx] & 0xc000) == 0x8000) {
+        tone1.play(play_note_table[play_sequence[play_sequence_idx] & 0x3800][play_sequence[play_sequence_idx] & 0x07][PLAY_FLAT],
+                (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    } else if ((play_sequence[play_sequence_idx] & 0xc000) == 0x4000) {
+        tone1.play(play_note_table[play_sequence[play_sequence_idx] & 0x3800][play_sequence[play_sequence_idx] & 0x07][PLAY_SHARP],
+                (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    } else {
+        tone1.play(play_note_table[play_sequence[play_sequence_idx] & 0x3800][play_sequence[play_sequence_idx] & 0x07][PLAY_NATURAL],
+                (play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    }
+# else
+    if ((play_sequence[play_sequence_idx] & 0xff00) == PLAY_NOTE_REST) {
+        analogWrite(PIN_SPKR, 0);
+    } else {
+        analogWrite(PIN_SPKR, 127);
+    }
+# endif
+    sound_timer.setPeriod((play_sequence[play_sequence_idx] & 0x00ff) * 10);
+    sound_timer.reset();
+}
+
+void play_start(void)
+{
+    play_stop();
+    play_sequence_idx = -1;
+    sound_timer.reset();
+    sound_timer.enable();
+    sound_player();
+}
+
+void play_stop(void)
+{
+    sound_timer.reset();
+    sound_timer.disable();
+    play_sequence_idx = 0;
+# if HAS_TONE_SUPPORT
+    if (tone1.isPlaying()) {
+        tone1.stop();
+    }
+# else
+    analogWrite(PIN_SPKR, 0);
+# endif
+}
+
+#else /* HAS_SPEAKER */
+
+void play_stop(void) 
+{
+}
+void play_sound(bool repeat, const byte *sequence, int sequence_length)
+{
+}
+
+#endif /* !HAS_SPEAKER */
+
+void set_dimmer_value(byte led, byte level)
+{
+    if (led == STATUS_LED_OFF) {
+#if IS_READERBOARD
+        matrix_brightness = level;
+#endif
+        return;
+    }
+
+    if (led == STATUS_LED_ALL) {
+        for (int i=0; i < LENGTH_OF(led_brightness); i++) {
+            led_brightness[i] = level;
+            if (led_state[i]) {
+                discrete_set(i, true);
+            }
+        }
+        return;
+    }
+
+    if (led >= 0 && led < LENGTH_OF(led_brightness)) {
+        led_brightness[led] = level;
+        if (led_state[led]) {
+            discrete_set(led, true);
+        }
+    }
+}
+
+void report_dimmer(void (*sendfunc)(byte))
+{
+    (*sendfunc)('D');
+#if IS_READERBOARD
+    (*sendfunc)(encode_hex_nybble((matrix_brightness >> 4) & 0x0f));
+    (*sendfunc)(encode_hex_nybble((matrix_brightness     ) & 0x0f));
+#else
+    (*sendfunc)('_');
+    (*sendfunc)('_');
+#endif
+    for (int i=0; i < LENGTH_OF(led_brightness); i++) {
+        if (led_dimmable[i]) {
+            (*sendfunc)(encode_hex_nybble((led_brightness[i] >> 4) & 0x0f));
+            (*sendfunc)(encode_hex_nybble((led_brightness[i]     ) & 0x0f));
+        } else {
+            (*sendfunc)('_');
+            (*sendfunc)('_');
+        }
+    }
+    (*sendfunc)('$');
+}
