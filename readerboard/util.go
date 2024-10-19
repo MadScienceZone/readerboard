@@ -5,9 +5,35 @@
 package readerboard
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 )
+
+func ImageFromASCIIFile(fileName string) (ImageBitmap, error) {
+	var lines []string
+	depth := 2
+
+	f, err := os.Open(fileName)
+	if err != nil {
+		return ImageBitmap{}, err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	reader := bufio.NewScanner(f)
+	reader.Split(bufio.ScanLines)
+	for reader.Scan() {
+		lines = append(lines, reader.Text())
+		if depth == 2 && strings.ContainsAny(reader.Text(), "RGBCMWrgbcmw") {
+			depth = 4
+		}
+	}
+
+	return ImageFromASCII(lines, depth)
+}
 
 // ImageFromASCII reads an image source which contains a bitmap in ASCII form
 // where each character represents a pixel whose color is denoted by the letters

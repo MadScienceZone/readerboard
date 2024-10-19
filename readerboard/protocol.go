@@ -516,14 +516,17 @@ func textParam(r url.Values) ([]byte, error) {
 }
 
 func posParam(r url.Values) (byte, error) {
-	pos := r.Get("pos")
-	if len(pos) != 1 {
-		return 0, fmt.Errorf("position must be a single character")
+	pos, err := strconv.Atoi(r.Get("pos"))
+	if err != nil {
+		return 0, fmt.Errorf("invalid position: %v", err)
 	}
-	if (pos[0] < '0' || pos[0] > 'o') && pos[0] != '~' {
-		return 0, fmt.Errorf("position %q out of range ['0','o'] or '~'", pos)
+	if pos < 0 {
+		return '~', nil
 	}
-	return pos[0], nil
+	if pos > 63 {
+		return 0, fmt.Errorf("position out of range (cannot be greater than 63)")
+	}
+	return byte(pos) + '0', nil
 }
 
 // AllLightsOff turns all lights off on the specified device(s). This extinguishes the status LEDs
@@ -697,7 +700,7 @@ func colorParam8(r url.Values, key string) ([]byte, error) {
 
 		var colors []byte
 		for _, code := range rgbList {
-			colors = append(colors, parseColorCode(code))
+			colors = append(colors, ParseColorCode(code))
 		}
 		return colors, nil
 	}
@@ -709,10 +712,10 @@ func colorParam8(r url.Values, key string) ([]byte, error) {
 }
 
 func colorParam(r url.Values, key string) byte {
-	return parseColorCode(r.Get(key))
+	return ParseColorCode(r.Get(key))
 }
 
-func parseColorCode(code string) byte {
+func ParseColorCode(code string) byte {
 	switch code {
 	case "0", "off", "black", "bk", "k":
 		return '0'
