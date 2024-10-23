@@ -1408,13 +1408,21 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
 // render_text(buffer, pos, font, string, color)
 // draw text at the given starting position in the image buffer.
 //
-byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep)
+byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep, AlignmentStyle alignment)
 {
     if (string == NULL) {
         return pos;
     }
 
     /* draw characters onto the image buffer */
+	// TODO alignment
+	// NoAlignment - do nothing, just draw at the cursor
+	// FlushLeft - draw starting at position 0
+	// FlushRight - draw so that it ends at position 63
+	// GlobalCenter - draw so center of text is at position 31
+	// LocalCenterLeft - draw so text is centered between position 0 and the cursor
+	// LocalCenterRight - draw so text is centered between the cursor and position 63
+	// LocalRight - draw so end of text is at cursor
     for (; *string != '\0'; string++) {
         if (*string == '\003') {
             if (*++string == '\0')

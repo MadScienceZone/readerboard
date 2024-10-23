@@ -262,6 +262,7 @@ private:
 #if IS_READERBOARD
     bool merge;
     TransitionEffect transition;
+	AlignmentStyle alignment;
     byte scrolling_buffer[CSM_BUFSIZE];
     byte column;
     byte font;
@@ -284,6 +285,7 @@ public:
     bool accept_encoded_pos(int inputchar);     // 6-bit position or ~ for current
     bool accept_encoded_rgb(int inputchar);     // 4-bit color code
     bool accept_encoded_transition(int inputchar);
+	bool accept_encoded_alignment(int inputchar);
     void commit_graph_datapoint(int value);
     void commit_graph_datacolors(void);
 #endif
@@ -350,6 +352,23 @@ bool CommandStateMachine::accept_encoded_rgb(int inputchar)
     if (bytebuf > 16)
         return false;
     return true;
+}
+
+bool CommandStateMachine::accept_encoded_alignment(int inputchar)
+{
+	switch (inputchar) {
+	case '.': alignment = NoAlignment; break;
+	case '>': alignment = FlushRight; break;
+	case '<': alignment = FlushLeft; break;
+	case '^': alignment = GlobalCenter; break;
+	case 'C': alignment = LocalCenterRight; break;
+	case 'L': alignment = LocalCenterLeft; break;
+	case 'R': alignment = LocalRight; break;
+	default: 
+		alignment = NoAlignment
+		return false;
+	}
+	return true;
 }
 
 bool CommandStateMachine::accept_encoded_transition(int inputchar)
@@ -1078,6 +1097,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
     case ImageStateTransition:
         if (accept_encoded_transition(inputchar)) {
+			transitions.set_stage();
             state = ImageStateData;
             k = 0;
         } else {
@@ -1133,8 +1153,11 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         break;
 
     case TextAlignState:
-        //TODO parse alignment specifier
-        state = TextTransitionState;
+		if (accept_encoded_alignment(inputchar)) {
+			state = TextTransitionState;
+		} else {
+			error();
+		}
         break;
 
     case TextTransitionState:
@@ -1153,8 +1176,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         if (inputchar == '\x1b') {
             append_byte(0);
-            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge);
-            //commit_image_buffer(image_buffer);
+            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge, alignment);
             display_buffer(image_buffer, transition);
             end_cmd();
             break;

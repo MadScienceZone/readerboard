@@ -206,6 +206,16 @@ typedef enum {
 		_TransScrollText,
 } TransitionEffect;
 
+typedef enum {
+	NoAlignment,
+	FlushLeft,
+	FlushRight,
+	GlobalCenter,
+	LocalCenterLeft,
+	LocalCenterRight,
+	LocalRight,
+} AlignmentStyle;
+
 //
 // Transition effect manager. This manages incrementally
 // copying data from the image buffer to the hardware refresh
@@ -231,6 +241,7 @@ public:
 	void stop(void);
 	void next(bool reset_column = false);
     void start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS=100);
+	// set_stage(); display_buffer(image_buffer, transition)
 };
 extern TransitionManager transitions;
 extern byte image_buffer[N_ROWS][N_COLS];
@@ -241,7 +252,7 @@ extern byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_RO
 extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
 extern void shift_left(byte buffer[N_ROWS][N_COLS]);
 extern void setup_buffers(void);
-extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false);
+extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false, AlignmentStyle alignment=NoAlignment);
 extern void show_banner(void);
 #endif /* IS_READERBOARD */
 
