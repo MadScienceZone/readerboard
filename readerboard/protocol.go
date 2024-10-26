@@ -603,7 +603,7 @@ func encode_hex_nybble(v byte) byte {
 //	/readerboard/v1/test?a=<targets>
 func Test(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if IsReaderboardModel(hw) || BusylightModelVersion(hw) > 1 {
-		return []byte{'%'}, nil
+		return []byte("%T@"), nil
 	}
 	return nil, fmt.Errorf("test command not supported for hardware type %v", hw)
 }
