@@ -921,7 +921,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{off}&\z{X} & All \led s off & [1]\\
 			\midrule
 			&\z{\textasciicircum D} & Abort/terminate command & \\
-			\z{test}&\z{\%} & Full lamp test & \\
+			\z{test}&\z{\%T@} & Full lamp test & \\
 			\z{scroll}&\z{<} & Scroll text across display & \\
 			\z{configure-device}&\z{=} & Set operational parameters &[4] [5]\\
 			\z{diag-banners}&\z{=*}&Display POST banners&\\
@@ -959,15 +959,13 @@ The remaining commands are used for management of the matrix display. All comman
 	\end{center}
 \end{table}
 
-%Although starting with the revision 2 hardware, the readerboard supports the ability to enable the RS-485 transmitter and send data back onto the network,
-%this is not currently implemented by the firmware, and the intent is to have all devices listen passively to RS-485 traffic
-%at all times. {\color{red} This is expected to change with the next revision of the firmware which allows responding over the RS-485 network.}
-
-\section{\z{\%}---Run Full Lamp Test Pattern}
+\section{\z{\%T@}---Run Full Lamp Test Pattern}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{1}
-	\bitheader{0} \\
-	\bitbox{1}{\z{\%}} 
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{\%}} &
+	\bitbox{1}{\z{T}} &
+	\bitbox{1}{\z{@}} 
 \end{bytefield}
 \\
 %|{"m":"clear","a":[|\Var*{ad$_0$}|,|\dots|]}|
@@ -2274,7 +2272,7 @@ Displays the text \Var*{string} at the current cursor position. The cursor posit
 then moved past the text to be ready for the next string to be printed.
 
 The \Var*{align} code indicates how the text is aligned on the display using one of the codes
-shown in Table~\ref{tbl:alignments}. {\color{red} Not currently implemented.}
+shown in Table~\ref{tbl:alignments}. 
 \begin{table}
 	\begin{center}
 		\begin{tabular}{cl}\toprule

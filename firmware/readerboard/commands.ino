@@ -217,6 +217,8 @@ private:
         SetRspdState,
         SetDgState,
         StrobeState, 
+        TestState1,
+        TestState2,
         FlashState, 
         FlashTimeState,
         FlashTimeUpState,
@@ -801,9 +803,9 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             break;
 
         case '%':
-            test_pattern();
-            end_cmd();
+            state = TestState1;
             break;
+
 
 #if IS_READERBOARD
         case 'K':
@@ -820,6 +822,21 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
         default:
             error();
+        }
+        break;
+
+    case TestState1:
+        state = TestState2;
+        if (inputchar != 'T')
+            error();
+        break;
+
+    case TestState2:
+        if (inputchar != '@') {
+            error();
+        } else {
+            test_pattern();
+            end_cmd();
         }
         break;
 //
