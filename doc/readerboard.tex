@@ -2291,6 +2291,11 @@ shown in Table~\ref{tbl:alignments}. {\color{red} Not currently implemented.}
 	\end{center}
 \end{table}
 
+If \Var*{merge} is ``\z{M}'' then the text is drawn without disturbing any existing pixels around it, adding
+to what is already there. If it is ``\z{.}'' then everything to the right of the cursor is cleared before
+drawing the text. (Alternatively, this may clear everything to the left of the cursor or the entire screen, depending
+on the alignment mode in use.)
+
 The \Var*{trans} code specifies the transition effect to be used to add this string to the
 display as shown in Table~\ref{tbl:transitions}.
 

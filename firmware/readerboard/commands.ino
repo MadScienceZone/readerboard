@@ -365,7 +365,7 @@ bool CommandStateMachine::accept_encoded_alignment(int inputchar)
 	case 'L': alignment = LocalCenterLeft; break;
 	case 'R': alignment = LocalRight; break;
 	default: 
-		alignment = NoAlignment
+		alignment = NoAlignment;
 		return false;
 	}
 	return true;
@@ -1163,7 +1163,6 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
     case TextTransitionState:
         if (accept_encoded_transition(inputchar)) {
             state = TextDataState;
-            transitions.set_stage();
         } else {
             error();
         }
@@ -1176,7 +1175,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         if (inputchar == '\x1b') {
             append_byte(0);
-            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge, alignment);
+            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge, alignment, true);
             display_buffer(image_buffer, transition);
             end_cmd();
             break;

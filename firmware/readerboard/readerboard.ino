@@ -401,14 +401,25 @@ void clear_all_buffers(void)
     clear_hw_buffer();
 }
 
+void empty_image_buffer(int from_pos) 
+{
+    for (int row=0; row<N_ROWS; row++) {
+        if (from_pos >= 0) {
+            for (int col=from_pos; col<N_COLS; col++) {
+                image_buffer[row][col] = 0;
+            }
+        } else {
+            for (int col=N_COLS-1; col >= -from_pos; col--) {
+                image_buffer[row][col] = 0;
+            }
+        }
+    }
+}
+
 void clear_image_buffer(void)
 {
     transitions.stop();
-    for (int row=0; row<N_ROWS; row++) {
-        for (int col=0; col<N_COLS; col++) {
-            image_buffer[row][col] = 0;
-        }
-    }
+    empty_image_buffer(0);
 }
 
 void clear_hw_buffer(void)
@@ -424,6 +435,14 @@ void clear_hw_buffer(void)
 }
 
 
+//
+// set_stage() copies the current image to a staging area so we
+// have a reference to gradually modify as we apply the transition
+// effect.
+//
+// Call this when starting a new transition effect, before drawing the
+// new contents in the image buffer.
+//
 void TransitionManager::set_stage(void)
 {
     for (int row=0; row < N_ROWS; row++) {
@@ -459,8 +478,6 @@ void TransitionManager::start_scrolling_text(const char *text, int len, bool rep
     timer.enable();
 }
 
-//void next_transition(void);
-//
 TransitionManager::TransitionManager(void)
 {
 	src = &image_buffer;
@@ -479,6 +496,11 @@ void TransitionManager::stop(void)
 	timer.disable();
 }
 
+//
+// start_transition(effect, delay_ms) starts running a transition effect between
+// what's in the image buffer and the reference in the staging buffer, at the
+// speed indicated by delay_ms.
+//
 void TransitionManager::start_transition(TransitionEffect trans, int delay_ms)
 {
 	transition = trans;
@@ -505,6 +527,8 @@ void TransitionManager::next(bool reset_column)
                 return;
             }
         }
+        // special case for scrolling text. We just scroll one pixel to the left
+        // and draw what is exposed now in the far right column.
         while (scroll_pos < scroll_len) {
             switch (scroll_src[scroll_pos]) {
                 case 0x03:
@@ -557,8 +581,11 @@ void TransitionManager::next(bool reset_column)
         return;
     }
 
+    // All the other transition effects are done here.
+    
     // We call this current_column because for most transitions, it's the column being moved
     // in the transition effect. In some, though, it is actually the row being moved.
+    // So, really, it's just a "current place in the transition animation" counter.
 	static int current_column = 0;
 
 	if (reset_column) {
@@ -574,13 +601,13 @@ void TransitionManager::next(bool reset_column)
 	}
 
 	switch (transition) {
-	case TransWipeLeft:
+    case TransWipeRight:
         for (int row=0; row<N_ROWS; row++) {
             stage[row][current_column] = (*src)[row][current_column];
         }
         break;
 
-    case TransWipeRight:
+	case TransWipeLeft:
         for (int row=0; row<N_ROWS; row++) {
             stage[row][N_COLS-1-current_column] = (*src)[row][N_COLS-1-current_column];
         }
@@ -685,21 +712,17 @@ void TransitionManager::next(bool reset_column)
 //
 //   If there is no such font or codepoint, nothing is done.
 //
-byte draw_character(byte col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep)
+byte draw_character(int col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep)
 {
     unsigned char l, s;
     unsigned short o;
-
-    if (col >= N_COLS) {
-        return col;
-    }
 
     if (!get_font_metric_data(font, codepoint, &l, &s, &o)) {
         return col;
     }
     for (byte i=0; i<l; i++) {
-        if (col+i < N_COLS) {
-            draw_column(col+i, get_font_bitmap_data(o+i), color, mergep, buffer);
+        if (col+i >= 0 && col+i < N_COLS) {
+            draw_column(byte(col+i), get_font_bitmap_data(o+i), color, mergep, buffer);
         }
     }
     return col+s;
@@ -1098,7 +1121,7 @@ TimerEvent sound_timer;
 #endif
 
 #if IS_READERBOARD
-TimerEvent status_timer;
+//TimerEvent status_timer;
 void strobe_status(void)
 {
 	static int status_value = 0;
@@ -1405,16 +1428,141 @@ void display_text(byte font, const char *string, byte color, int mS_delay)
 }
 
 //
+// rendered_bbox(font, string, left, right)
+// returns the number of pixels which will be occupied by the rendered text string.
+// This also accounts for embedded font change codes and repositioning codes.
+// Also computes the bounding box occupied by the text string.
+//
+int rendered_bbox(byte pos, byte font, const char *string, int *left, int *right)
+{
+    int minpos, maxpos;
+
+    minpos = maxpos = pos;
+
+    for (; *string != '\0'; string++) {
+        if (*string == '\003') {                // ^Cp / ^X03p  column position p
+            if (*++string == '\0')
+                break;
+            pos = decode_pos(*string, pos);
+        }
+        else if (*string == '\006') {           // ^Ff / ^X06f  switch to font f
+            if (*++string == '\0')
+                break;
+            font = decode_int6(*string);
+        }
+        else if (*string == '\010') {           // ^Hp / ^X08p  move left p columns
+            if (*++string == '\0')
+                break;
+            pos -= decode_int6(*string);
+        }
+        else if (*string == '\013') {           // ^Kc / ^X0Bc  change to color c   (ignored here)
+            if (*++string == '\0')
+                break;
+        }
+        else if (*string == '\014') {           // ^Lp / ^X0Cp  move right p columns
+            if (*++string == '\0')
+                break;
+            pos += decode_int6(*string);
+        }
+        else if (*string == '\030') {           // ^Xhh         literal hex character code
+            char n1, n2;
+            unsigned char l, s;
+            unsigned short o;
+
+            if ((n1 = *++string) == '\0' || (n2 = *++string) == '\0')
+                break;
+
+            if (get_font_metric_data(font, parse_hex_nybble_pair(n1, n2), &l, &s, &o)) {
+                pos += s;
+            }
+        } else {
+            unsigned char l, s;
+            unsigned short o;
+
+            if (get_font_metric_data(font, *string, &l, &s, &o)) {
+                pos += s;
+            }
+        }
+        if (minpos > pos) 
+            minpos = pos;
+        if (maxpos < pos)
+            maxpos = pos;
+    }
+    if (*left != NULL)
+        *left = minpos;
+    if (*right != NULL)
+        *right = maxpos;
+    return maxpos - minpos;
+}
+
+
+//
 // render_text(buffer, pos, font, string, color)
 // draw text at the given starting position in the image buffer.
 //
-byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep, AlignmentStyle alignment)
+byte render_text(byte buffer[N_ROWS][N_COLS], byte cpos, byte font, const char *string, byte color, bool mergep, AlignmentStyle alignment, bool stage)
 {
     if (string == NULL) {
-        return pos;
+        return cpos;
+    }
+
+    int pos = cpos;
+    if (alignment == FlushLeft) {
+        pos = 0;
+    }
+
+    if (stage) {
+        transitions.set_stage();
+    }
+
+    switch (alignment) {
+        int w;
+
+        case NoAlignment:
+        case FlushLeft:
+            // Already taken care of above, just render the string from pos going to the right
+            break;
+
+        case FlushRight:
+            // move pos to the left so that we end at the right edge of the display
+            pos = N_COLS - rendered_bbox(0, font, string, NULL, NULL);
+            break;
+
+        case GlobalCenter:
+            pos = (N_COLS/2) - (rendered_bbox(0, font, string, NULL, NULL)/2);
+            break;
+
+        case LocalCenterLeft:
+            pos = (pos/2) - (rendered_bbox(0, font, string, NULL, NULL)/2);
+            break;
+
+        case LocalCenterRight:
+            pos = (N_COLS-pos)/2 - (rendered_bbox(0, font, string, NULL, NULL)/2);
+            break;
+
+        case LocalRight:
+            pos -= rendered_bbox(0, font, string, NULL, NULL);
+    }
+
+    /* clear the buffer appropriately if not merging */
+    if (!mergep) {
+        if (alignment == NoAlignment || alignment == FlushLeft || alignment == LocalCenterRight) {
+            // clear to the right of pos
+            empty_image_buffer(pos);
+        } else if (alignment == LocalCenterLeft || alignment == LocalRight) {
+            // clear to the left of pos
+            empty_image_buffer(-pos);
+        } else {
+            // clear the whole thing
+            empty_image_buffer(0);
+        }
     }
 
     /* draw characters onto the image buffer */
+
+
+    // int rendered_bbox(byte pos, byte font, const char *string, int *left, int *right)
+
 	// TODO alignment
 	// NoAlignment - do nothing, just draw at the cursor
 	// FlushLeft - draw starting at position 0
@@ -1464,7 +1612,9 @@ byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *s
 #ifdef SERIAL_DEBUG
     debug_image_buffer(buffer);
 #endif
-    return pos;
+    if (pos < 0) 
+        return 0;
+    return byte(pos);
 }
 
 
@@ -1738,10 +1888,10 @@ void setup(void)
 #if IS_READERBOARD
     setup_buffers();
 
-	status_timer.set(0, strobe_status);
-	status_timer.reset();
-	status_timer.setPeriod(10);
-	status_timer.enable();
+//	status_timer.set(0, strobe_status);
+//	status_timer.reset();
+//	status_timer.setPeriod(10);
+//	status_timer.enable();
 #endif
 
 	start_usb_serial();
@@ -1794,6 +1944,9 @@ void setup(void)
     }
     Serial.write("\r\n");
 #endif
+#endif
+#if HAS_SPEAKER
+    send_morse(STATUS_LED_OFF, "S", 1, false);
 #endif
     setup_completed = true;
 }
@@ -1913,7 +2066,7 @@ void loop(void)
 #if IS_READERBOARD
     refresh_hw_buffer();
 	transitions.update();
-	status_timer.update();
+//	status_timer.update();
 #endif
     /* flash/strobe discrete LEDs as needed */
     flasher.update();
@@ -2640,7 +2793,7 @@ void append_morse_char_notes(const char *morse_char)
         play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interchar / 10) & 0x00ff);
 }
 
-void send_morse(byte led, const char *text, int maxlen)
+void send_morse(byte led, const char *text, int maxlen, bool send_sk)
 {
     int src_i;
 
@@ -2658,9 +2811,11 @@ void send_morse(byte led, const char *text, int maxlen)
                 append_morse_char_notes(morse[text[src_i]]);
             }
         }
-        if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
-            play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
-        append_morse_char_notes(morse[ps_SK]);
+        if (send_sk) {
+            if (play_sequence_idx < MAX_PLAY_SEQUENCE_LENGTH) 
+                play_sequence[play_sequence_idx++] = PLAY_NOTE_REST | ((interword / 10) & 0x00ff);
+            append_morse_char_notes(morse[ps_SK]);
+        }
         play_sequence[play_sequence_idx] = PLAY_END_OF_SEQUENCE;
         play_start();
 #endif
@@ -2680,8 +2835,10 @@ void send_morse(byte led, const char *text, int maxlen)
             delay(intrachar_light);
         }
     }
-    delay(interword);
-    send_morse_char(led, ps_SK);
+    if (send_sk) {
+        delay(interword);
+        send_morse_char(led, ps_SK);
+    }
 }
 
 //
