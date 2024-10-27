@@ -551,10 +551,10 @@ void TransitionManager::next(bool reset_column)
                     break;
 
                 default:
-                    unsigned char l, s;
+                    unsigned char l, s, h;
                     unsigned short o;
 
-                    if (!get_font_metric_data(scroll_font, scroll_src[scroll_pos], &l, &s, &o)) {
+                    if (!get_font_metric_data(scroll_font, scroll_src[scroll_pos], &h, &l, &s, &o)) {
                         ++scroll_pos;
                         scroll_col = N_COLS - 1;
                         return;
@@ -714,10 +714,10 @@ void TransitionManager::next(bool reset_column)
 //
 byte draw_character(int col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep)
 {
-    unsigned char l, s;
+    unsigned char l, s, h;
     unsigned short o;
 
-    if (!get_font_metric_data(font, codepoint, &l, &s, &o)) {
+    if (!get_font_metric_data(font, codepoint, &h, &l, &s, &o)) {
         return col;
     }
     for (byte i=0; i<l; i++) {
@@ -1466,20 +1466,20 @@ int rendered_bbox(byte pos, byte font, const char *string, int *left, int *right
         }
         else if (*string == '\030') {           // ^Xhh         literal hex character code
             char n1, n2;
-            unsigned char l, s;
+            unsigned char l, s, h;
             unsigned short o;
 
             if ((n1 = *++string) == '\0' || (n2 = *++string) == '\0')
                 break;
 
-            if (get_font_metric_data(font, parse_hex_nybble_pair(n1, n2), &l, &s, &o)) {
+            if (get_font_metric_data(font, parse_hex_nybble_pair(n1, n2), &h, &l, &s, &o)) {
                 pos += s;
             }
         } else {
-            unsigned char l, s;
+            unsigned char l, s, h;
             unsigned short o;
 
-            if (get_font_metric_data(font, *string, &l, &s, &o)) {
+            if (get_font_metric_data(font, *string, &h, &l, &s, &o)) {
                 pos += s;
             }
         }

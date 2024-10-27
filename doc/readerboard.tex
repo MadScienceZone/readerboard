@@ -1,4 +1,10 @@
-% TODO: add support for Lumos-compatible RS-485 protocol
+% TODO: ^Jp in strings
+% TODO: ^Up in strings
+% TODO: H takes 0-63 value
+% TODO: HK takes $-terminated list
+% TODO: I takes height parameter
+% TODO: Q returns matrix dimensions
+% TODO: {up} and {down}
 \input common
 \frontmatter
 \definecolor{reservedslot}{gray}{0.8}
@@ -1058,8 +1064,10 @@ to a multi-byte \acronym{UTF-8} representation which the readerboard doesn't gro
 			\z{\textasciicircum D} & \z{04} & Never allowed in strings (command terminator)\\
 			\z{\textasciicircum F}\Var*{digit} & \z{06}\Var*{digit} & Switch current font\\
 			\z{\textasciicircum H}\Var*{pos} & \z{08}\Var*{pos} & Move cursor left \Var*{pos} columns\\
+			\z{\textasciicircum J}\Var*{pos} & \z{0A}\Var*{pos} & Move cursor down \Var*{pos} rows\\
 			\z{\textasciicircum K}\Var*{rgb} & \z{0B}\Var*{rgb} & Change color to \Var*{rgb}\\
 			\z{\textasciicircum L}\Var*{pos} & \z{0C}\Var*{pos} & Move cursor right \Var*{pos} columns\\
+			\z{\textasciicircum U}\Var*{pos} & \z{15}\Var*{pos} & Move cursor up \Var*{pos} rows\\
 			\z{\textasciicircum X}\Var*{hex} & \z{18}\Var*{hex} & Specify character code as 2-digit hex value\\
 			\z{\textasciicircum [} & \z{1B} & Never allowed in strings (string terminator)\\
 			\bottomrule
@@ -1772,17 +1780,15 @@ or
 	\bitbox[tbl]{1}{\Var*{rgb$_0$}} &
 	\bitbox[tb]{1}{\Var*{rgb$_1$}} &
 	\bitbox[tb]{1}{\Var*{rgb$_2$}} &
-	\bitbox[tb]{1}{\Var*{rgb$_3$}} &
-	\bitbox[tb]{1}{\Var*{rgb$_4$}} &
-	\bitbox[tb]{1}{\Var*{rgb$_5$}} \\
-	\bitbox[tb]{1}{\Var*{rgb$_6$}} &
-	\bitbox[tbr]{1}{\Var*{rgb$_7$}} 
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{rgb$_n$}} &
+	\bitbox{1}{\z{\$}}
 \end{bytefield}
 %	|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|,"colors":[|\Var*{rgb$_0$}|,|\Var*{rgb$_1$}|,|
 %	\Var*{rgb$_2$}|,|\Var*{rgb$_3$}|,|\Var*{rgb$_4$}|,|\Var*{rgb$_5$}|,|\Var*{rgb$_6$}|,|\Var*{rgb$_7$}|]}|
 \begin{Coding}
 	|/readerboard/v1/graph?a=|\Var*{ad}|&v=|\Var*{n}|&colors=|\Var*{rgb$_0$}\Var*{rgb$_1$}\Var*{rgb$_2$}\Var*{rgb$_3$}
-	\Var*{rgb$_4$}\Var*{rgb$_5$}\Var*{rgb$_6$}\Var*{rgb$_7$}
+	\Var*{rgb$_4$}\Var*{rgb$_5$}\Var*{rgb$_6$}\Var*{rgb$_7$}\dots
 \end{Coding}
 \end{center}
 
@@ -1790,13 +1796,12 @@ This command is used to draw a bar-graph element. Repeating this command causes 
 scrolling data display which shows a set of data samples over some period of time.
 
 In the simplest form, it takes a single byte parameter.
-The value \Var*{n} is an \ascii\ digit character in the range ``\z0''--``\z8'', and
+The value \Var*{n} is an integer encoded as per Table~\ref{tbl:int063}, and
 is drawn in the far-right column of the matrix display, as a column of \Var*{n} lights
-stacked up from the bottom row (a value of 0 results in no lights, up to 8 which is a full
-column of eight lights; a value of 9 is treated as if it were 8). All existing matrix data
-are scrolled left one column.
+stacked up from the bottom row (a value of 0 results in no lights).
+All existing matrix data are scrolled left one column.
 
-In the second form, it takes eight \Var*{rgb} values (see Table~\ref{tbl:rgbcolors}) which give the color to light up
+In the second form, it takes a number of \Var*{rgb} values (see Table~\ref{tbl:rgbcolors}) which give the color to light up
 each row in the bar-graph column. For consistency with other drawing commands, \Var*{rgb$_0$} refers to the topmost
 \led\ in the column.
 
@@ -1811,17 +1816,15 @@ In \acronym{HTTP}, the value of \Var*{n} is sent as an integer value.
 	\bitbox{1}{\Var*{merge}} &
 	\bitbox{1}{\Var*{pos}} &
 	\bitbox{1}{\Var*{trans}} &
-	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
-	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} \\
-	\bitbox[tbr]{2}{\Var*{R coldata$_{n-1}$}} &
-	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\Var*{height}} &
+	\bitbox{2}{\Var*{R coldata}\dots} &
+	\bitbox{1}{\z{\$}} \\
 	\bitbox{2}{\Var*{G coldata}\dots} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{2}{\Var*{B coldata}\dots} &
-	\bitbox{1}{\z{\$}} \\
-	\bitbox{2}{\Var*{flashdata}\dots} &
 	\bitbox{1}{\z{\$}} &
+	\bitbox{2}{\Var*{flashdata}\dots} \\
+	\bitbox{1}{\z{\$}} 
 \end{bytefield}
 %	|{"m":"bitmap","a":[|\Var*{ad$_0$}|,|\dots|],"merge":|\Var*{bool}|,"pos":|\Var*{col}|,|\\
 %	|"trans":|\Var*{trans}|,"image":[[|\Var*{R coldata$_0$}|,|\Var*{R coldata$_1$}|,|\dots|,|\\
@@ -1829,7 +1832,8 @@ In \acronym{HTTP}, the value of \Var*{n} is sent as an integer value.
 %	\Var*{G coldata$_{n-1}$}|],[|\Var*{B coldata$_0$}|,|\Var*{B coldata$_1$}|,|\dots|,|\Var*{B coldata$_{n-1}$}|]]}|
 \begin{Coding}
 	|/readerboard/v1/bitmap?a=|\Var*{ad}|&merge=|\Var*{bool}|&pos=|\Var*{pos}\\
-	|&trans=|\Var*{trans}|&image=|\Var*{R coldata}\dots\z{\$}\Var*{G coldata}\dots\z{\$}\Var*{B coldata}\dots\z{\$}\Var*{flashdata}
+	|&trans=|\Var*{trans}|&image=|\Var*{R coldata}\dots\z{\$}\Var*{G coldata}\dots\\
+	\z{\$}\Var*{B coldata}\dots\z{\$}\Var*{flashdata}|&height=|\Var*{height}
 \end{Coding}
 \end{center}
 
@@ -1840,8 +1844,9 @@ Draws an arbitrary bitmap image onto the matrix display starting at column
 %by a value of $-1$ for \Var*{col}.)
 
 Each column data, from left to right, are given by \Var*{coldata} values,
-each of which is a two-digit \ascii\ hexadecimal value with the 
-least-significant bit representing the top row of the matrix.
+each of which is a two-digit \ascii\ hexadecimal value for each byte of height
+(the number of bytes of height are given by the \Var*{height} value), with the 
+least-significant bit of the first such digit pair representing the top row of the matrix.
 %(In \acronym{JSON}, these are simply plain decimal integer values.)
 
 The column data values are terminated by either a dollar-sign (``\z{\$}'') character or the
@@ -2055,28 +2060,20 @@ The response has the form:
 	\bitbox[tbr]{2}{\Var*{dim$_n$}} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} \\
-	\bitbox[tbl]{2}{\Var*{R coldata$_0$}} &
-%	\bitbox[tb]{2}{\Var*{R coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} &
-%	\bitbox[tb]{1}{}\\
-	\bitbox[tbr]{2}{\Var*{R coldata$_{63}$}}&
+	\bitbox{1}{\Var*{width}} &
+	\bitbox{1}{\Var*{height}} &
+	\bitbox[tbl]{2}{\Var*{R coldata}} &
+	\bitbox[tbr]{1}{$\cdots$} &
 	\bitbox{1}{\z{\$}}&
-	\bitbox[tbl]{2}{\Var*{G coldata$_0$}} &
-%	\bitbox[tb]{2}{\Var*{G coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} \\
-%	\bitbox[tb]{1}{}\\
-	\bitbox[tbr]{2}{\Var*{G coldata$_{63}$}}&
+	\bitbox[tbl]{2}{\Var*{G coldata}} &
+	\bitbox[tbr]{1}{$\cdots$} \\
 	\bitbox{1}{\z{\$}}&
-	\bitbox[tbl]{2}{\Var*{B coldata$_0$}} &
-%	\bitbox[tb]{2}{\Var*{B coldata$_1$}} &
-	\bitbox[tb]{1}{$\cdots$} &
-%	\bitbox[tb]{1}{}\\
-	\bitbox[tbr]{2}{\Var*{B coldata$_{63}$}}&
+	\bitbox[tbl]{2}{\Var*{B coldata}} &
+	\bitbox[tbr]{1}{$\cdots$} &
+	\bitbox{1}{\z{\$}} &
+	\bitbox[tbl]{2}{\Var*{flashdata}} &
+	\bitbox[tbr]{1}{$\cdots$} &
 	\bitbox{1}{\z{\$}}\\
-	\bitbox[tbl]{2}{\Var*{flashdata$_{0}$}}&
-	\bitbox[tb]{1}{$\cdots$} &
-	\bitbox[tbr]{2}{\Var*{flashdata$_{63}$}}&
-	\bitbox{1}{\z{\$}}&
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
@@ -2088,8 +2085,8 @@ as documented in Table~\ref{tbl:int063} for 6-bit integer encoding.
 The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author still has
 %lying around (but this shouldn't be something anyone else would need to see),
 ``\z{B}'' for the stand-alone busylight modules which only include discrete busy status lights,
-``\z{M}'' for 64$\times$8 matrix display hardware with monochrome \led s, or
-``\z{C}'' for 64$\times$8 \acronym{RGB} color display boards.
+``\z{M}'' for \Var*{width}$\times$\Var*{height} matrix display hardware with monochrome \led s, or
+``\z{C}'' for \Var*{width}$\times$\Var*{height} \acronym{RGB} color display boards.
 
 \Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
 hardware the firmware was compiled to drive, and of the firmware itself. Each of
@@ -2481,6 +2478,7 @@ Multiple such pairs may appear, separated by commas (`\z{,}').
 			\z{\{time24\}}&Time as ``\Var*{hh}\z:\Var*{mm}'' on 24-hour clock$\dagger$\\
 			\z{\{ymd\}}&Date as ``\Var*{yyyy}\z-\Var*{mm}\z-\Var*{dd}''\\
 			\z{\{@}[$\pm$]\Var*{n}\z{\}}&Reposition cursor to column \Var*{n}$\ddagger$\\
+			\z{\{\textasciicircum}[$\pm$]\Var*{n}\z{\}}&Reposition cursor up [down] by \Var*{n} rows\\
 			\z{\{\#}\Var*{n}\z{\}}&Insert character with codepoint \Var*{n} (decimal)\\
 			\z{\{\#\$}\Var*{h}\z{\}}&Insert character with codepoint \Var*{h} (hex)\\
 			\z{\{\$}\Var*{name}\z{\}}&User variable \Var*{name}\\

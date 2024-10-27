@@ -354,15 +354,16 @@ def write_LaTeX_glyph(tex, codepoint, name, f, n=0, start=True):
         start=True
     elif not start:
         tex.write('~ \n')
-    tex.write('\\noindent\\begin{tikzpicture}[x=3.5mm,y=3.5mm]\n\\node [right] at (0,0) {'+str(codepoint)+' {\\tiny '+name+'}};\n')
-    for bit in range(8):
-        for pos in range(f.space):
-            if pos >= f.width:
-                tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit}) {{}};\n')
-            elif bitmap_data[f.offset+pos] & (1<<bit):
-                tex.write(f'\\node [circle, fill=red, draw=black, minimum size=3mm] at ({pos+1},{8-bit}) {{}};\n')
-            else:
-                tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit}) {{}};\n')
+    tex.write(f'\\noindent\\begin{{tikzpicture}}[x=3.5mm,y=3.5mm]\n\\node [right] at (0,{-8*(f.height-1)}) {{'+str(codepoint)+' {\\tiny '+name+'}};\n')
+    for byte_number in range(f.height):
+        for bit in range(8):
+            for pos in range(f.space):
+                if pos >= f.width:
+                    tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit-8*byte_number}) {{}};\n')
+                elif ((bitmap_data[f.offset+pos] >> (8*byte_number)) & 0xff) & (1<<bit):
+                    tex.write(f'\\node [circle, fill=red, draw=black, minimum size=3mm] at ({pos+1},{8-bit-8*byte_number}) {{}};\n')
+                else:
+                    tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit-8*byte_number}) {{}};\n')
     tex.write('\\end{tikzpicture}')
     return n
 
