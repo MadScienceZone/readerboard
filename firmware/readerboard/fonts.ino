@@ -5,8 +5,9 @@ const word FontMaxCodepoint[1] = {0};
 const unsigned char * const GlyphMetricDataLengths[1] = {NULL};
 const unsigned char * const GlyphMetricDataSpaces[1] = {NULL};
 const unsigned short * const GlyphMetricDataOffsets[1] = {NULL};
+const unsigned short * const GlyphMetricDataHeights[1] = {NULL};
 const PROGMEM byte CharacterBitmap[1] = {0};
-bool get_font_metric_data(byte font, byte codepoint, unsigned char *leng, unsigned char *space, unsigned short *offset)
+bool get_font_metric_data(byte font, byte codepoint, unsigned char *height, unsigned char *leng, unsigned char *space, unsigned short *offset)
 {
       return false;
 }
@@ -19,13 +20,14 @@ byte get_font_bitmap_data(unsigned long offset)
  *   Font #0 generated from standard.font
  *   Font #1 generated from standard_variable.font
  *   Font #2 generated from symbol.font
+ *   Font #3 generated from double.font
  */
 
 /* font definitions */
 
-const int N_FONTS = 3;
+const int N_FONTS = 4;
 
-const word FontMaxCodepoint[N_FONTS] = {255, 255, 183};
+const word FontMaxCodepoint[N_FONTS] = {255, 255, 183, 57};
 
 
 const PROGMEM unsigned char GlyphMetricDataFont0Lengths[256] = {
@@ -67,6 +69,53 @@ const PROGMEM unsigned char GlyphMetricDataFont2Lengths[184] = {
  5,  8,  7,  7, 10, 10,  8,  8,  9,  9,  5,  5,  8,  8,  8,  8,  8,  8,  8,  8, 
  0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  5,  5,  5,  5,  5,  5,  8,  8,  8,  8, 
  8,  8,  8,  8, };
+const PROGMEM unsigned char GlyphMetricDataFont3Lengths[58] = {
+ 5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
+ 5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  0,  5,  5,  5, 10, 10,  5,  5, 
+ 5,  5, 11,  9, 10,  9,  4, 10, 10,  9, 10, 10, 10, 10, 10, 10, 10, 10, };
+const PROGMEM unsigned char GlyphMetricDataFont0Heights[256] = {
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, };
+const PROGMEM unsigned char GlyphMetricDataFont1Heights[256] = {
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, };
+const PROGMEM unsigned char GlyphMetricDataFont2Heights[184] = {
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1, };
+const PROGMEM unsigned char GlyphMetricDataFont3Heights[58] = {
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 
+ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  2,  2,  1,  1, 
+ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, };
 const PROGMEM unsigned char GlyphMetricDataFont0Spaces[256] = {
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
@@ -106,6 +155,10 @@ const PROGMEM unsigned char GlyphMetricDataFont2Spaces[184] = {
  6, 10,  7,  8, 11, 11,  9,  9, 10, 10,  6,  6,  9,  9,  9,  9,  9,  9,  9,  9, 
  6,  1,  2,  3,  4,  5,  6,  7,  8,  6,  6,  6,  6,  6,  6,  6,  9,  9,  9,  9, 
  9,  9,  9,  9, };
+const PROGMEM unsigned char GlyphMetricDataFont3Spaces[58] = {
+ 6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
+ 6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 11,  6,  6,  6, 11, 11,  6,  6, 
+ 6,  6, 12, 10, 11, 10,  5, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, };
 const PROGMEM unsigned short GlyphMetricDataFont0Offsets[256] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
@@ -180,11 +233,19 @@ const PROGMEM unsigned short GlyphMetricDataFont2Offsets[184] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,  1860,  1868,  1876,  1884, 
  1892,  1900,  1908,  1916, };
-const unsigned char * const GlyphMetricDataLengths[3] = {GlyphMetricDataFont0Lengths, GlyphMetricDataFont1Lengths, GlyphMetricDataFont2Lengths};
-const unsigned char * const GlyphMetricDataSpaces[3] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces};
-const unsigned short * const GlyphMetricDataOffsets[3] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets};
+const PROGMEM unsigned short GlyphMetricDataFont3Offsets[58] = {
+    0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
+    0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
+    0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
+    0,     0,     0,     0,     0,     0,  1931,  1941,     0,     0, 
+ 1951,  1956,  1961,  1972,  1981,  1991,  2000,  2004,  2014,  2024, 
+ 2033,  2043,  2053,  2063,  2073,  2083,  2093,  2103, };
+const unsigned char * const GlyphMetricDataHeights[4] = {GlyphMetricDataFont0Heights, GlyphMetricDataFont1Heights, GlyphMetricDataFont2Heights, GlyphMetricDataFont3Heights};
+const unsigned char * const GlyphMetricDataLengths[4] = {GlyphMetricDataFont0Lengths, GlyphMetricDataFont1Lengths, GlyphMetricDataFont2Lengths, GlyphMetricDataFont3Lengths};
+const unsigned char * const GlyphMetricDataSpaces[4] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces, GlyphMetricDataFont3Spaces};
+const unsigned short * const GlyphMetricDataOffsets[4] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets, GlyphMetricDataFont3Offsets};
 /* font bitmap data */
-const PROGMEM byte CharacterBitmap[1931] = {
+const PROGMEM byte CharacterBitmap[2113] = {
  0x3E, 0x22, 0x22, 0x22, 0x3E,
                                          // 0 - 4
                                          //     .....
@@ -3935,14 +3996,395 @@ const PROGMEM byte CharacterBitmap[1931] = {
                                          //     .......
                                          //     .......
                                          //     .......
+ 0xFC, 0xFE, 0xFF, 0x87, 0xFF, 0xFF, 0x87, 0x8F, 0x8E, 0x0C,
+ 0x30, 0x71, 0xF1, 0xE1, 0xFF, 0xFF, 0xE1, 0xFF, 0x7F, 0x3F,
+                                         // 1931 - 1940
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@@@@@@@
+                                         //     @@@.@@.@@@
+                                         //     @@@.@@....
+                                         //     @@@.@@....
+                                         //     @@@.@@....
+                                         //     @@@@@@@@@.
+                                         //     .@@@@@@@@@
+                                         //     ....@@.@@@
+                                         //     ....@@.@@@
+                                         //     ....@@.@@@
+                                         //     @@@.@@.@@@
+                                         //     @@@@@@@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
+ 0x0E, 0x1F, 0x1B, 0x1F, 0x8E, 0xC0, 0xE0, 0x7F, 0x3F, 0x1F,
+ 0x78, 0x7C, 0x7E, 0x07, 0x03, 0x71, 0xF8, 0xD8, 0xF8, 0x70,
+                                         // 1941 - 1950
+                                         //     .@@@...@@@
+                                         //     @@@@@..@@@
+                                         //     @@.@@..@@@
+                                         //     @@@@@..@@@
+                                         //     .@@@...@@@
+                                         //     ......@@@.
+                                         //     .....@@@..
+                                         //     ....@@@...
+                                         //     ...@@@....
+                                         //     ..@@@.....
+                                         //     .@@@......
+                                         //     @@@...@@@.
+                                         //     @@@..@@@@@
+                                         //     @@@..@@.@@
+                                         //     @@@..@@@@@
+                                         //     ......@@@.
+ 0xF8, 0xFC, 0xFE, 0x0F, 0x07,
+ 0x1F, 0x3F, 0x7F, 0xF0, 0xE0,
+                                         // 1951 - 1955
+                                         //     ...@@
+                                         //     ..@@@
+                                         //     .@@@@
+                                         //     @@@@.
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@..
+                                         //     @@@@.
+                                         //     .@@@@
+                                         //     ..@@@
+                                         //     ...@@
+ 0x07, 0x0F, 0xFE, 0xFC, 0xF8,
+ 0xE0, 0xF0, 0x7F, 0x3F, 0x1F,
+                                         // 1956 - 1960
+                                         //     @@...
+                                         //     @@@..
+                                         //     @@@@.
+                                         //     .@@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     ..@@@
+                                         //     .@@@@
+                                         //     @@@@.
+                                         //     @@@..
+                                         //     @@...
+ 0x18, 0x38, 0x70, 0xE0, 0xF8, 0xF8, 0xF8, 0xE0, 0x70, 0x38, 0x18,
+ 0x0C, 0x0E, 0x07, 0x03, 0x0F, 0x0F, 0x0F, 0x03, 0x07, 0x0E, 0x0C,
+                                         // 1961 - 1971
+                                         //     ...........
+                                         //     ...........
+                                         //     ...........
+                                         //     @@..@@@..@@
+                                         //     @@@.@@@.@@@
+                                         //     .@@@@@@@@@.
+                                         //     ..@@@@@@@..
+                                         //     ...@@@@@...
+                                         //     ..@@@@@@@..
+                                         //     .@@@@@@@@@.
+                                         //     @@@.@@@.@@@
+                                         //     @@..@@@..@@
+                                         //     ...........
+                                         //     ...........
+                                         //     ...........
+                                         //     ...........
+ 0xC0, 0xC0, 0xC0, 0xF8, 0xF8, 0xF8, 0xC0, 0xC0, 0xC0,
+ 0x01, 0x01, 0x01, 0x0F, 0x0F, 0x0F, 0x01, 0x01, 0x01,
+                                         // 1972 - 1980
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     ...@@@...
+                                         //     ...@@@...
+                                         //     ...@@@...
+                                         //     @@@@@@@@@
+                                         //     @@@@@@@@@
+                                         //     @@@@@@@@@
+                                         //     ...@@@...
+                                         //     ...@@@...
+                                         //     ...@@@...
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x18, 0x3C, 0xBC, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                         // 1981 - 1990
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     ..........
+                                         //     .@@.......
+                                         //     @@@@......
+                                         //     @@@@......
+                                         //     .@@@......
+                                         //     ...@......
+                                         //     ..@.......
+ 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0,
+ 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+                                         // 1991 - 1999
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     @@@@@@@@@
+                                         //     @@@@@@@@@
+                                         //     @@@@@@@@@
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+                                         //     .........
+ 0x00, 0x00, 0x00, 0x00,
+ 0x60, 0xF0, 0xF0, 0x60,
+                                         // 2000 - 2003
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     ....
+                                         //     .@@.
+                                         //     @@@@
+                                         //     @@@@
+                                         //     .@@.
+ 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0xE0, 0x70, 0x38, 0x1C,
+ 0x38, 0x1C, 0x0E, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00, 0x00,
+                                         // 2004 - 2013
+                                         //     ..........
+                                         //     ..........
+                                         //     .........@
+                                         //     ........@@
+                                         //     .......@@@
+                                         //     ......@@@.
+                                         //     .....@@@..
+                                         //     ....@@@...
+                                         //     ...@@@....
+                                         //     ..@@@.....
+                                         //     .@@@......
+                                         //     @@@.......
+                                         //     @@........
+                                         //     @.........
+                                         //     ..........
+                                         //     ..........
+ 0xFC, 0xFE, 0xFF, 0x07, 0x03, 0x03, 0x07, 0xFF, 0xFE, 0xFC,
+ 0x3F, 0x7F, 0xFF, 0xE0, 0xC0, 0xC0, 0xE0, 0xFF, 0x7F, 0x3F,
+                                         // 2014 - 2023
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@..@@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@@..@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
+ 0x00, 0x00, 0x08, 0x0C, 0xFE, 0xFF, 0xFF, 0x00, 0x00,
+ 0x00, 0x00, 0xC0, 0xC0, 0xFF, 0xFF, 0xFF, 0xC0, 0xC0,
+                                         // 2024 - 2032
+                                         //     .....@@..
+                                         //     ....@@@..
+                                         //     ...@@@@..
+                                         //     ..@@@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ....@@@..
+                                         //     ..@@@@@@@
+                                         //     ..@@@@@@@
+ 0x1C, 0x1E, 0x1F, 0x07, 0x03, 0x83, 0xC7, 0xFF, 0xFE, 0x7C,
+ 0xF0, 0xF8, 0xFC, 0xFE, 0xCF, 0xC7, 0xC3, 0xC1, 0xC0, 0xC0,
+                                         // 2033 - 2042
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@..@@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     .......@@@
+                                         //     ......@@@@
+                                         //     .....@@@@.
+                                         //     ....@@@@..
+                                         //     ...@@@@...
+                                         //     ..@@@@....
+                                         //     .@@@@.....
+                                         //     @@@@......
+                                         //     @@@@......
+                                         //     @@@@@@@@@@
+                                         //     @@@@@@@@@@
+ 0x0C, 0x0E, 0x0F, 0x87, 0x83, 0x83, 0xC7, 0xFF, 0x7E, 0x3C,
+ 0x30, 0x70, 0xF0, 0xE1, 0xC1, 0xC1, 0xE3, 0xFF, 0x7E, 0x3C,
+                                         // 2043 - 2052
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@..@@@@
+                                         //     @@@....@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     ......@@@.
+                                         //     ...@@@@@..
+                                         //     ...@@@@@..
+                                         //     ......@@@.
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     @@@....@@@
+                                         //     @@@@..@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
+ 0x00, 0x80, 0xC0, 0xE0, 0x70, 0x38, 0xFC, 0xFE, 0xFF, 0x00,
+ 0x0F, 0x0F, 0x0F, 0x0C, 0x0C, 0x0C, 0xFF, 0xFF, 0xFF, 0x0C,
+                                         // 2053 - 2062
+                                         //     ........@.
+                                         //     .......@@.
+                                         //     ......@@@.
+                                         //     .....@@@@.
+                                         //     ....@@@@@.
+                                         //     ...@@@@@@.
+                                         //     ..@@@.@@@.
+                                         //     .@@@..@@@.
+                                         //     @@@...@@@.
+                                         //     @@@...@@@.
+                                         //     @@@@@@@@@@
+                                         //     @@@@@@@@@@
+                                         //     ......@@@.
+                                         //     ......@@@.
+                                         //     ......@@@.
+                                         //     ......@@@.
+ 0xFF, 0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0x83, 0x03,
+ 0x30, 0x70, 0xF0, 0xC0, 0xC0, 0xC0, 0xE1, 0xFF, 0x7F, 0x3F,
+                                         // 2063 - 2072
+                                         //     @@@@@@@@@@
+                                         //     @@@@@@@@@@
+                                         //     @@@.......
+                                         //     @@@.......
+                                         //     @@@.......
+                                         //     @@@.......
+                                         //     @@@@@@@@..
+                                         //     @@@@@@@@@.
+                                         //     ......@@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     @@@....@@@
+                                         //     @@@...@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
+ 0xFC, 0xFE, 0xFF, 0x87, 0x83, 0x83, 0x83, 0x8F, 0x0E, 0x0C,
+ 0x3F, 0x7F, 0xFF, 0xE3, 0xC1, 0xC1, 0xE3, 0xFF, 0x7F, 0x3E,
+                                         // 2073 - 2082
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@...@@@
+                                         //     @@@....@@@
+                                         //     @@@.......
+                                         //     @@@.......
+                                         //     @@@.......
+                                         //     @@@@@@@@..
+                                         //     @@@@@@@@@.
+                                         //     @@@@..@@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@@..@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
+ 0x07, 0x07, 0x07, 0x07, 0x07, 0x87, 0xC7, 0xFF, 0x7F, 0x3F,
+ 0x00, 0x00, 0x00, 0xFE, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00,
+                                         // 2083 - 2092
+                                         //     @@@@@@@@@@
+                                         //     @@@@@@@@@@
+                                         //     @@@@@@@@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     ......@@@.
+                                         //     .....@@@..
+                                         //     ....@@@...
+                                         //     ...@@@....
+                                         //     ...@@@....
+                                         //     ...@@@....
+                                         //     ...@@@....
+                                         //     ...@@@....
+                                         //     ...@@@....
+                                         //     ...@@@....
+ 0x3C, 0x7E, 0xFF, 0xC7, 0x83, 0x83, 0xC7, 0xFF, 0x7E, 0x3C,
+ 0x3C, 0x7E, 0xFF, 0xE3, 0xC1, 0xC1, 0xE3, 0xFF, 0x7E, 0x3C,
+                                         // 2093 - 2102
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@..@@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     .@@@..@@@.
+                                         //     ..@@@@@@..
+                                         //     ..@@@@@@..
+                                         //     .@@@..@@@.
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@@..@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
+ 0x7C, 0xFE, 0xFF, 0xC7, 0x83, 0x83, 0xC7, 0xFF, 0xFE, 0xFC,
+ 0x30, 0x70, 0xF1, 0xC1, 0xC1, 0xC1, 0xE1, 0xFF, 0x7F, 0x3F,
+                                         // 2103 - 2112
+                                         //     ..@@@@@@..
+                                         //     .@@@@@@@@.
+                                         //     @@@@..@@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@....@@@
+                                         //     @@@@..@@@@
+                                         //     .@@@@@@@@@
+                                         //     ..@@@@@@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     .......@@@
+                                         //     @@@....@@@
+                                         //     @@@...@@@@
+                                         //     .@@@@@@@@.
+                                         //     ..@@@@@@..
 };
 
 
-bool get_font_metric_data(byte font, byte codepoint, unsigned char *leng, unsigned char *space, unsigned short *offset)
+bool get_font_metric_data(byte font, byte codepoint, unsigned char *height, unsigned char *leng, unsigned char *space, unsigned short *offset)
 {
-    if (font >= N_FONTS || codepoint > FontMaxCodepoint[font] || leng == NULL || space == NULL || offset == NULL)
+    if (font >= N_FONTS || codepoint > FontMaxCodepoint[font] || height == NULL || leng == NULL || space == NULL || offset == NULL)
         return false;
 
+    *height = pgm_read_byte(GlyphMetricDataHeights[font] + codepoint);
     *leng = pgm_read_byte(GlyphMetricDataLengths[font] + codepoint);
     *space = pgm_read_byte(GlyphMetricDataSpaces[font]  + codepoint);
     *offset = pgm_read_word(GlyphMetricDataOffsets[font] + codepoint);
@@ -3952,7 +4394,7 @@ bool get_font_metric_data(byte font, byte codepoint, unsigned char *leng, unsign
 
 byte get_font_bitmap_data(unsigned short offset) 
 {
-    if (offset < 0 || offset >= 1931)
+    if (offset < 0 || offset >= 2113)
         return 0;
     return pgm_read_byte(CharacterBitmap + offset);
 }
