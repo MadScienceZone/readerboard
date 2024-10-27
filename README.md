@@ -4,6 +4,8 @@ There is also a smaller, standalone Busylight unit which just provides a status 
 previously developed in its own dedicated [github project](https://github.com/MadScienceZone/busylight), but it is
 now merged into this one.
 
+Also contains support for driving larger matrices such as the 32x16 and 64x16 pre-built RGB matrices from Adafruit.
+
 ## Description
 This is mostly just a thing I put together for [hack value](http://www.catb.org/~esr/jargon/html/H/hack-value.html).
 
