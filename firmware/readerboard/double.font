@@ -1,9 +1,10 @@
 
 ;
-; This is a skeleton file you can fill out to
-; make a new font. It starts out with the standard
-; ASCII/low-codepoint Unicode character assignments but
-; you don't need to keep those.
+; Double-high (16-pixels) font for larger matrix displays
+; than the initial 64x8 ones we started with.
+; It is designed mostly for scoreboard displays so it uses
+; extra-large letters and digits without leaving room for
+; descenders.
 ;
 
 ;[$00 ^@ (nul)]
@@ -400,11 +401,91 @@
 @@@...@@@@|
 .@@@@@@@@.|
 ..@@@@@@..|
-;[$3A colon]
-;[$3B semi-colon]
-;[$3C less than]
-;[$3D equals]
-;[$3E greater than]
+[$3A colon]
+....|
+....|
+....|
+.@@.|
+@@@@|
+@@@@|
+.@@.|
+....|
+....|
+.@@.|
+@@@@|
+@@@@|
+.@@.|
+....|
+....|
+....|
+[$3B semi-colon]
+....|
+....|
+....|
+.@@.|
+@@@@|
+@@@@|
+.@@.|
+....|
+....|
+.@@.|
+@@@@|
+@@@@|
+.@@@|
+...@|
+..@.|
+....|
+[$3C less than]
+.......@@@|
+......@@@.|
+.....@@@..|
+....@@@...|
+...@@@....|
+..@@@.....|
+.@@@......|
+@@@.......|
+@@@.......|
+.@@@......|
+..@@@.....|
+...@@@....|
+....@@@...|
+.....@@@..|
+......@@@.|
+.......@@@|
+[$3D equals]
+..........|
+..........|
+..........|
+@@@@@@@@@@|
+@@@@@@@@@@|
+@@@@@@@@@@|
+..........|
+..........|
+..........|
+..........|
+@@@@@@@@@@|
+@@@@@@@@@@|
+@@@@@@@@@@|
+..........|
+..........|
+..........|
+[$3E greater than]
+@@@.......|
+.@@@......|
+..@@@.....|
+...@@@....|
+....@@@...|
+.....@@@..|
+......@@@.|
+.......@@@|
+.......@@@|
+......@@@.|
+.....@@@..|
+....@@@...|
+...@@@....|
+..@@@.....|
+.@@@......|
+@@@.......|
 ;[$3F question mark]
 ;[$40 at-sign]
 ;[$41 A]
