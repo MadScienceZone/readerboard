@@ -4,6 +4,9 @@ There is also a smaller, standalone Busylight unit which just provides a status 
 previously developed in its own dedicated [github project](https://github.com/MadScienceZone/busylight), but it is
 now merged into this one.
 
+The next round of development will adapt the firmware and hardware design to drive the various RGB matrix displays
+the author bought a couple of years ago from Adafruit as well.
+
 ## Description
 This is mostly just a thing I put together for [hack value](http://www.catb.org/~esr/jargon/html/H/hack-value.html).
 
