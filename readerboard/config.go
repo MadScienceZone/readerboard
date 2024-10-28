@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -35,14 +36,37 @@ type ConfigData struct {
 
 	// Server endpoint
 	Endpoint string
+
+	// User-defined varaibles for posted messages
+	UserVariables map[string]string
+
+	messageManager struct {
+		post   chan ManagedMessage
+		unpost chan PostIDs
+		update chan string
+	}
 }
 
-type DevMap map[int]DeviceDescription
+//
+// Init sets up the internal state of a DeviceDescription.
+//
+func (d *DeviceDescription) Init() {
+	if d.LightsInstalled == "" {
+		if d.DeviceType == Busylight1 || d.DeviceType == Busylight2 {
+			d.LightsInstalled = "GyYrRBW"
+		} else if d.DeviceType == Readerboard3RGB || d.DeviceType == Readerboard3Mono {
+			d.LightsInstalled = "GyYrRbBW"
+		}
+	}
+	d.LastKnownState.StatusLights = strings.Repeat("_", len(d.LightsInstalled))
+}
+
+type DevMap map[int]*DeviceDescription
 
 func (dm DevMap) MarshalJSON() ([]byte, error) {
 	sm := make(map[string]DeviceDescription)
 	for k, v := range dm {
-		sm[strconv.Itoa(k)] = v
+		sm[strconv.Itoa(k)] = *v
 	}
 	return json.Marshal(sm)
 }
@@ -58,7 +82,8 @@ func (dm *DevMap) UnmarshalJSON(b []byte) error {
 		if err != nil {
 			return err
 		}
-		(*dm)[sk] = v
+		v.Init()
+		(*dm)[sk] = &v
 	}
 	return nil
 }
@@ -84,7 +109,23 @@ type NetworkDescription struct {
 	driver NetworkDriver
 }
 
-var networkLocks map[string]*sync.Mutex
+var (
+	networkLocks map[string]*sync.Mutex
+	deviceLocks  map[int]*sync.Mutex
+	varLock      *sync.Mutex = &sync.Mutex{}
+)
+
+func lockDevice(id int) {
+	deviceLocks[id].Lock()
+}
+
+func unlockDevice(id int) {
+	deviceLocks[id].Unlock()
+}
+
+func createDeviceLock(id int) {
+	deviceLocks[id] = &sync.Mutex{}
+}
 
 func lockNetwork(id string) {
 	networkLocks[id].Lock()
@@ -98,8 +139,17 @@ func createNetworkLock(id string) {
 	networkLocks[id] = &sync.Mutex{}
 }
 
+func lockVariables() {
+	varLock.Lock()
+}
+
+func unlockVariables() {
+	varLock.Unlock()
+}
+
 func init() {
 	networkLocks = make(map[string]*sync.Mutex)
+	deviceLocks = make(map[int]*sync.Mutex)
 }
 
 type NetworkType byte
@@ -152,15 +202,25 @@ type DeviceDescription struct {
 	// device at this address doesn't report this serial number back, since this
 	// may indicate that the wrong device is configured at this target address.
 	Serial string
+
+	// The physical status LEDs installed on this unit. By default, this would
+	// be "GyYrRbBW" for readerboards and "GyYrRBW" for busylights, but can be
+	// anything if you build the units with different colors.
+	LightsInstalled string
+
+	// State tracking is recorded here so we can report back what we laste told
+	// the device to do without taking the time to ask the device itself.
+	LastKnownState DiscreteLEDStatus `json:"-"`
 }
 
 type HardwareModel byte
 
 const (
-	Busylight1       HardwareModel = iota // Busylight model 1.x, USB only
-	Busylight2                            // Busylight model 2.x, USB or RS-485
-	Readerboard3RGB                       // Readerboard model 3.x, USB or RS-485, RGB 64x8 matrix plus 8-light busylight status LEDs
-	Readerboard3Mono                      // Readerboard model 3.x, USB or RS-485, monochrome 64x8 matrix plus 8-light busylight status LEDs
+	UnknownModel     HardwareModel = iota
+	Busylight1                     // Busylight model 1.x, USB only
+	Busylight2                     // Busylight model 2.x, USB or RS-485
+	Readerboard3RGB                // Readerboard model 3.x, USB or RS-485, RGB 64x8 matrix plus 8-light busylight status LEDs
+	Readerboard3Mono               // Readerboard model 3.x, USB or RS-485, monochrome 64x8 matrix plus 8-light busylight status LEDs
 )
 
 func BusylightModelVersion(hw HardwareModel) int {
@@ -239,6 +299,10 @@ func GetConfigFromFile(filename string, data *ConfigData) error {
 
 	for id, _ := range data.Networks {
 		createNetworkLock(id)
+	}
+
+	for did, _ := range data.Devices {
+		createDeviceLock(did)
 	}
 	return nil
 }

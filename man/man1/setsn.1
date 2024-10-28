@@ -1,57 +1,88 @@
-.TH SETSN 1 "Readerboard/Busylight Project" 29-Sep-2024
+.TH SETSN 1 "Readerboard/Busylight Project" 11-Oct-2024
 .SH NAME
-setsn \- Field program a new serial number into a device
+setsn \- Field program a readerboard or busylight device
 .SH SYNOPSIS
 .na
 .B setsn
-.RB [ \-model
-.IR type ]
+.RB [ \-addr
+.IR addr ]
+.RB [ \-force ]
+.RB [ \-global
+.IR addr ]
 .B \-port
-.I name
-.B \-sn
-.I serialno
-.B \-speed
-.I rate
+.I path
+.RB [ \-reset ]
+.RB [ \-rs485
+.IR rate ]
+.RB [ \-sn
+.IR serialno ]
+.RB [ \-speed
+.IR rate ]
+.RB [ \-usb
+.IR rate ]
 .ad
 .SH DESCRIPTION
 .LP
 After flashing a new firmware image onto a new Readerboard or Busylight device, use this program to
-configure a unique serial number into its EEPROM.
+configure a unique serial number into its EEPROM, or as needed to configure its addresses and communication
+speeds.
 .SH OPTIONS
+.SS "Operational Parameters"
+.LP
+These options control the overall operation of
+.BR setsn .
 .TP
-.BI "\-model " type
-Specifies the hardware type being programmed. The value of
-.I type
-may be
-.BR rb
-(the default),
-.BR mono ,
-or
-.BR busylight ,
-or any of the values which are accepted by
-.BR rbserver (1)'s
-configuration file in the
-.B DeviceType
-field of the
-.B Devices
-list.
-While not strictly required, specifying this parameter may make it easier for
+.B \-force
+Normally,
 .B setsn
-to correctly verify that the serial number has successfully been set.
+will display a description of the target device (obtained by probing the device itself), and then ask the
+user to confirm if you want to proceed to alter that device's configuration. If the
+.B \-force
+option is given,
+.B setsn
+will proceed to make the changes without asking.
 .TP
-.BI "\-port " name
-Specifies the serial port's device name on the system through which the device may be reached.
+.BI "\-port " path
+Specify the device name (e.g., 
+.IR /dev/ttyACM1 )
+where the target device is plugged in to the host computer.
+.TP
+.BI "\-speed " rate
+Sets the baud rate with which we will communicate with the target device. (Default=9600 baud.)
+.SS "Device Settings"
+.LP
+Specify one or more of these to make changes to the device's configuration.
+.TP
+.BI "\-addr " addr
+Set the device's RS-485 device ID. This must be unique on the network of connected devices, and must not be the
+global address. This is an integer in the range 0\-63, or \-1 (the default) if you want to disable the RS-485 port entirely
+and assign no ID number at all to this unit.
+.TP
+.BI "\-global " addr
+Set the device's RS-485 global ID which all devices will respond to. This must be the same as the global ID configured
+for all other connected devices. It is an ingeter in the range 0\-15 (default=15).
+.TP
+.B \-reset
+Reset the addresses and baud rates to their defaults. If this option is given along with other options
+that set those parameters, the 
+.B \-reset
+is done first.
+.TP
+.BI "\-rs485 " rate
+Change the device's RS-485 interface to run at the specified baud
+.IR rate .
 .TP
 .BI "\-sn " serialno
-The serial number to be set on the device. This must be no more than six characters, and should be
-plain ASCII characters, preferably alphanumerics.  Serial numbers
+Set the device's serial number to the specified string. This should be alphanumeric and up to six characters long.
+Serial numbers
 .BR B00000\-B00299
 and
 .BR RB0000\-RB0299
 are reserved for use by the original author.
 .TP
-.BI "\-speed " rate
-Sets the baud rate at which to communicate with the target device.
+.BI "\-usb " rate
+Change the device's USB interface to run at the specified baud
+.IR rate .
 .SH AUTHOR
 .LP
 Steve Willoughby / steve@madscience.zone.

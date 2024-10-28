@@ -11,15 +11,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MadScienceZone/go-gma/v5/util"
 	"go.bug.st/serial"
 )
 
 type LightList []byte
 
 type LEDSequence struct {
-	IsRunning bool
-	Position  int
-	Sequence  LightList
+	IsRunning    bool
+	CustomTiming struct {
+		Enabled bool
+		Up      float64
+		On      float64
+		Down    float64
+		Off     float64
+	}
+	Position int
+	Sequence LightList
 }
 
 func (v LightList) MarshalJSON() ([]byte, error) {
@@ -41,6 +49,14 @@ const (
 	NoEEPROM EEPROMType = iota
 	ExternalEEPROM
 	InternalEEPROM
+)
+
+type SoundType byte
+
+const (
+	NoSound SoundType = iota
+	SingleTone
+	FullTonal
 )
 
 func (n EEPROMType) MarshalJSON() ([]byte, error) {
@@ -73,6 +89,48 @@ func (n *EEPROMType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (n SoundType) MarshalJSON() ([]byte, error) {
+	switch n {
+	case NoSound:
+		return json.Marshal("none")
+	case SingleTone:
+		return json.Marshal("single")
+	case FullTonal:
+		return json.Marshal("full")
+	}
+	return nil, fmt.Errorf("Unsupported SoundType value %v", n)
+}
+
+func (n *SoundType) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	switch s {
+	case "none":
+		*n = NoSound
+	case "single":
+		*n = SingleTone
+	case "full":
+		*n = FullTonal
+	default:
+		return fmt.Errorf("Unsupported SoundType value %v", s)
+	}
+	return nil
+}
+
+func parseSoundType(e byte) (SoundType, error) {
+	switch e {
+	case 'S':
+		return SingleTone, nil
+	case 'T':
+		return FullTonal, nil
+	case '_':
+		return NoSound, nil
+	}
+	return NoSound, fmt.Errorf("invalid sount type code %v", e)
+}
+
 func parseEEPROMType(e byte) (EEPROMType, error) {
 	switch e {
 	case 'I':
@@ -92,6 +150,19 @@ func EEPROMTypeName(e EEPROMType) string {
 	case ExternalEEPROM:
 		return "external"
 	case NoEEPROM:
+		return "no"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+func SoundTypeName(e SoundType) string {
+	switch e {
+	case SingleTone:
+		return "single"
+	case FullTonal:
+		return "full"
+	case NoSound:
 		return "no"
 	default:
 		return "UNKNOWN"
@@ -142,17 +213,77 @@ type DeviceStatus struct {
 	SpeedUSB         int
 	Speed485         int
 	EEPROM           EEPROMType
+	Sound            SoundType
 	HardwareRevision string
 	FirmwareRevision string
 	Serial           string
 	StatusLEDs       DiscreteLEDStatus
 	ImageBitmap      [][64]byte
+	Dimmers          []DimmerSet
+	DimmerValid      []bool
+}
+
+type DimmerSet byte
+
+func (ds DimmerSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(int(ds))
+}
+func (ds *DimmerSet) UnmarshalJSON(j []byte) error {
+	var d int
+	if err := json.Unmarshal(j, &d); err != nil {
+		return err
+	}
+	*ds = DimmerSet(d)
+	return nil
 }
 
 type DiscreteLEDStatus struct {
 	StatusLights  string
 	FlasherStatus LEDSequence
 	StroberStatus LEDSequence
+}
+
+func (s *DiscreteLEDStatus) clear(lightsInstalled string) {
+	s.StatusLights = strings.Repeat("_", len(lightsInstalled))
+	s.FlasherStatus.clear()
+	s.StroberStatus.clear()
+}
+
+func (s *DiscreteLEDStatus) setLights(lights []byte, lightsInstalled string) {
+	l := bytes.Repeat([]byte{'_'}, len(lightsInstalled))
+	for _, lightToSet := range lights {
+		if idx := strings.IndexByte(lightsInstalled, lightToSet); idx >= 0 {
+			l[idx] = lightToSet
+		} else if lightToSet >= '0' && lightToSet <= '9' && int(lightToSet-'0') < len(l) {
+			l[lightToSet-'0'] = lightToSet
+		}
+	}
+
+	s.StatusLights = string(l)
+}
+
+func (s *LEDSequence) clear() {
+	s.IsRunning = false
+}
+
+func (s *LEDSequence) set(l []byte, up, on, down, off float64) {
+	if len(l) == 0 {
+		s.clear()
+		return
+	}
+	s.IsRunning = true
+	s.Position = 0
+	s.Sequence = make(LightList, len(l))
+	copy(s.Sequence, l)
+	if up == 0.0 && on == 0.0 && down == 0.0 && off == 0.0 {
+		s.CustomTiming.Enabled = false
+	} else {
+		s.CustomTiming.Enabled = true
+	}
+	s.CustomTiming.Up = up
+	s.CustomTiming.Down = down
+	s.CustomTiming.On = on
+	s.CustomTiming.Off = off
 }
 
 type NetworkDriver interface {
@@ -170,6 +301,7 @@ type BaseNetworkDriver struct {
 	Port          serial.Port
 	isPortOpen    bool
 	GlobalAddress int
+	NetworkID     string
 }
 
 type DirectDriver struct {
@@ -190,6 +322,7 @@ func (d *DirectDriver) Attach(netID, device string, baudRate, globalAddress int)
 		return fmt.Errorf("attach attempted to nil device %s", netID)
 	}
 	d.Detach()
+	d.NetworkID = netID
 	d.GlobalAddress = globalAddress
 	if d.Port, err = serial.Open(device, &serial.Mode{BaudRate: baudRate}); err == nil {
 		d.isPortOpen = true
@@ -271,6 +404,7 @@ func (d *RS485Driver) Attach(netID, device string, baudRate, globalAddress int) 
 		return fmt.Errorf("attach attempted to nil device %s", netID)
 	}
 	d.Detach()
+	d.NetworkID = netID
 	d.GlobalAddress = globalAddress
 	if d.Port, err = serial.Open(device, &serial.Mode{BaudRate: baudRate}); err == nil {
 		d.isPortOpen = true
@@ -364,9 +498,30 @@ func showAddress(a byte) string {
 	return fmt.Sprintf("%d", a)
 }
 
+func logDimmers(d []DimmerSet, ok []bool) {
+	var s string
+	for i, v := range d {
+		if ok[i] {
+			s += fmt.Sprintf("#%d=%02X ", i, v)
+		} else {
+			s += fmt.Sprintf("#%d -- ", i)
+		}
+	}
+
+	log.Printf("| dimmers: %s", s)
+}
+
 func logStatusLEDs(s DiscreteLEDStatus) {
 	log.Printf("| status lights on=%s", s.StatusLights)
 	if s.FlasherStatus.IsRunning {
+		if s.FlasherStatus.CustomTiming.Enabled {
+			log.Printf("| custom timing (sec): up=%v, on=%v, down=%v, off=%v",
+				s.FlasherStatus.CustomTiming.Up,
+				s.FlasherStatus.CustomTiming.On,
+				s.FlasherStatus.CustomTiming.Down,
+				s.FlasherStatus.CustomTiming.Off,
+			)
+		}
 		log.Printf("| flasher running, pos=%d, sequence=%s", s.FlasherStatus.Position, s.FlasherStatus.Sequence)
 	} else {
 		log.Printf("| flasher stopped")
@@ -393,7 +548,7 @@ func ProbeDevices(configData *ConfigData) error {
 		log.Printf("Device address %d: type=%v; net=%s (%s; s/n=%s)", id, dev.DeviceType, dev.NetworkID, dev.Description, dev.Serial)
 		sender, parser := Query()
 		if net, ok := configData.Networks[dev.NetworkID]; ok {
-			if commands, err = sender(nil, dev.DeviceType); err != nil {
+			if commands, err = sender(nil, dev.DeviceType, nil, configData); err != nil {
 				return fmt.Errorf("error getting bytestream for unit %d: %v", id, err)
 			}
 
@@ -424,12 +579,14 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'B':
 						switch dev.DeviceType {
 						case Busylight1:
-							log.Printf("| busylight model 1.x; USB speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								s.SpeedUSB, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| busylight model 1.x; USB speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								s.SpeedUSB, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 						case Busylight2:
-							log.Printf("| busylight model 2.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| busylight model 2.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 						default:
 							log.Printf("| IDENTIFIES AS A BUSYLIGHT DEVICE REV %s BUT CONFIGURED AS %s!", s.HardwareRevision, HardwareModelName(dev.DeviceType))
@@ -437,8 +594,9 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'M':
 						switch dev.DeviceType {
 						case Readerboard3Mono:
-							log.Printf("| monochrome readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| monochrome readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 							log.Printf("| bitmap %s", hex.EncodeToString(s.ImageBitmap[0][:]))
 							log.Printf("| flash  %s", hex.EncodeToString(s.ImageBitmap[1][:]))
@@ -449,8 +607,9 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'C':
 						switch dev.DeviceType {
 						case Readerboard3RGB:
-							log.Printf("| color readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; hw %s; fw %s; S/N %s",
-								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							log.Printf("| color readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
+							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
 							log.Printf("| red plane %s", hex.EncodeToString(s.ImageBitmap[0][:]))
 							log.Printf("| green \"   %s", hex.EncodeToString(s.ImageBitmap[1][:]))
@@ -601,16 +760,24 @@ func (d *RS485Driver) Send(command string) error {
 }
 
 func (d *DirectDriver) SendBytes(command []byte) error {
-	log.Printf("-> %s", command)
+	pf1 := fmt.Sprintf("-> (USB %s) ", d.NetworkID)
+	pf2 := fmt.Sprintf("        %*s  ", len(d.NetworkID), "")
+	for _, s := range util.LineWrap(util.Hexdump(command, util.WithoutNewline), pf1+"[", pf1+"\u250c", pf2+"\u2502", pf2+"\u2514") {
+		log.Print(s)
+	}
 	if _, err := d.Port.Write(command); err != nil {
 		log.Printf("%v", err)
 		return err
 	}
-	log.Printf("draining")
 	return d.Port.Drain()
 }
 
 func (d *RS485Driver) SendBytes(command []byte) error {
+	pf1 := fmt.Sprintf("-> (485 %s) ", d.NetworkID)
+	pf2 := fmt.Sprintf("        %*s  ", len(d.NetworkID), "")
+	for _, s := range util.LineWrap(util.Hexdump(command, util.WithoutNewline), pf1+"[", pf1+"\u250c", pf2+"\u2502", pf2+"\u2514") {
+		log.Print(s)
+	}
 	if _, err := d.Port.Write(command); err != nil {
 		return err
 	}
