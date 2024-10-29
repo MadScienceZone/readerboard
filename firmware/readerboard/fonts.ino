@@ -74,7 +74,7 @@ const PROGMEM unsigned char GlyphMetricDataFont3Lengths[191] = {
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  0,  5,  5,  5, 10, 10,  5,  5, 
  6,  6, 11,  9,  4,  9,  4, 10, 10,  9, 10, 10, 10, 10, 10, 10, 10, 10,  4,  4, 
 10, 10, 10,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
- 5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  6,  5,  6, 10, 10,  5,  5,  5,  5, 
+ 5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  6,  5,  6,  8, 10,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5, 
@@ -174,7 +174,7 @@ const PROGMEM unsigned char GlyphMetricDataFont3Spaces[191] = {
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 11,  6,  6,  6, 11, 11,  6,  6, 
  7,  7, 12, 10,  5, 10,  5, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,  5,  5, 
 11, 11, 11,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
- 6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  6,  7, 11, 11,  6,  6,  6,  6, 
+ 6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  6,  7,  9, 11,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6, 
@@ -264,7 +264,7 @@ const PROGMEM unsigned short GlyphMetricDataFont3Offsets[191] = {
  2117,  2127,  2137,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
-    0,  2147,     0,  2153,  2159,  2169,     0,     0,     0,     0, 
+    0,  2147,     0,  2153,  2159,  2167,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
@@ -273,14 +273,14 @@ const PROGMEM unsigned short GlyphMetricDataFont3Offsets[191] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0, 
-    0,     0,     0,     0,     0,     0,     0,     0,  2179,  2189, 
- 2199, };
+    0,     0,     0,     0,     0,     0,     0,     0,  2177,  2187, 
+ 2197, };
 const unsigned char * const GlyphMetricDataHeights[4] = {GlyphMetricDataFont0Heights, GlyphMetricDataFont1Heights, GlyphMetricDataFont2Heights, GlyphMetricDataFont3Heights};
 const unsigned char * const GlyphMetricDataLengths[4] = {GlyphMetricDataFont0Lengths, GlyphMetricDataFont1Lengths, GlyphMetricDataFont2Lengths, GlyphMetricDataFont3Lengths};
 const unsigned char * const GlyphMetricDataSpaces[4] = {GlyphMetricDataFont0Spaces, GlyphMetricDataFont1Spaces, GlyphMetricDataFont2Spaces, GlyphMetricDataFont3Spaces};
 const unsigned short * const GlyphMetricDataOffsets[4] = {GlyphMetricDataFont0Offsets, GlyphMetricDataFont1Offsets, GlyphMetricDataFont2Offsets, GlyphMetricDataFont3Offsets};
 /* font bitmap data */
-const PROGMEM byte CharacterBitmap[2209] = {
+const PROGMEM byte CharacterBitmap[2475] = {
  0x3E, 0x22, 0x22, 0x22, 0x3E,
                                          // 0 - 4
                                          //     .....
@@ -4544,19 +4544,19 @@ const PROGMEM byte CharacterBitmap[2209] = {
                                          //     @@@@@@
                                          //     @@@@@@
                                          //     @@@@@@
- 0x00, 0x08, 0x0C, 0x06, 0x03, 0x03, 0x06, 0x0C, 0x08, 0x00,
-                                         // 2159 - 2168
-                                         //     ....@@....
-                                         //     ...@@@@...
-                                         //     ..@@..@@..
-                                         //     .@@....@@.
-                                         //     ..........
-                                         //     ..........
-                                         //     ..........
-                                         //     ..........
+ 0x08, 0x0C, 0x06, 0x03, 0x03, 0x06, 0x0C, 0x08,
+                                         // 2159 - 2166
+                                         //     ...@@...
+                                         //     ..@@@@..
+                                         //     .@@..@@.
+                                         //     @@....@@
+                                         //     ........
+                                         //     ........
+                                         //     ........
+                                         //     ........
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0,
-                                         // 2169 - 2178
+                                         // 2167 - 2176
                                          //     ..........
                                          //     ..........
                                          //     ..........
@@ -4575,7 +4575,7 @@ const PROGMEM byte CharacterBitmap[2209] = {
                                          //     @@@@@@@@@@
  0x42, 0x7F, 0x40, 0x00, 0x00, 0x80, 0x40, 0x20, 0x10, 0x00,
  0x00, 0x08, 0x04, 0x02, 0x21, 0x30, 0x28, 0x24, 0xFE, 0x20,
-                                         // 2179 - 2188
+                                         // 2177 - 2186
                                          //     .@........
                                          //     @@........
                                          //     .@........
@@ -4594,7 +4594,7 @@ const PROGMEM byte CharacterBitmap[2209] = {
                                          //     ........@.
  0x42, 0x7F, 0x40, 0x00, 0x00, 0x80, 0x40, 0x20, 0x10, 0x00,
  0x00, 0x08, 0x04, 0x02, 0x01, 0xC4, 0xA2, 0x92, 0x8A, 0x84,
-                                         // 2189 - 2198
+                                         // 2187 - 2196
                                          //     .@........
                                          //     @@........
                                          //     .@........
@@ -4613,7 +4613,7 @@ const PROGMEM byte CharacterBitmap[2209] = {
                                          //     .....@@@@@
  0x22, 0x41, 0x49, 0x49, 0x36, 0x80, 0x40, 0x20, 0x10, 0x00,
  0x00, 0x08, 0x04, 0x02, 0x21, 0x30, 0x28, 0x24, 0xFE, 0x20,
-                                         // 2199 - 2208
+                                         // 2197 - 2206
                                          //     .@@@......
                                          //     @...@.....
                                          //     ....@.....
@@ -4648,7 +4648,7 @@ bool get_font_metric_data(byte font, byte codepoint, unsigned char *height, unsi
 
 byte get_font_bitmap_data(unsigned short offset) 
 {
-    if (offset < 0 || offset >= 2209)
+    if (offset < 0 || offset >= 2207)
         return 0;
     return pgm_read_byte(CharacterBitmap + offset);
 }

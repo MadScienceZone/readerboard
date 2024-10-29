@@ -218,6 +218,8 @@ type DeviceStatus struct {
 	FirmwareRevision string
 	Serial           string
 	StatusLEDs       DiscreteLEDStatus
+	MatrixWidth      int
+	MatrixHeight     int
 	ImageBitmap      [][64]byte
 	Dimmers          []DimmerSet
 	DimmerValid      []bool
@@ -594,7 +596,8 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'M':
 						switch dev.DeviceType {
 						case Readerboard3Mono:
-							log.Printf("| monochrome readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+							log.Printf("| monochrome %dx%d readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								s.MatrixWidth, s.MatrixHeight,
 								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
 							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)
@@ -607,7 +610,8 @@ func ProbeDevices(configData *ConfigData) error {
 					case 'C':
 						switch dev.DeviceType {
 						case Readerboard3RGB:
-							log.Printf("| color readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+							log.Printf("| color %dx%d readerboard model 3.x; address %v; global %v; USB speed %d; RS-485 speed %d; %s EEPROM; sound %s; hw %s; fw %s; S/N %s",
+								s.MatrixWidth, s.MatrixHeight,
 								showAddress(s.DeviceAddress), showAddress(s.GlobalAddress), s.SpeedUSB, s.Speed485, EEPROMTypeName(s.EEPROM), SoundTypeName(s.Sound), s.HardwareRevision, s.FirmwareRevision, s.Serial)
 							logDimmers(s.Dimmers, s.DimmerValid)
 							logStatusLEDs(s.StatusLEDs)

@@ -15,6 +15,33 @@ import (
 	"strings"
 )
 
+func ParseInt12(s string) (int, error) {
+	if len(s) != 2 {
+		return 0, fmt.Errorf("int12-encoded string must be two characters")
+	}
+
+	v1, err := ParseInt6(s)
+	if err != nil {
+		return 0, err
+	}
+	v2, err := ParseInt6(s[1:2])
+	if err != nil {
+		return 0, err
+	}
+
+	return (v1 << 6) | v2, nil
+}
+
+func ParseInt6(s string) (int, error) {
+	if s == "" {
+		return 0, fmt.Errorf("missing int6-encoded string")
+	}
+	if s[0] >= '0' && s[0] <= 'o' {
+		return int(s[0]) - '0', nil
+	}
+	return 0, fmt.Errorf("invalid int6-encoding")
+}
+
 func EncodeInt6(n int) byte {
 	if n < 0 || n > 63 {
 		return '.'
@@ -689,24 +716,17 @@ func Font(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 	return []byte{'A', idx[0]}, nil
 }
 
-func colorParam8(r url.Values, key string) ([]byte, error) {
+func colorParamList(r url.Values, key string) ([]byte, error) {
 	rgbString := r.Get(key)
 	if strings.ContainsRune(rgbString, ',') {
 		// comma-separated list of color names
 		rgbList := strings.Split(rgbString, ",")
-		if len(rgbList) != 8 {
-			return nil, fmt.Errorf("colors parameter requires eight color values")
-		}
 
 		var colors []byte
 		for _, code := range rgbList {
 			colors = append(colors, ParseColorCode(code))
 		}
 		return colors, nil
-	}
-
-	if len(rgbString) != 8 {
-		return nil, fmt.Errorf("colors parameter requires eight color values")
 	}
 	return []byte(rgbString), nil
 }
@@ -757,18 +777,18 @@ func ParseColorCode(code string) byte {
 // Graph plots a histogram graph data point on the display.
 //
 //	/readerboard/v1/graph?a=<targets>&v=<n>[&colors=<rgb>...]
-//	-> H n
-//	-> H K rgb0 ... rgb7
+//	-> H [~] n
+//	-> H K rgb0 ... $
 func Graph(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	if !IsReaderboardModel(hw) {
 		return nil, fmt.Errorf("graph command not supported for hardware type %v", hw)
 	}
 	if r.Has("colors") {
-		rgb, err := colorParam8(r, "colors")
+		rgb, err := colorParamList(r, "colors")
 		if err != nil {
 			return nil, err
 		}
-		return append([]byte{'H', 'K'}, rgb...), nil
+		return append(append([]byte{'H', 'K'}, rgb...), byte('$')), nil
 	}
 
 	value, err := intParam(r, "v")
@@ -777,10 +797,14 @@ func Graph(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]
 	}
 	if value < 0 {
 		value = 0
-	} else if value > 8 {
-		value = 8
+	} else if value > 63 {
+		value = 63
 	}
-	return []byte{'H', byte(value + '0')}, nil
+	if value == 27 {
+		return []byte{'H', '~', byte(value + '0')}, nil
+	} else {
+		return []byte{'H', byte(value + '0')}, nil
+	}
 }
 
 func transitionParam(r url.Values) byte {
@@ -881,7 +905,7 @@ func Bitmap(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([
 	if currentColor != "flashing" {
 		return nil, fmt.Errorf("not enough color bitplanes provided (ended at %s)", currentColor)
 	}
-	return append(append([]byte{'I', merge, pos, trans}, []byte(image)...), '$'), nil
+	return append(append([]byte{'I', merge, pos, trans, '1'}, []byte(image)...), '$'), nil
 }
 
 // Color sets the current drawing color.
@@ -1196,8 +1220,8 @@ func parseBitmapPlane(hex string) ([64]byte, error) {
 //    /readerboard/v1/query?a=<targets>&status
 //    -> Q
 //    <- Q B = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ \n
-//    <- Q C = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ M red... $ green... $ blue... $ flash... $ \n
-//    <- Q M = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ M bits... $ flash... $ \n
+//    <- Q C = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ M w h red... $ green... $ blue... $ flash... $ \n
+//    <- Q M = ad uspd rspd glb I/X/_ S/T/_ $ L ... $ V vers $ R vers $ S sn $ D ... $ M w h bits... $ flash... $ \n
 //
 //    (485)  1101aaaa ...
 //           1111gggg 00000001 00aaaaaa ...
@@ -1341,7 +1365,24 @@ func Query() (func(url.Values, HardwareModel, deviceTargetSet, *ConfigData) ([]b
 			if planeHexBytes, idx, err = extractString(in, idx, "M"); err != nil {
 				return stat, fmt.Errorf("query response red bitmap plane could not be extracted (%v)", err)
 			}
-			if planeBytes, err = parseBitmapPlane(planeHexBytes); err != nil {
+
+			if len(planeHexBytes) < 4 {
+				return stat, fmt.Errorf("query response bitmap dimensions missing")
+			}
+
+			stat.MatrixWidth, err = ParseInt12(planeHexBytes[0:2])
+			if err != nil {
+				return stat, fmt.Errorf("query response bitmap width could not be parsed (%v)", err)
+			}
+			stat.MatrixWidth++
+
+			stat.MatrixHeight, err = ParseInt12(planeHexBytes[2:4])
+			if err != nil {
+				return stat, fmt.Errorf("query response bitmap height could not be parsed (%v)", err)
+			}
+			stat.MatrixHeight++
+
+			if planeBytes, err = parseBitmapPlane(planeHexBytes[4:]); err != nil {
 				return stat, fmt.Errorf("query response red bitmap plane could not be parsed (%v)", err)
 			}
 			stat.ImageBitmap = append(stat.ImageBitmap, planeBytes)

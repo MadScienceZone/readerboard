@@ -300,11 +300,19 @@ if default_glyph is not None and default_glyph.offset != 0:
     height_by_offset[default_glyph.offset] = default_glyph.height
 char_breaks.append(len(bitmap_data))
 
-print('/* font bitmap data */')
-print(f'const PROGMEM byte CharacterBitmap[{len(bitmap_data)}] = {{')
-start_pos = 0
 if 0 not in height_by_offset:
     height_by_offset[0] = default_glyph.height
+
+// TODO: BUG: breaks not calculated right for multibyte heights
+total_bytes = 0
+start_pos = 0
+for break_pos in sorted(char_breaks):
+    total_bytes += (break_pos - start_pos) * height_by_offset[start_pos]
+    start_pos = break_pos
+
+print('/* font bitmap data */')
+print(f'const PROGMEM byte CharacterBitmap[{total_bytes}] = {{')
+start_pos = 0
 
 for break_pos in sorted(char_breaks):
     for byte_number in range(height_by_offset[start_pos]):

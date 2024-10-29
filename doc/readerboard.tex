@@ -1448,8 +1448,10 @@ Sets the column cursor position to the value indicated by \Var*{pos}. See Table~
 Sets the font to use for rendering text with the \z< and \z{T} commands.
 The font codes for \Var*{digit} are listed in Table~\ref{tbl:fontcodes}.
 The full text fonts support the printable \ascii\ characters plus a majority
-of the Unicode glyphs with codepoints less than 256.  See Tables~\ref{tbl:font0}--\ref{tbl:font2}
+of the Unicode glyphs with codepoints less than 256.  See Tables~\ref{tbl:font0}--\ref{tbl:font3}
 for a complete font glyph listing with codepoint assignments.
+
+Font~3 is a double-height font which is really only useful on boards with 16 or more rows of \led s.
 
 \begin{table}
 	\begin{center}
@@ -1469,9 +1471,9 @@ for a complete font glyph listing with codepoint assignments.
 		\begin{tabular}{r|c|c|c|c|c|c|c|c|l}
 			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
 			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
-			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
-			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
+			\emph{00x}&\tForbidden\tiny null&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
+			\emph{01x}&\tControl\tiny back&\tUnused&\tControl\tiny down&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tControl\tiny up&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&!&\z"&\#&\$&\%&\&&\z'&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&(&)&*&+&,&-&.&/&\\\hline
@@ -1514,9 +1516,9 @@ for a complete font glyph listing with codepoint assignments.
 		\begin{tabular}{r|c|c|c|c|c|c|c|c|l}
 			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
 			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
-			\emph{00x}&\tUnused&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
-			\emph{01x}&\tControl\tiny back&\tUnused&\tUnused&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
+			\emph{00x}&\tForbidden\tiny null&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
+			\emph{01x}&\tControl\tiny back&\tUnused&\tControl\tiny down&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tControl\tiny up&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{04x}&&\bfseries!&$\square$&$\blacksquare$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&,&\tUnused&.&thin .&\\\hline
@@ -1557,6 +1559,51 @@ for a complete font glyph listing with codepoint assignments.
 		{\footnotesize TS\Var*{n} = Thin space of \Var*{n} pixels}
 	\end{center}
 	\caption{Font Table for Font \#2\label{tbl:font2}}
+\end{table}
+\begin{table}
+	\begin{center}
+		\begin{tabular}{r|c|c|c|c|c|c|c|c|l}
+			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
+			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
+			\emph{00x}&\tForbidden\tiny null&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
+			\emph{01x}&\tControl\tiny back&\tUnused&\tControl\tiny down&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tControl\tiny up&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
+			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{04x}&&\tUnused&$\tUnused$&$\tUnused$&\$&\%&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{05x}&(&)&*&+&,&-&.&/&\\\hline
+			\emph{06x}&0&1&2&3&4&5&6&7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
+			\emph{07x}&8&9&:&;&\z<&=&\z>&\tUnused&\\\hline
+			\emph{10x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
+			\emph{11x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{12x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
+			\emph{13x}&\tUnused&\tUnused&\tUnused&[&\tUnused&]&\textasciicircum&\_&\\\hline
+			\emph{14x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{6}\emph{x}}\\\cline{1-9}
+			\emph{15x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{16x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
+			\emph{17x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{20x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{21x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{22x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
+			\emph{23x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{24x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{A}\emph{x}}\\\cline{1-9}
+			\emph{25x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{26x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{B}\emph{x}}\\\cline{1-9}
+			\emph{27x}&\tUnused&\tUnused&\tUnused&\tUnused&\sfrac14&\sfrac12&\sfrac34&\tUnused&\\\hline
+%			\emph{30x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{C}\emph{x}}\\\cline{1-9}
+%			\emph{31x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{32x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{D}\emph{x}}\\\cline{1-9}
+%			\emph{33x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{34x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{E}\emph{x}}\\\cline{1-9}
+%			\emph{35x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+%			\emph{36x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{F}\emph{x}}\\\cline{1-9}
+%			\emph{37x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			&\emph{x}\z{0} &\emph{x}\z{1} &\emph{x}\z{2} &\emph{x}\z{3}
+			&\emph{x}\z{4} &\emph{x}\z{5} &\emph{x}\z{6} &\emph{x}\z{7}\\
+			&\z{8} &\z{9} &\z{A} &\z{B}
+			&\z{C} &\z{D} &\z{E} &\z{F}
+		\end{tabular}
+	\end{center}
+	\caption{Font Table for Font \#3\label{tbl:font3}}
 \end{table}
 			
 \section{\z{B}---Beep/Play Sound Sequence}
@@ -1764,6 +1811,19 @@ This command may be given in upper- or lower-case (``\z{f}'' or ``\z{F}'').
 	\bitbox{1}{\z{H}} &
 	\bitbox{1}{\Var*{n}} 
 \end{bytefield}
+
+\smallskip
+
+or
+
+\medskip
+
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{2}
+	\bitheader{0-2} \\
+	\bitbox{1}{\z{H}} &
+	\bitbox{1}{\z{\textasciitilde}} &
+	\bitbox{1}{\Var*{n}} 
+\end{bytefield}
 \\
 %|{"m":"graph","a":[|\Var*{ad$_0$}|,|\dots|],"v":|\Var*{n}|}|
 \begin{Coding}
@@ -1804,9 +1864,17 @@ is drawn in the far-right column of the matrix display, as a column of \Var*{n} 
 stacked up from the bottom row (a value of 0 results in no lights).
 All existing matrix data are scrolled left one column.
 
+In earlier versions of the readerboard hardware, devices with 27 or more rows weren't supported. Now that they are,
+the value ``\z{K}'' makes this command ambiguous since \z{HK} could be the start of a bar graph command with explicit color
+codes, or a single point with value 27. To resolve the ambiguity, an optional ``\z{\textasciitilde}'' character may be
+sent after the initial \z{H} to explicitly indicate that the following byte is a data value. Thus, \z{HK} is always
+the start of an explicitly-colored bar, and \z{H\textasciitilde K} is how you would send a data bar of 27 pixels
+in height. You {\bfseries may} start all data points with \z{H\textasciitilde} but you only {\bfseries must} do so
+if the value encodes to \z{K}.
+
 In the second form, it takes a number of \Var*{rgb} values (see Table~\ref{tbl:rgbcolors}) which give the color to light up
-each row in the bar-graph column. For consistency with other drawing commands, \Var*{rgb$_0$} refers to the topmost
-\led\ in the column.
+each row in the bar-graph column. Unlike other drawing commands, but to make the most logical sense for histograms, \Var*{rgb$_0$} refers to the bottom-most
+\led\ in the column, so the number of color values in the list is the number of data points being graphed.
 
 %In \acronym{JSON}, the values of \Var*{n} and \Var*{rgb$_n$} are sent as integer values.
 In \acronym{HTTP}, the value of \Var*{n} is sent as an integer value.
@@ -2063,20 +2131,20 @@ The response has the form:
 	\bitbox[tbr]{2}{\Var*{dim$_n$}} &
 	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{M}} \\
-	\bitbox{1}{\Var*{width}} &
-	\bitbox{1}{\Var*{height}} &
+	\bitbox{2}{\Var*{width}} &
+	\bitbox{2}{\Var*{height}} &
 	\bitbox[tbl]{2}{\Var*{R coldata}} &
-	\bitbox[tbr]{1}{$\cdots$} &
-	\bitbox{1}{\z{\$}}&
+	\bitbox[tbr]{2}{$\cdots$} &
+	\bitbox{1}{\z{\$}}\\
 	\bitbox[tbl]{2}{\Var*{G coldata}} &
-	\bitbox[tbr]{1}{$\cdots$} \\
+	\bitbox[tbr]{1}{$\cdots$} &
 	\bitbox{1}{\z{\$}}&
 	\bitbox[tbl]{2}{\Var*{B coldata}} &
-	\bitbox[tbr]{1}{$\cdots$} &
-	\bitbox{1}{\z{\$}} &
+	\bitbox[tbr]{2}{$\cdots$} &
+	\bitbox{1}{\z{\$}} \\
 	\bitbox[tbl]{2}{\Var*{flashdata}} &
 	\bitbox[tbr]{1}{$\cdots$} &
-	\bitbox{1}{\z{\$}}\\
+	\bitbox{1}{\z{\$}} &
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
@@ -2090,6 +2158,9 @@ The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author stil
 ``\z{B}'' for the stand-alone busylight modules which only include discrete busy status lights,
 ``\z{M}'' for \Var*{width}$\times$\Var*{height} matrix display hardware with monochrome \led s, or
 ``\z{C}'' for \Var*{width}$\times$\Var*{height} \acronym{RGB} color display boards.
+Note that \Var*{width} and \Var*{height} are encoded 12-bit integers, where the most significant 6 bits
+are sent first in each pair and the full encoded value is one less than the actual width or height.
+Thus, dimensions of 1--4,096 pixels in each direction may be reported.
 
 \Var*{hwversion} and \Var*{romversion} indicate the versions, respectively, of the 
 hardware the firmware was compiled to drive, and of the firmware itself. Each of
@@ -2599,28 +2670,28 @@ The pinout is as follows:
 	4&Data B (--)\\
 	5&Data A (+)\\
 	6&Cable check return\\
-	7&Ground\\
-	8&Ground\\\bottomrule
+	7&Power Ground\\
+	8&Signal Ground\\\bottomrule
 \end{tabular}
 \end{center}
 
-\subsection{9-pin Connectors}
-Some applications use a \acronym{DE-9} connector\footnote{Also commonly, but incorrectly, called ``DB-9'' connectors.} for \acronym{RS-485} signals, with pinouts such as:
-\begin{center}
-	\begin{tabular}{cl}\toprule
-		\bfseries Pin & \bfseries Signal\\\midrule
-		1&Ground\\
-		2&Clear to Send (CTS) +\\
-		3&Request to Send (RTS) +\\
-		4&Received Data (RxD) +\\
-		5&Received Data (RxD) --\\
-		6&Clear to Send (CTS) --\\
-		7&Request to Send (RTS) --\\
-		8&Transmitted Data (TxD) +\\
-		9&Transmitted Data (TxD) --\\
-		\bottomrule
-	\end{tabular}
-\end{center}
+%\subsection{9-pin Connectors}
+%Some applications use a \acronym{DE-9} connector\footnote{Also commonly, but incorrectly, called ``DB-9'' connectors.} for \acronym{RS-485} signals, with pinouts such as:
+%\begin{center}
+%	\begin{tabular}{cl}\toprule
+%		\bfseries Pin & \bfseries Signal\\\midrule
+%		1&Ground\\
+%		2&Clear to Send (CTS) +\\
+%		3&Request to Send (RTS) +\\
+%		4&Received Data (RxD) +\\
+%		5&Received Data (RxD) --\\
+%		6&Clear to Send (CTS) --\\
+%		7&Request to Send (RTS) --\\
+%		8&Transmitted Data (TxD) +\\
+%		9&Transmitted Data (TxD) --\\
+%		\bottomrule
+%	\end{tabular}
+%\end{center}
 
 \section{DIN-8 Busylight Tree Connectors}
 The Busylight control boards use a \acronym{DIN-8} jack where the light tree cable plugs in to carry the light-signal
@@ -2726,6 +2797,86 @@ The pinout of J1 for revision 3.2.2 boards is different:
 		4&GND              &8&B (Data out --)\\\bottomrule
 	\end{tabular}
 \end{center}
+
+\section{Adafruit Matrix Versions}
+There are two experimental versions of readerboard sheilds which drive the various maxrix boards available from Adafruit.\footnote{And
+probably others, but that's just where the author got his from.} These use a 16-pin ribbon cable which employs signalling that is similar
+in principle (although not identical) to our original design. Our compatible shield boards provide these signals on their J7 connector:
+
+\begin{center}
+	\begin{tabular}{rl|rl}\toprule
+		\bfseries Pin&\bfseries Signal &
+		\bfseries Pin&\bfseries Signal \\\midrule
+		 1&R$_1$ red data      & 2&G$_1$ green data\\
+		 3&B$_1$ blue data     & 4&Ground\\
+		 5&R$_2$ red data      & 6&G$_2$ green data\\
+		 7&B$_2$ blue data     & 8&E (A$_4$) row select or ground\\
+		 9&A (A$_0$) row select&10&B (A$_1$) row select\\
+		11&C (A$_2$) row select&12&D (A$_3$) row select or ground\\
+		13&Clock               &14&Latch \\
+		15&Output Enable       &16&Ground \\\bottomrule
+	\end{tabular}
+\end{center}
+
+The standard adafruit-compatible shield supports eight busylight-like discrete \led\ outputs as well, but instead of them being soldered
+to the board as they would be on the original readerboard, ribbon cable connector J8 connects to external \led s, which are assumed to
+have their own current-limiting resistors:
+\begin{center}
+	\begin{tabular}{rl|rl}\toprule
+		\bfseries Pin&\bfseries Signal &
+		\bfseries Pin&\bfseries Signal \\\midrule
+		1&+9V common anode power &2&Ground\\
+		3&L7 cathode & 4&L6 cathode\\
+		5&L5 cathode & 6&L4 cathode\\
+		7&L3 cathode & 8&L2 cathode\\
+		9&L1 cathode &10&L0 cathode\\\bottomrule
+	\end{tabular}
+\end{center}
+
+The remaining external connections, including 
+J1 to RS-485 network,
+J5 to +9V power supply,
+and
+J6 to external speaker,
+are as for the original readerboard unit.
+
+\subsection{QSCC Variant}
+A slight variation of the Adafruit-compatible shields, the so-called ``QSCC'' model, is used for game applications in another project by the author,
+but may be useful in a variety of other situations as well. This is the same as what is listed above, except it does not offer a speaker output,
+and adds additional discrete \led\ outputs on J8 with the following ribbon cable pinout:
+
+\begin{center}
+	\begin{tabular}{rl|rl}\toprule
+		\bfseries Pin&\bfseries Signal &
+		\bfseries Pin&\bfseries Signal \\\midrule
+		1&L0 cathode & 2&L1 cathode\\
+		3&L2 cathode & 4&L3 cathode\\
+		5&L4 cathode & 6&L5 cathode\\
+		7&L6 cathode & 8&L7 cathode\\
+		9&L8 cathode &10&L9 cathode\\
+		11&L10 cathode &12&L11 cathode\\
+		13&L12 cathode &14&L13 cathode\\
+		15&+9V common anode power&16&+9V common anode power\\\bottomrule
+	\end{tabular}
+\end{center}
+The shield includes on-board current-limiting resistors for these \led s so they don't have to include their own.
+
+It also adds J6 which exposes two identical I$^2$C connections indended to drive alphanumeric displays such as the
+four-character Adafruit ``backpack'' units.  These have a ribbon cable pinout as follows:
+\begin{center}
+	\begin{tabular}{rl|rl}\toprule
+		\bfseries Pin&\bfseries Signal &
+		\bfseries Pin&\bfseries Signal \\\midrule
+		1&V$_{\text{HI}}$ (typ. +5V) & 2&V$_{\text{IO}}$ (logic voltage)\\
+		3&Ground                     & 4&SDA\\
+		5&SCL                        & 6&SCL\\
+		7&SDA                        & 8&Ground\\
+		9&V$_{\text{IO}}$            &10&V$_{\text{HI}}$\\\bottomrule
+	\end{tabular}
+\end{center}
+
+This pin arrangement allows you to wire it to an \acronym{IDC} ribbon cable connector, split the ribbon cable in two, sending each half to a different
+I$^2$C display. Alternatively, you could wire this to a wire-to-board socket with discrete wires which can be bundled by column or sequentially.
 
 {\color{gray}
 \section{Connectors for Legacy Boards}
@@ -3242,6 +3393,8 @@ version 1.1-S uses surface-mount resistors.
 \newpage
 \noindent\includegraphics[width=\textheight,angle=90]{images/readerboard_schematic.png}
 \noindent\includegraphics[width=\textheight,angle=90]{images/busylight_schematic.png}
+\noindent\includegraphics[width=\textheight,angle=90]{images/adashield_schematic.png}
+\noindent\includegraphics[width=\textheight,angle=90]{images/adashield_qs_schematic.png}
 \noindent\includegraphics[height=\textheight]{images/readerboard-assembly-0.png}
 \noindent\includegraphics[height=\textheight]{images/readerboard-assembly-1.png}
 \newpage
@@ -3253,6 +3406,13 @@ version 1.1-S uses surface-mount resistors.
 
 \noindent\includegraphics[width=.48\textwidth]{images/lighttree-assembly-S-0.png}
 \noindent\includegraphics[width=.48\textwidth]{images/lighttree-assembly-S-1.png}
+
+\noindent\includegraphics[width=.48\textwidth]{images/adashield-assembly-0.png}
+\noindent\includegraphics[width=.48\textwidth]{images/adashield-assembly-1.png}
+
+\noindent\includegraphics[width=.48\textwidth]{images/adashield_qs-assembly-0.png}
+\noindent\includegraphics[width=.48\textwidth]{images/adashield_qs-assembly-1.png}
+
 \indexintoc
 
 \printindex

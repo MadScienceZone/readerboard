@@ -81,19 +81,19 @@
 //                          |      |________|                                                         
 //                          |           |K
 //                          |           |<------+
-//                          |       ____V___    |rgb0-rgb6
-//                          |      |BarColor|___+    
+//                          |       ____V___    |rgb
+//                          |      |BarColor|___+          $
 //                          |      |        |------------------> END
-//                          |      |________|     rgb7       ______
+//                          |      |________|     
 //                          |                               |      |nybble1
 //                          |  D    _________  led  ________V__    |
 //                          +----->|DimmerLED|---->|DimmerLevel|---+
 //                          |      |_________|     |___________|-------------> END
 //                          |                                    nybble2
-//                          |                                                                          ____
-//                          |  I    __________ merge   ________ pos     _______________ trans  _______|_   |nybble (x3)
-//                          +----->|ImageMerge|------>|ImageCol|------>|ImageTransition|----->|ImageData|<-+    $
-//                          |      |__________|       |________|       |_______________|      |_________|---------> END
+//                          |                                                                                            ____
+//                          |  I    __________ merge   ________ pos     _______________ trans  ___________  ht   _______|_   |nybble (x3)
+//                          +----->|ImageMerge|------>|ImageCol|------>|ImageTransition|----->|ImageHeight|---->|ImageData|<-+    $
+//                          |      |__________|       |________|       |_______________|      |___________|     |_________|---------> END
 //                          |             ____
 //                          |  L    _____|_   |led
 //                          +----->|LightSet|<-+     $
@@ -250,9 +250,11 @@ private:
         TextDataState,
         SetColorState,
         BarGraphState,
+        BarGraphStateN,
         ImageStateCol,
         ImageStateData,
         ImageStateMerge,
+        ImageStateHeight,
         ImageStateTransition,
         LightSetState,
 #endif
@@ -267,6 +269,7 @@ private:
 	AlignmentStyle alignment;
     byte scrolling_buffer[CSM_BUFSIZE];
     byte column;
+    byte height;
     byte font;
     byte color;
 #endif
@@ -310,6 +313,7 @@ void CommandStateMachine::begin(void)
     column = 0;
     font = 0;
     color = 1;
+    height = 1;
 #endif
     reset();
 }
@@ -483,6 +487,7 @@ void CommandStateMachine::reset(void)
     merge = false;
     nybble = false;
     repeat = false;
+    height = 1;
 #endif
     buffer_idx = 0;
     LEDset = 0;
@@ -742,6 +747,10 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 report_dimmer_state();
 #if IS_READERBOARD
                 sendbyte('M');
+                sendbyte(encode_int6(((N_COLS-1) >> 6) & 0x3f));
+                sendbyte(encode_int6(((N_COLS-1)     ) & 0x3f));
+                sendbyte(encode_int6(((N_ROWS-1) >> 6) & 0x3f));
+                sendbyte(encode_int6(((N_ROWS-1)     ) & 0x3f));
                 for (int plane=0; plane<N_COLORS; plane++) {
                     byte planebit = 1 << plane;
                     for (int col=0; col<N_COLS; col++) {
@@ -1068,29 +1077,39 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
 
 #if IS_READERBOARD
     case BarGraphState:
+        if (inputchar == '~') {
+            // K is a possible data value now so allow ~ to mean explictly interpret the next byte as a number
+            state = BarGraphStateN;
+            break;
+        }
+
         if (inputchar == 'K') {
             state = BarColorState;
             break;
         }
-        if (inputchar >= '0' && inputchar <= '9') {
-            commit_graph_datapoint(inputchar - '0');
+        /* FALLTHRU */
+
+    case BarGraphStateN:
+        if (accept_encoded_int6(inputchar)) {
+            commit_graph_datapoint(bytebuf);
             end_cmd();
-        }
-        else {
+        } else {
             error();
         }
         break;
 
     case BarColorState:
+        if (inputchar == '$' || inputchar == '\x1b') {
+            commit_graph_datacolors();
+            end_cmd();
+            break;
+        }
+
         if (!accept_encoded_rgb(inputchar)) {
             error();
             break;
         }
         append_bytebuf();
-        if (buffer_idx >= 8) {
-            commit_graph_datacolors();
-            end_cmd();
-        }
         break;
 
     case ImageStateMerge:
@@ -1115,6 +1134,15 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
     case ImageStateTransition:
         if (accept_encoded_transition(inputchar)) {
 			transitions.set_stage();
+            state = ImageStateHeight;
+        } else {
+            error();
+        }
+        break;
+
+    case ImageStateHeight:
+        if (accept_encoded_pos(inputchar) && bytebuf == 1) {    // TODO: change this when we support heights other than 1
+            height = bytebuf;
             state = ImageStateData;
             k = 0;
         } else {
@@ -1446,7 +1474,7 @@ void CommandStateMachine::set_lights(byte bits)
 
 //
 // (CSM) commit_graph_datapoint(value)
-//    Plots the data value in the range [0,8] by lighting up
+//    Plots the data value in the range [0,N_ROWS] by lighting up
 //    that number of lights from the bottom row, displaying them
 //    in the far right column, shifting the display one column left.
 //
@@ -1464,7 +1492,7 @@ void CommandStateMachine::commit_graph_datacolors()
 {
     shift_left(image_buffer);
     for (int i=0; i<buffer_idx && i<N_ROWS; i++) {
-        image_buffer[i][N_COLS-1] = buffer[i];
+        image_buffer[N_ROWS-1-i][N_COLS-1] = buffer[i];
     }
     display_buffer(image_buffer);
 }
