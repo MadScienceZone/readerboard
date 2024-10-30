@@ -751,6 +751,7 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
                 sendbyte(encode_int6(((N_COLS-1)     ) & 0x3f));
                 sendbyte(encode_int6(((N_ROWS-1) >> 6) & 0x3f));
                 sendbyte(encode_int6(((N_ROWS-1)     ) & 0x3f));
+                // TODO: support more than 1 row
                 for (int plane=0; plane<N_COLORS; plane++) {
                     byte planebit = 1 << plane;
                     for (int col=0; col<N_COLS; col++) {
@@ -1483,7 +1484,7 @@ void CommandStateMachine::commit_graph_datapoint(int value)
 {
     shift_left(image_buffer);
     for (int i=0; i<value && i<N_ROWS; i++) {
-        image_buffer[7-i][N_COLS-1] = color;
+        image_buffer[N_ROWS-1-i][N_COLS-1] = color;
     }
     display_buffer(image_buffer);
 }

@@ -18,15 +18,36 @@ Libraries Required:
 
 
 // Readerboard hardware models for HW_MODEL
-#define MODEL_3xx_MONOCHROME (3)
-#define MODEL_3xx_RGB (4)
-#define MODEL_BUSYLIGHT_1 (5)
-#define MODEL_BUSYLIGHT_2 (6)
+#define MODEL_LOGIC_MASK        (0xf000)
+#define MODEL_LOGIC_3xx         (0x1000)
+#define MODEL_LOGIC_B_1xx       (0x2000)
+#define MODEL_LOGIC_B_2xx       (0x3000)
+#define MODEL_LOGIC_ADA         (0x4000)
+
+#define MODEL_CLASS_MASK        (0x0f00)
+#define MODEL_CLASS_RB          (0x0100)
+
+#define MODEL_3xx_MONOCHROME    (0x1103)
+#define MODEL_3xx_RGB           (0x1104)
+
+#define MODEL_CLASS_BUSYLIGHT   (0x0200)
+#define MODEL_BUSYLIGHT_1       (0x2205)
+#define MODEL_BUSYLIGHT_2       (0x3206)
+
+#define MODEL_CLASS_ADA         (0x0300)
+#define MODEL_ADA_32x16         (0x4301)
+#define MODEL_ADA_32x32         (0x4302)
+#define MODEL_ADA_64x16         (0x4303)    // two 32x16 boards
+#define MODEL_ADA_64x64         (0x4304)
+
+#define MODEL_CLASS_QSCC        (0x0400)
+#define MODEL_QSCC_64x16        (0x4403)
 
 /* LEGACY models NO LONGER supported. Do not use these. */
-#define MODEL_LEGACY_64x7 (0)
-#define MODEL_LEGACY_64x8 (1)
-#define MODEL_LEGACY_64x8_INTEGRATED (2)
+#define MODEL_CLASS_OBSOLETE         (0x0000)
+#define MODEL_LEGACY_64x7            (0x0000)
+#define MODEL_LEGACY_64x8            (0x0001)
+#define MODEL_LEGACY_64x8_INTEGRATED (0x0002)
 
 // Microcontroller Models for HW_MC
 #define HW_MC_MEGA_2560 (0)
@@ -146,9 +167,13 @@ Libraries Required:
 //# define BESPOKE_SERIAL_NUMBER "RB0000"
 #endif
 
-#define HW_CONTROL_LOGIC_3xx (1)
+//#define HW_CONTROL_LOGIC_3xx (1)
 #define HW_CONTROL_LOGIC_B_1xx (2)
 #define HW_CONTROL_LOGIC_B_2xx (3)
+
+#define IS_MODEL_CLASS(X)	((HW_MODEL & MODEL_CLASS_MASK) == (X))
+#define IS_READERBOARD		(IS_MODEL_CLASS(MODEL_CLASS_RB) || IS_MODEL_CLASS(MODEL_CLASS_ADA))
+#define IS_HW_LOGIC(X)      ((HW_MODEL & MODEL_LOGIC_MASK) == (X))
 
 #if HW_MODEL == MODEL_3xx_RGB
 const int N_COLS = 64;              // number of physical columns
@@ -157,8 +182,6 @@ const int N_ROWS = 8;               // number of physical rows
 const int N_ROWBYTES = 1;			// number of byte-size row blocks
 const int N_COLORS = 4;             // number of color planes
 const int N_FLASHING_PLANE = 3;
-# define IS_READERBOARD (true)
-# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_3xx)
 # define SERIAL_485 (Serial3)
 #elif HW_MODEL == MODEL_3xx_MONOCHROME
 const int N_COLS = 64;              // number of physical columns
@@ -167,18 +190,12 @@ const int N_ROWS = 8;               // number of physical rows
 const int N_ROWBYTES = 1;			// number of byte-size row blocks
 const int N_COLORS = 2;
 const int N_FLASHING_PLANE = 1;
-# define IS_READERBOARD (true)
-# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_3xx)
 # define SERIAL_485 (Serial3)
 #elif HW_MODEL == MODEL_BUSYLIGHT_1
-# define IS_READERBOARD (false)
-# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_B_1xx)
 # if HW_MC != HW_MC_PRO
 #  error "The busylight 1 only used the Arduino Pro Micro uC"
 # endif
 #elif HW_MODEL == MODEL_BUSYLIGHT_2
-# define IS_READERBOARD (false)
-# define HW_CONTROL_LOGIC (HW_CONTROL_LOGIC_B_2xx)
 # define SERIAL_485 (Serial1)
 # if HW_MC != HW_MC_PRO
 #  error "The busylight 2 only used the Arduino Pro Micro uC"
@@ -243,7 +260,6 @@ public:
 	void stop(void);
 	void next(bool reset_column = false);
     void start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS=100);
-	// set_stage(); display_buffer(image_buffer, transition)
 };
 extern TransitionManager transitions;
 extern byte image_buffer[N_ROWS][N_COLS];

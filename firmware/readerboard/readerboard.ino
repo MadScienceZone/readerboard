@@ -1,5 +1,4 @@
 //TODO bounds checking on setting font index
-//TODO eeprom
 /* 
  *  ____  _____    _    ____  _____ ____  ____   ___    _    ____  ____  
  * |  _ \| ____|  / \  |  _ \| ____|  _ \| __ ) / _ \  / \  |  _ \|  _ \
@@ -163,7 +162,7 @@ const int PIN_STATUS_LED = 13;
 
 
 
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
 const int PIN_D0    = 61;   // column data bit 0
 const int PIN_D1    = 60;   // column data bit 1
 const int PIN_D2    = 59;   // column data bit 2
@@ -206,7 +205,7 @@ const int PIN_SPKR  = 12;   // PWM output driving speaker
 # endif
 # endif
 
-#elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_1xx
+#elif IS_HW_LOGIC(MODEL_LOGIC_B_1xx)
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
 const int PIN_L2    =  9;   // discrete LED 2 
@@ -215,7 +214,7 @@ const int PIN_L4    =  6;   // discrete LED 4
 const int PIN_L5    =  7;   // discrete LED 5 
 const int PIN_L6    = 10;   // discrete LED 6 (top)
 # define HAS_SPEAKER (false)
-#elif HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_B_2xx
+#elif IS_HW_LOGIC(MODEL_LOGIC_B_2xx)
 const int PIN_L0    = 16;   // discrete LED 0 (bottom)
 const int PIN_L1    = 14;   // discrete LED 1 
 const int PIN_L2    =  9;   // discrete LED 2 
@@ -236,8 +235,61 @@ const int PIN_SPKR  =  5;   // PWM output driving speaker
 #  define HAS_TONE_SUPPORT (false)
 # endif
 
+#elif IS_HW_LOGIC(MODEL_LOGIC_ADA)
+const int PIN_DE  =16; // RS-485 driver enable (1=enabled)
+const int PIN__RE =17; // RS-485 ~receiver enable (0=enabled)
+const int PIN_A   =62; // Row select bit A (A0)
+const int PIN_B   =68; // Row select bit B (A1)
+const int PIN_C   =63; // Row select bit C (A2)
+const int PIN_D   =67; // Row select bit D (A3)
+const int PIN_E   =55; // Row select bit E (A4)
+const int PIN_R1  =58; // Col data RED 1
+const int PIN_R2  =60; // Col data RED 2
+const int PIN_G1  =57; // Col data GRN 1
+const int PIN_G2  =56; // Col data GRN 2
+const int PIN_B1  =59; // Col data BLU 1
+const int PIN_B2  =61; // Col data BLU 2
+const int PIN_CLK =64; // Matrix Data clock
+const int PIN_OE  =65; // Matrix output enable
+const int PIN_LAT =66; // Matrix output latch
+# if IS_MODEL_CLASS(MODEL_CLASS_QSCC)
+const int PIN_L0  =18; // discrete LED 0
+const int PIN_L1  =19; //     |
+const int PIN_L2  = 2; //     |
+const int PIN_L3  = 3; //     |
+const int PIN_L4  = 4; //     |
+const int PIN_L5  = 5; //     |
+const int PIN_L6  = 6; //     |
+const int PIN_L7  = 7; //     |
+const int PIN_L8  = 8; //     |
+const int PIN_L9  = 9; //     |
+const int PIN_L10 =10; //     |
+const int PIN_L11 =11; //     |
+const int PIN_L12 =12; //     V
+const int PIN_L13 =13; // discrete LED 13
+#  define HAS_ALPHA_CHARS (true)
+#  if HW_MC == HW_MC_MEGA_2560
+#    define I2C_ALPHA_CHARS (Wire)
+#  elif HW_MC == HW_MC_DUE
+#    define I2C_ALPHA_CHARS (Wire1)
+#  elif
+#    error "unsupported hardware configuration"
+#  endif
+# else /* not QSCC */
+#  define HAS_ALPHA_CHARS (false)
+const int PIN_L0  = 2; // discrete LED 0 (bottom)
+const int PIN_L1  = 3; //     |
+const int PIN_L2  = 4; //     |
+const int PIN_L3  = 5; //     |
+const int PIN_L4  = 6; //     |
+const int PIN_L5  = 7; //     |
+const int PIN_L6  = 8; //     V
+const int PIN_L7  = 9; // discrete LED 7 (top)
+const int PIN_SPKR=12; // PWM output driving speaker
+# endif
+
 #else
-# error "HW_CONTROL_LOGIC not defined to supported model"
+# error "HW_MODEL not defined to supported logic control model"
 #endif
 
 #ifdef SN_B0001
@@ -294,6 +346,7 @@ void setup_pins(void)
 	pinMode(PIN_STATUS_LED, OUTPUT);
 #endif
 #if IS_READERBOARD
+# if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     pinMode(PIN_D0, OUTPUT);
     pinMode(PIN_D1, OUTPUT);
     pinMode(PIN_D2, OUTPUT);
@@ -311,8 +364,11 @@ void setup_pins(void)
     pinMode(PIN_R2, OUTPUT);
     pinMode(PIN_R3, OUTPUT);
     pinMode(PIN_R4, OUTPUT);
+# else
+#  error "unsupported readerboard control logic"
+# endif
 #endif
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     pinMode(PIN_DE, OUTPUT);
     pinMode(PIN__RE, OUTPUT);
 #endif
@@ -326,7 +382,9 @@ void setup_pins(void)
 #if IS_READERBOARD
     pinMode(PIN_L7, OUTPUT);
 #endif
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
+
+#if IS_READERBOARD
+# if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     //                              //            _ _____
     //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN__G, HIGH);     //   X    X   1   X    X  X  X  X  X    disable column drains
@@ -339,6 +397,9 @@ void setup_pins(void)
     digitalWrite(PIN_SRCLK, LOW);   //   0    X   1   0    1  1  0  0  0    clock idle
     digitalWrite(PIN_RCLK, LOW);    //   0    0   1   0    1  1  0  0  0    clock idle
     digitalWrite(PIN_L7, LOW);
+# else
+#  error "unsupported readerboard control logic"
+# endif
 #endif
     digitalWrite(PIN_L0, LOW);      // turn off discrete LEDs
     digitalWrite(PIN_L1, LOW);
@@ -347,45 +408,52 @@ void setup_pins(void)
     digitalWrite(PIN_L4, LOW);
     digitalWrite(PIN_L5, LOW);
     digitalWrite(PIN_L6, LOW);
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     digitalWrite(PIN_DE, LOW);      // RS-485 driver disabled
     digitalWrite(PIN__RE, HIGH);    // RS-485 receiver disabled
 #endif
 }
 
 #if IS_READERBOARD
-byte image_buffer[N_ROWS][N_COLS];              // one pixel per element, value = <frgb> bit-encoded
-byte hw_buffer[N_COLORS][N_ROWS][N_COLBYTES];   // pixels arranged by color plane as convenient for display refresh
-byte hw_active_color_planes = 0;                // which color planes are currently needing to be included in refresh?
+# if IS_HW_LOGIC(MODEL_LOGIC_3xx)
+    byte image_buffer[N_ROWS][N_COLS];              // one pixel per element, value = <frgb> bit-encoded
+    byte hw_buffer[N_COLORS][N_ROWS][N_COLBYTES];   // pixels arranged by color plane as convenient for display refresh
+    byte hw_active_color_planes = 0;                // which color planes are currently needing to be included in refresh?
+# else
+#  error "unsupported readerboard logic control"
+# endif
 
-//// Row addressing
-//// R4 R3 R2 R1 R0
-////  0  0  0  0  0 RED row 0
-////  0  0  0  0  1 RED row 1
-////  0  0  0  1  0 RED row 2
-////  0  0  0  1  1 RED row 3
-////  0  0  1  0  0 RED row 4
-////  0  0  1  0  1 RED row 5
-////  0  0  1  1  0 RED row 6
-////  0  0  1  1  1 RED row 7
-////  0  1  0  0  0 GRN row 0
-////  0  1  0  0  1 GRN row 1
-////  0  1  0  1  0 GRN row 2
-////  0  1  0  1  1 GRN row 3
-////  0  1  1  0  0 GRN row 4
-////  0  1  1  0  1 GRN row 5
-////  0  1  1  1  0 GRN row 6
-////  0  1  1  1  1 GRN row 7
-////  1  0  0  0  0 BLU row 0  \
-////  1  0  0  0  1 BLU row 1   |
-////  1  0  0  1  0 BLU row 2   |
-////  1  0  0  1  1 BLU row 3   | Monochrome
-////  1  0  1  0  0 BLU row 4   | Configuration
-////  1  0  1  0  1 BLU row 5   |
-////  1  0  1  1  0 BLU row 6   |
-////  1  0  1  1  1 BLU row 7  /
-////  1  1  x  x  x all rows off
+// 3xx MODEL READERBOARD LOGIC
 //
+// Row addressing
+// R4 R3 R2 R1 R0
+//  0  0  0  0  0 RED row 0
+//  0  0  0  0  1 RED row 1
+//  0  0  0  1  0 RED row 2
+//  0  0  0  1  1 RED row 3
+//  0  0  1  0  0 RED row 4
+//  0  0  1  0  1 RED row 5
+//  0  0  1  1  0 RED row 6
+//  0  0  1  1  1 RED row 7
+//  0  1  0  0  0 GRN row 0
+//  0  1  0  0  1 GRN row 1
+//  0  1  0  1  0 GRN row 2
+//  0  1  0  1  1 GRN row 3
+//  0  1  1  0  0 GRN row 4
+//  0  1  1  0  1 GRN row 5
+//  0  1  1  1  0 GRN row 6
+//  0  1  1  1  1 GRN row 7
+//  1  0  0  0  0 BLU row 0  \
+//  1  0  0  0  1 BLU row 1   |
+//  1  0  0  1  0 BLU row 2   |
+//  1  0  0  1  1 BLU row 3   | Monochrome
+//  1  0  1  0  0 BLU row 4   | Configuration
+//  1  0  1  0  1 BLU row 5   |
+//  1  0  1  1  0 BLU row 6   |
+//  1  0  1  1  1 BLU row 7  /
+//  1  1  x  x  x all rows off
+
+
 //
 // setup_buffers()
 //   Initialize buffers to zero.
@@ -1726,6 +1794,7 @@ void refresh_hw_buffer(void)
 		flash_off = !flash_off;
 	}
 
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     //                                  //            _ _____
     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN__G, HIGH);         //   X     X  1   X    X  X  X  X  X  disable column drains
@@ -1750,13 +1819,12 @@ void refresh_hw_buffer(void)
         row = 0;
     }
 
-#if HW_MODEL == MODEL_3xx_MONOCHROME
+# if HW_MODEL == MODEL_3xx_MONOCHROME
     //                                  //            _ _____
     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set blue plane
     digitalWrite(PIN_R3, LOW);          //   X     X  1   1    1  0  X  X  X  |
-#else
-# if HW_MODEL == MODEL_3xx_RGB
+# else
     if (planebit == BIT_RGB_RED) {
         //                                  //            _ _____
         //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
@@ -1778,10 +1846,7 @@ void refresh_hw_buffer(void)
         digitalWrite(PIN_R4, HIGH);         //   X     X  1   1    1  X  X  X  X  set NO plane
         digitalWrite(PIN_R3, HIGH);         //   X     X  1   1    1  1  X  X  X  |
     }
-# else
-#  error "hw model not set"
 # endif
-#endif
     /* now push out the column data */
     for (int cblk=0; cblk < N_COLBYTES; cblk++) {
 		if (flash_off) {
@@ -1821,6 +1886,9 @@ void refresh_hw_buffer(void)
     delayMicroseconds(ROW_HOLD_TIME_US);
     digitalWrite(PIN__G, HIGH);         //   0     1  1   1    p  p  r  r  r  disable column sinks
                                         //
+#else
+# error "unsupported readerboard logic"
+#endif
     if (matrix_brightness < 255) {
         delay_passes = 255 - matrix_brightness;
     }
@@ -1833,9 +1901,10 @@ void refresh_hw_buffer(void)
 void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
 {
     clear_hw_buffer();
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     for (int row=0; row < N_ROWS; row++) {
         for (int col=0; col < N_COLS; col++) {
-#if HW_MODEL == MODEL_3xx_MONOCHROME
+# if HW_MODEL == MODEL_3xx_MONOCHROME
             if (buffer[row][col] & (BIT_RGB_RED | BIT_RGB_GREEN | BIT_RGB_BLUE)) {
                 hw_buffer[0][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
                 hw_active_color_planes |= 1;
@@ -1844,8 +1913,7 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
                 hw_buffer[1][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
                 hw_active_color_planes |= 2;
             }
-#else
-# if HW_MODEL == MODEL_3xx_RGB
+# else
             for (int plane=0; plane<N_COLORS; plane++) {
                 byte planebit = 1 << plane;
                 if (plane == N_FLASHING_PLANE) {
@@ -1858,12 +1926,12 @@ void commit_image_buffer(byte buffer[N_ROWS][N_COLS])
                     hw_buffer[plane][row][7-(col & 0x07)] |= 1 << ((col >> 3) & 0x07);
                 }
             }
-# else
-# error "hw model not set"
 # endif
-#endif
         }
     }
+#else
+# error "unsupported readerboard control logic"
+#endif
 }
 #endif /* IS_READERBOARD */
 
@@ -1900,7 +1968,7 @@ void setup(void)
     flag_init();
 #if IS_READERBOARD
     show_banner();
-#if HW_CONTROL_LOGIC == HW_CONTROL_LOGIC_3xx
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     //                              //            _ _____
     //                              // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN__G, HIGH);     //   X    X   1   X    X  X  X  X  X    disable column drains
@@ -2041,7 +2109,7 @@ void start_usb_serial(void) {
 // will follow that setting.
 //
 void setup_485_serial(void) {
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     if (my_device_address == EE_ADDRESS_DISABLED) {
         digitalWrite(PIN_DE, LOW);      // disable driver
         digitalWrite(PIN__RE, HIGH);    // disable receiver
@@ -2080,7 +2148,7 @@ void loop(void)
         receive_serial_data(FROM_USB);
     }
 
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     if (RS485_enabled && SERIAL_485.available() > 0) {
         receive_serial_data(FROM_485);
     }
@@ -2097,7 +2165,7 @@ void loop(void)
 
 void start_485_reply(void)
 {
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     if (!RS485_enabled)
         return;
     
@@ -2115,7 +2183,7 @@ void start_485_reply(void)
 
 void send_485_byte(byte x)
 {
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     if (!RS485_enabled)
         return;
 
@@ -2135,7 +2203,7 @@ void send_485_byte(byte x)
 
 void end_485_reply(void)
 {
-#if HW_MODEL != MODEL_BUSYLIGHT_1
+#ifdef SERIAL_485
     digitalWrite(PIN_DE, LOW); // disable driver
 #endif
 }
@@ -2158,6 +2226,7 @@ void test_pattern(void)
 	flag_test();
 #if IS_READERBOARD
     clear_all_buffers();
+# if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     //                                  //            _ _____
     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
@@ -2193,17 +2262,17 @@ void test_pattern(void)
     test_sequence_rows();
 
     /* test high-speed full-matrix refresh */
-#if HW_MODEL == MODEL_3xx_MONOCHROME
+#  if HW_MODEL == MODEL_3xx_MONOCHROME
     test_row(0x04, 0xaa, 0x55);
     test_row(0x04, 0x55, 0xaa);
-#else
+#  else
     for (byte color=1; color <=7; color++) {
         test_row(color, 0xaa, 0x55);
     }
     for (byte color=1; color <=7; color++) {
         test_row(color, 0x55, 0xaa);
     }
-#endif
+#  endif
     test_row(7, 0x01, 0x01);
     test_row(7, 0x02, 0x02);
     test_row(7, 0x04, 0x04);
@@ -2213,12 +2282,16 @@ void test_pattern(void)
     test_row(7, 0x40, 0x40);
     test_row(7, 0x80, 0x80);
 	test_sweep();
-#endif
+# else /* LOGIC MODEL 3xx */
+#  error "unsupported readerboard logic"
+# endif
+#endif /* IS_READERBOARD */
 }
 
 #if IS_READERBOARD
 void test_sweep()
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
 	// Run a single column right and then left
 	for (int block=0; block<8; block++) {
 		digitalWrite(column_block_set[block], LOW);
@@ -2242,26 +2315,28 @@ void test_sweep()
 			digitalWrite(PIN_RCLK, LOW);    	//   0    0   1   1    X  X  X  X  X    |
 
             for (int i=0; i<10; i++) {
-#if HW_MODEL == MODEL_3xx_RGB
+# if HW_MODEL == MODEL_3xx_RGB
                 test_sweep_col(LOW, LOW);
                 test_sweep_col(LOW, HIGH);
                 test_sweep_col(HIGH, LOW);
-#else
-# if HW_MODEL == MODEL_3xx_MONOCHROME
+# elif HW_MODEL == MODEL_3xx_MONOCHROME
                 test_sweep_col(HIGH, LOW);
 # else
 #  error "hw model not set"
 # endif
-#endif
             }
 		}
 	}
 	digitalWrite(PIN_R4, HIGH); // off
 	digitalWrite(PIN_R3, HIGH);
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 
 void test_sweep_col(int r4, int r3)
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     digitalWrite(PIN__G, HIGH);
     digitalWrite(PIN_R4, r4);
     digitalWrite(PIN_R3, r3);
@@ -2273,10 +2348,14 @@ void test_sweep_col(int r4, int r3)
         delayMicroseconds(ROW_HOLD_TIME_US);
         digitalWrite(PIN__G, HIGH);
     }
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 
 void test_col(byte bit_pattern) 
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     //                                  //            _ _____
     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN__SRCLR, LOW);	    //   X    X   1   0    X  X  X  X  X    reset shift register
@@ -2299,10 +2378,14 @@ void test_col(byte bit_pattern)
     //                                  // SRCLK RCLK G SRCLR R4 R3 R2 R1 R0
     digitalWrite(PIN_RCLK, HIGH);   	//   0    1   1   1    X  X  X  X  X    clock data to output buffer
     digitalWrite(PIN_RCLK, LOW);    	//   0    0   1   1    X  X  X  X  X    |
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 
 void test_row(byte color, byte bit_pattern1, byte bit_pattern2) 
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     int rep;
 #if HW_MODEL == MODEL_3xx_MONOCHROME
     rep = 200;
@@ -2336,10 +2419,14 @@ void test_row(byte color, byte bit_pattern1, byte bit_pattern2)
         digitalWrite(PIN_R4, HIGH); // all rows off
         digitalWrite(PIN_R3, HIGH); // 
     }
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 
 void test_rows(byte bit_pattern1, byte bit_pattern2)
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     for (int r=0; r<8; r++) {
         digitalWrite(PIN__G, HIGH);
         test_col((r%2)==0?bit_pattern1:bit_pattern2);
@@ -2350,10 +2437,14 @@ void test_rows(byte bit_pattern1, byte bit_pattern2)
         delayMicroseconds(ROW_HOLD_TIME_US);
         digitalWrite(PIN__G, HIGH);
     }
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 
 void test_sequence_rows(void) 
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
 #if HW_MODEL == MODEL_3xx_MONOCHROME
     for (int row=16; row<24; row++)
 #else
@@ -2371,6 +2462,9 @@ void test_sequence_rows(void)
 		delay(100);
 		digitalWrite(PIN__G, HIGH);                     //   0     0  0   1    X  X  X  X  X turn off columns
 	}
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 #endif /* IS_READERBOARD */
 
@@ -2489,6 +2583,7 @@ void debug_image_buffer(byte buf[N_ROWS][N_COLS])
 
 void debug_hw_buffer(void)
 {
+#if IS_HW_LOGIC(MODEL_LOGIC_3xx)
     char rbuf[16];
     Serial.write("hardware buffer\r\n");
     for (int plane=0; plane < N_COLORS; plane++) {
@@ -2503,6 +2598,9 @@ void debug_hw_buffer(void)
             Serial.write("\r\n");
         }
     }
+#else
+# error "unsupported readerboard logic"
+#endif /* 3xx logic */
 }
 
 void debug_bytes(const char *title, const byte *data, int length)
