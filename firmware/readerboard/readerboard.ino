@@ -2832,7 +2832,7 @@ void send_morse(byte led, const char *text, int maxlen, bool send_sk)
         }
         else {
             send_morse_char(led, text[i] & 0x7f);
-            delay(intrachar_light);
+            delay(interchar);
         }
     }
     if (send_sk) {

@@ -280,7 +280,7 @@ in the way of connecting subsequent ones. For example:
 		\end{itemize}
 	\item \strong{If you are using an Arduino Due:} solder R51 (1K).
 	\item \strong{If you are using an Arduino Mega 2560:} Solder the \SI{10}{\micro\farad} capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
-	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
+	\item Solder the Arduino bus stacking pins (six connectors---1$\times$10-pin, 5$\times$8-pin---all labeled collectively as ``J0'').
 		Ensure the pins extend down and out the back of the board.
 	\item Solder the 2-pin headers J2 and J3, and the 3-pin header J4.
 	\item Solder the terminal blocks J1 (which is actually a pair of 8-pin terminal blocks J1a and J1b), and J5.
@@ -2071,7 +2071,8 @@ This command causes the sign to send a status report back to the host to indicat
 the general status of the device, including the discrete \led\ display which
 may be queried using the \z? command. 
 
-This command cannot be addressed to the global address.
+This cannot be sent to the global device address, although you can request the server
+to query the global address in which case it will individually poll each device.
 
 The response has the form:
 
