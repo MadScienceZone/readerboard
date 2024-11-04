@@ -280,7 +280,7 @@ in the way of connecting subsequent ones. For example:
 		\end{itemize}
 	\item \strong{If you are using an Arduino Due:} solder R51 (1K).
 	\item \strong{If you are using an Arduino Mega 2560:} Solder the \SI{10}{\micro\farad} capacitor C10, being mindful of the correct polarity. \strong{Do not solder both R51 and C10. Only one or the other will be appropriate for a given microcontroller.}
-	\item Solder the Arduino bus stacking pins (six sets---1$\times$10-pin, 5$\times$8-pin---all labeled collectively at J0).
+	\item Solder the Arduino bus stacking pins (six connectors---1$\times$10-pin, 5$\times$8-pin---all labeled collectively as ``J0'').
 		Ensure the pins extend down and out the back of the board.
 	\item Solder the 2-pin headers J2 and J3, and the 3-pin header J4.
 	\item Solder the terminal blocks J1 (which is actually a pair of 8-pin terminal blocks J1a and J1b), and J5.
@@ -472,8 +472,8 @@ indicated.
 The organization of the rest of this chapter is oriented toward a description of the
 protocol used to control the hardware directly over a \acronym{USB} or \acronym{RS-485}
 connection. However, you can set up a central server which is connected to all the
-readerboard signs and busylight indicators in a small area (via \acronym{USB} or \acronym{RS-485}).
-This allows clients to send commands to the server over the network for control of the readerboards.
+readerboard signs and busylight indicators in a small area (via \acronym{USB} and/or \acronym{RS-485}).
+This allows clients to send commands to the server over the \acronym{LAN} for control of the readerboards.
 
 The protocol between clients and servers uses messages which are simple \acronym{HTTP} requests
 posted to the server's listening port \acronym{URL}. If the server were configured to run
@@ -521,7 +521,8 @@ would transmit to the \acronym{RS-485} network the command starting with the hex
 description that follows.)
 
 If multiple devices are targeted, e.g., with a message containing the field \z{a=2,5,37} with address 15 (i.e., \z{0F}$_{16}$) configured as the global address \Var{ad$_G$},
-it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF}$_{16}$ \z{03}$_{16}$ \z{02}$_{16}$ \z{05}$_{16}$ \z{25}$_{16}$.
+it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF}$_{16}$ \z{03}$_{16}$ \z{02}$_{16}$ \z{05}$_{16}$ \z{25}$_{16}$, or---if applicable---will send the message directly to any of devices 2, 5, and 37 which are directly connected via \acronym{USB}.
+
 \section{USB vs. RS-485}
 The protocol used to send commands to the readerboard is different depending on
 whether the host is sending directly to a single readerboard over a \acronym{USB}
@@ -1035,11 +1036,43 @@ are ``strobed'' (flashed very briefly with a pause between each light in the seq
 	\bitbox{5}{\Var*{string}}&
 	\bitbox{1}{\z{ESC}}
 \end{bytefield}
+
+\smallskip
+
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize5}&
+	\bitbox[]{1}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize$n$+4}&
+	\bitbox[]{1}{\scriptsize$n$+5}\\
+	\bitbox{1}{\z{<}} &
+	\bitbox{1}{\z{@}} &
+	\bitbox{1}{\Var*{row}}&
+	\bitbox{1}{\Var*{height}}&
+	\bitbox{1}{\Var*{loop}}&
+	\bitbox{3}{\Var*{string}}&
+	\bitbox{1}{\z{ESC}}
+\end{bytefield}
+
+\medskip
+
 %|{"m":"scroll","a":[|\Var*{ad$_0$}|,|\dots|],"loop":|\Var*{bool}|,"t":|\Var*{string}|}|
 \begin{Coding}
-	|/readerboard/v1/scroll?a=|\Var*{ad}|&loop=|\Var*{bool}|&t=|\Var*{string}
+	|/readerboard/v1/scroll?a=|\Var*{ad}|&loop=|\Var*{bool}|&t=|\Var*{string}\\
+	|&row=|\Var*{row}|&height=|\Var*{height}
 \end{Coding}
 \end{center}
+
+In the second form, the \Var*{row} and \Var*{height} parameters define a region of the display that extends to the full width of the
+display but includes \Var*{height} pixel rows starting at pixel \#\Var*{row} (with row \#0 being the topmost row of the device). In this
+case, the command behaves as though this region is the only part of the sign that exists as far as where characters will be drawn and
+scrolled through. {\color{red} Not yet implemented. May be limitations on how many simultaneous
+transition effects may be playing at once, including scrolling text.}
 
 Displays the text \Var*{string} by scrolling it across the display from right to left.
 If \Var*{loop} is ``\z.'', the text is only scrolled once; if it is ``\z{L}'' then it
@@ -2071,7 +2104,8 @@ This command causes the sign to send a status report back to the host to indicat
 the general status of the device, including the discrete \led\ display which
 may be queried using the \z? command. 
 
-This command cannot be addressed to the global address.
+This cannot be sent to the global device address, although you can request the server
+to query the global address in which case it will individually poll each device.
 
 The response has the form:
 
@@ -2330,17 +2364,52 @@ This command may be given in upper- or lower-case (``\z{s}'' or ``\z{S}'').
 	\bitbox{3}{\Var*{string}}&
 	\bitbox{1}{\z{ESC}}
 \end{bytefield}
-\\
+
+\smallskip
+
+or
+
+\medskip
+
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
+	\bitbox[]{1}{\scriptsize5}&
+	\bitbox[]{1}{\scriptsize6}&
+	\bitbox[]{1}{\scriptsize7}&
+	\bitbox[]{1}{\scriptsize$n$+7}\\
+	\bitbox{1}{\z{T}} &
+	\bitbox{1}{\z{@}} &
+	\bitbox{1}{\Var*{row}}&
+	\bitbox{1}{\Var*{height}}&
+	\bitbox{1}{\Var*{merge}}&
+	\bitbox{1}{\Var*{align}}&
+	\bitbox{1}{\Var*{trans}}&
+	\bitbox{1}{\Var*{string}}&
+	\bitbox{1}{\z{ESC}}
+\end{bytefield}
+
+
 %	|{"m":"text","a":[|\Var*{ad$_0$}|,|\dots|],"merge":|\Var*{bool}|,|\\
 %	|"align":|\Var*{align}|,"trans":|\Var*{trans}|,"t":|\Var*{string}|}|
 \begin{Coding}
 	|/readerboard/v1/text?a=|\Var*{ad}|&merge=|\Var*{bool}\\
-	|&align=|\Var*{align}|&trans=|\Var*{trans}|&t=|\Var*{string}
+	|&align=|\Var*{align}|&trans=|\Var*{trans}|&t=|\Var*{string}\\
+	|&row=|\Var*{row}|&height=|\Var*{height}
 \end{Coding}
 \end{center}
 
 Displays the text \Var*{string} at the current cursor position. The cursor position is
 then moved past the text to be ready for the next string to be printed.
+
+In the second form, the \Var*{row} and \Var*{height} parameters define a region of the display that extends to the full width of the
+display but includes \Var*{height} pixel rows starting at pixel \#\Var*{row} (with row \#0 being the topmost row of the device). In this
+case, the command behaves as though this region is the only part of the sign that exists as far as where characters will be drawn,
+transition effects performed, previous data cleared, etc. {\color{red} Not yet implemented. May be limitations on how many simultaneous
+transition effects may be playing at once, including scrolling text.}
 
 The \Var*{align} code indicates how the text is aligned on the display using one of the codes
 shown in Table~\ref{tbl:alignments}. 
