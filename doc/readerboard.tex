@@ -1072,7 +1072,7 @@ In the second form, the \Var*{row} and \Var*{height} parameters define a region 
 display but includes \Var*{height} pixel rows starting at pixel \#\Var*{row} (with row \#0 being the topmost row of the device). In this
 case, the command behaves as though this region is the only part of the sign that exists as far as where characters will be drawn and
 scrolled through. {\color{red} Not yet implemented. May be limitations on how many simultaneous
-transition effects may be playing at once, including scrollilng text.}
+transition effects may be playing at once, including scrolling text.}
 
 Displays the text \Var*{string} by scrolling it across the display from right to left.
 If \Var*{loop} is ``\z.'', the text is only scrolled once; if it is ``\z{L}'' then it
@@ -2380,8 +2380,7 @@ or
 	\bitbox[]{1}{\scriptsize5}&
 	\bitbox[]{1}{\scriptsize6}&
 	\bitbox[]{1}{\scriptsize7}&
-	\bitbox[]{2}{\dots}&
-	\bitbox[]{1}{\scriptsize$n$+4}\\
+	\bitbox[]{1}{\scriptsize$n$+7}\\
 	\bitbox{1}{\z{T}} &
 	\bitbox{1}{\z{@}} &
 	\bitbox{1}{\Var*{row}}&
@@ -2389,7 +2388,7 @@ or
 	\bitbox{1}{\Var*{merge}}&
 	\bitbox{1}{\Var*{align}}&
 	\bitbox{1}{\Var*{trans}}&
-	\bitbox{3}{\Var*{string}}&
+	\bitbox{1}{\Var*{string}}&
 	\bitbox{1}{\z{ESC}}
 \end{bytefield}
 
@@ -2410,7 +2409,7 @@ In the second form, the \Var*{row} and \Var*{height} parameters define a region 
 display but includes \Var*{height} pixel rows starting at pixel \#\Var*{row} (with row \#0 being the topmost row of the device). In this
 case, the command behaves as though this region is the only part of the sign that exists as far as where characters will be drawn,
 transition effects performed, previous data cleared, etc. {\color{red} Not yet implemented. May be limitations on how many simultaneous
-transition effects may be playing at once, including scrollilng text.}
+transition effects may be playing at once, including scrolling text.}
 
 The \Var*{align} code indicates how the text is aligned on the display using one of the codes
 shown in Table~\ref{tbl:alignments}. 
