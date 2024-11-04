@@ -462,7 +462,7 @@ void TransitionManager::set_stage(void)
 // until we reach the full character space, at which point we move
 // to the next character and repeat, cycling back to the start of
 // the string if requested.
-void TransitionManager::start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS)
+void TransitionManager::start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS, byte start_row, byte window_height)
 {
     scroll_src = text;
     scroll_repeat = repeat;
@@ -712,7 +712,7 @@ void TransitionManager::next(bool reset_column)
 //
 //   If there is no such font or codepoint, nothing is done.
 //
-byte draw_character(int col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep)
+byte draw_character(int col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep, byte start_row, byte window_height)
 {
     unsigned char l, s, h;
     unsigned short o;
@@ -1024,7 +1024,7 @@ void next_transition(void)
 //   If a transition effect is specified, the update to the hardware buffer will
 //   be performed gradually to produce the desired visual effect.
 //
-void display_buffer(byte src[N_ROWS][N_COLS], TransitionEffect transition)
+void display_buffer(byte src[N_ROWS][N_COLS], TransitionEffect transition, byte start_row, byte window_height)
 {
 	if (transition == NoTransition) {
         transitions.stop();
@@ -1500,7 +1500,7 @@ int rendered_bbox(byte pos, byte font, const char *string, int *left, int *right
 // render_text(buffer, pos, font, string, color)
 // draw text at the given starting position in the image buffer.
 //
-byte render_text(byte buffer[N_ROWS][N_COLS], byte cpos, byte font, const char *string, byte color, bool mergep, AlignmentStyle alignment, bool stage)
+byte render_text(byte buffer[N_ROWS][N_COLS], byte cpos, byte font, const char *string, byte color, bool mergep, AlignmentStyle alignment, bool stage, byte start_row, byte window_height)
 {
     if (string == NULL) {
         return cpos;

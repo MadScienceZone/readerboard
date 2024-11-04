@@ -242,19 +242,19 @@ public:
 	void start_transition(TransitionEffect, int);
 	void stop(void);
 	void next(bool reset_column = false);
-    void start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS=100);
+    void start_scrolling_text(const char *text, int len, bool repeat, byte font, byte color, int delay_mS=100, byte start_row=0, byte window_height=N_ROWS);
 	// set_stage(); display_buffer(image_buffer, transition)
 };
 extern TransitionManager transitions;
 extern byte image_buffer[N_ROWS][N_COLS];
 extern void clear_image_buffer();
 extern void clear_display_buffer();
-extern void display_buffer(byte buffer[N_ROWS][N_COLS], TransitionEffect transition=NoTransition);
-extern byte draw_character(int col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep=false);
+extern void display_buffer(byte buffer[N_ROWS][N_COLS], TransitionEffect transition=NoTransition, byte start_row=0, byte window_height=N_ROWS);
+extern byte draw_character(int col, byte font, byte codepoint, byte buffer[N_ROWS][N_COLS], byte color, bool mergep=false, byte start_row=0, byte window_height=N_ROWS);
 extern void draw_column(byte col, byte bits, bool mergep, byte *buffer);
 extern void shift_left(byte buffer[N_ROWS][N_COLS]);
 extern void setup_buffers(void);
-extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false, AlignmentStyle alignment=NoAlignment, bool stage=false);
+extern byte render_text(byte buffer[N_ROWS][N_COLS], byte pos, byte font, const char *string, byte color, bool mergep=false, AlignmentStyle alignment=NoAlignment, bool stage=false, byte start_row=0, byte window_height=N_ROWS);
 extern void show_banner(void);
 #endif /* IS_READERBOARD */
 

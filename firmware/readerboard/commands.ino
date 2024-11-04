@@ -61,10 +61,13 @@
 //                          +----->|Strobe|<-+      $   |END  |-----------> Idle
 //   ____________  = (USB)  |      |______|------------>|_____|
 //  |Set         |<---------+  C                         
-//  |____________|          +-----> END                        ____ 
-//    | Ad/'.'  |#          |  <    ______  loop      ________|_   | char 
-//   _V_____   _V___        +----->|Scroll|--------->|ScrollText|<-+       ESC
-//  |SetUspd| |SetSN|___*   |      |______|          |__________|-------------> END
+//  |____________|          +-----> END     _________ row  ____________ ht   ____________
+//    |         |           |              |ScrollRow|--->|ScrollHeight|--->|ScrollRHLoop|
+//    |         |           |         +--->|_________|    |____________|    |____________|
+//    |         |           |       @ |                                    loop|      ____
+//    | Ad/'.'  |#          |  <    __|___  loop                             __V_____|_   | char 
+//   _V_____   _V___        +----->|Scroll|-------------------------------->|ScrollText|<-+       ESC
+//  |SetUspd| |SetSN|___*   |      |______|                                 |__________|-------------> END
 //  |_______| |_____|<-+    |  @    ______  pos
 //    | speed   |$          +----->|SetCol|---------> END
 //   _V_____   _V____       |      |______|
@@ -101,10 +104,13 @@
 //                          |  S    ________ 
 //                          +----->|LightOn |----------> END
 //                          |      |________|
-//                          |    
-//                          |  T    _________ merge  _________ align   ______________ trans   ______|_   |char
-//                          +----->|TextMerge|----->|TextAlign|------>|TextTransition|------>|TextData|<-+     ESC
-//                          |      |_________|      |_________|       |______________|       |________|------------> END
+//                          |               _______ row  __________ ht   ___________
+//                          |              |TextRow|--->|TextHeight|--->|TextRHMerge|
+//                          |         +--->|_______|    |__________|    |___________|
+//                          |       @ |                               merge|                                           ____
+//                          |  T    __|______ merge                    ____V____ align   ______________ trans   ______|_   |char
+//                          +----->|TextMerge|----------------------->|TextAlign|------>|TextTransition|------>|TextData|<-+     ESC
+//                          |      |_________|                        |_________|       |______________|       |________|------------> END
 //                          |  X
 //                          +-----> END
 //                          |
@@ -241,9 +247,15 @@ private:
 #if IS_READERBOARD
         ScrollState,
         ScrollTextState,
+        ScrollRowState,
+        ScrollHeightState,
+        ScrollRHLoopState,
         SetColState,
         SelectFontState,
         BarColorState,
+        TextRowState,
+        TextHeightState,
+        TextRHMergeState,
         TextMergeState,
         TextAlignState,
         TextTransitionState,
@@ -272,6 +284,8 @@ private:
     byte height;
     byte font;
     byte color;
+    byte windowStartRow;
+    byte windowHeight;
 #endif
     bool nybble;
     byte buffer[CSM_BUFSIZE];
@@ -1187,11 +1201,38 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         break;
 
     case TextMergeState:
+        if (inputchar == '@') {
+            state = TextRowState;
+            break;
+        }
+        /* FALLTHRU */
+
+    case TextRHMergeState:
         state = TextAlignState;
         if (inputchar == '.') {
             merge = false;
         } else if (inputchar == 'M') {
             merge = true;
+        } else {
+            error();
+        }
+        break;
+
+    case TextRowState:
+        windowStartRow = 0;
+        windowHeight = N_ROWS;
+        if (accept_encoded_int6(inputchar)) {
+            windowStartRow = bytebuf;
+            state = TextHeightState;
+        } else {
+            error();
+        }
+        break;
+
+    case TextHeightState:
+        if (accept_encoded_int6(inputchar)) {
+            windowHeight = bytebuf;
+            state = TextRHMergeState;
         } else {
             error();
         }
@@ -1220,8 +1261,8 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         }
         if (inputchar == '\x1b') {
             append_byte(0);
-            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge, alignment, true);
-            display_buffer(image_buffer, transition);
+            column = render_text(image_buffer, column, font, (const char *) buffer, color, merge, alignment, true, windowStartRow, windowHeight);
+            display_buffer(image_buffer, transition, windowStartRow, windowHeight);
             end_cmd();
             break;
         }
@@ -1238,6 +1279,13 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
         break;
 
     case ScrollState:
+        if (inputchar == '@') {
+            state = ScrollRowState;
+            break;
+        }
+        /* FALLTHRU */
+
+    case ScrollRHLoopState:
         state = ScrollTextState;
         if (inputchar == '.')
             repeat = false;
@@ -1247,13 +1295,32 @@ void CommandStateMachine::accept(serial_source_t source, int inputchar)
             error();
         break;
 
+    case ScrollRowState:
+        windowStartRow = 0;
+        windowHeight = N_ROWS;
+        state = ScrollHeightState;
+        if (accept_encoded_int6(inputchar)) {
+            windowStartRow = bytebuf;
+        } else {
+            error();
+        }
+        break;
+
+    case ScrollHeightState:
+        if (accept_encoded_int6(inputchar)) {
+            windowHeight = bytebuf;
+            state = ScrollRHLoopState;
+        } else {
+            error();
+        }
+        break;
 
     case ScrollTextState:
         if (inputchar == '\x1b') {
             append_byte(0);
             strncpy((char *)scrolling_buffer, (const char *) buffer, CSM_BUFSIZE);
             scrolling_buffer[CSM_BUFSIZE-1] = '\0';
-            transitions.start_scrolling_text((const char *) scrolling_buffer, strlen((const char *)scrolling_buffer), repeat, font, color);
+            transitions.start_scrolling_text((const char *) scrolling_buffer, strlen((const char *)scrolling_buffer), repeat, font, color, windowStartRow, windowHeight);
             end_cmd();
             break;
         }
