@@ -669,6 +669,43 @@ description that follows.)
 If multiple devices are targeted, e.g., with a message containing the field \z{a=2,5,37} with address 15 (i.e., \z{0F}$_{16}$) configured as the global address \Var{ad$_G$},
 it will transmit to the \acronym{RS-485} network a command starting with the hex byte sequence \z{BF}$_{16}$ \z{03}$_{16}$ \z{02}$_{16}$ \z{05}$_{16}$ \z{25}$_{16}$, or---if applicable---will send the message directly to any of devices 2, 5, and 37 which are directly connected via \acronym{USB}.
 
+\section{Direct Host-to-Device Communication}
+The host \acronym{PC} (which may or may not be running the server program) connects to one or more
+readerboard and/or busylight devices by direct wire. The remainder of this chapter describes the
+protocol used for this communication. If you consider the standard \acronym{ISO} \acronym{OSI} network
+protocol stack, there are three layers of concern for us here.
+
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{4}
+	\wordbox{1}{7 Application}\\
+	\wordbox{1}{\color{grey}6 Presentation}\\
+	\wordbox{1}{\color{grey}5 Session}\\
+	\wordbox{1}{4 Transport}\\
+	\begin{rightwordgroup}{USB or RS-485 + USART}
+	\wordbox{1}{3 Network}\\
+	\wordbox{1}{2 Data Link}\\
+	\wordbox{1}{1 Physical}
+	\end{rightwordgroup}
+\end{bytefield}
+\end{center}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 \section{USB vs. RS-485}
 The protocol used to send commands to the readerboard is different depending on
 whether the host is sending directly to a single readerboard over a \acronym{USB}
