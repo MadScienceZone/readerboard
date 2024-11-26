@@ -1,3 +1,63 @@
+% NEED	ORDER
+% 5	-	J0 stacking pins: 1x10, 5x8
+% 5	-	J1a 179-TBLH10-381-08BK	or 6-pin
+% 10	-	J2,J3 2p header
+% 5	-	J4 3p header
+% 5	-	J5 2p euro terminal block
+% 6	-	J6 10p IDC header | 10p w2b header
+% 6	-	10p IDC socket    | 10p w2b plug w/pins
+% 10	-	J7,J8 16p IDC header | half 16p w2b header
+% 10	-	16p IDC socket       | half 16p w2b plug w/pins
+% 5	-	C0 10uF elec	(2560)
+% 5	-	C1 0.1uF 
+% 5 	-	D0 2A
+% 25	-	R0-R4 10K
+% 5	-	R5 1K (DUE)
+% 5	-	R6 4x ___ ohms
+% 5	-	R7 4x ___ ohms
+% 5	-	R8 4x ___ ohms
+% 5	-	R9 ___ ohms
+% 5	-	R10 ___ ohms
+% 15	-	2p shunt
+% 5	-	U0 THVD1439DR
+% 5	-	U1 24LC256
+% 10	-	U2,3 ULN2003
+%
+% Nameplate R built-in jumper
+% Nameplate G built-in jumper
+% Nameplate B built-in jumper
+% Button A 12V white 3v 450
+% Button B 12V white 3v 450
+% Button C 12V white 3v 450
+% Button D 12V white 3v 450
+% Button X R 12V 2v 500
+% Button X G 12V 3v 450
+% Button X B 12V 3v 450
+% Button L R 12V 2v 500
+% Button L Y 12V 2v 500
+% Button L G 12V 3v 450
+% Heartbeat B 12V 3v 450
+%
+% 16	-	white square button w/LED ABCD
+% 4	-	lart switch
+% 4	0	sets of r/g/y led side lights
+% 4 	-	large round white button X
+% 4 	-	RGB LED for X buttons
+% 8	-	adafruit backpack segment displays
+% 4	-	RGB nameplate lights
+% 8	-	power connections? PSU?
+% 
+%
+% 30	-	1N4148 diode
+% 10	0	female centronics PCB 90deg sockets
+% 5	-	8p IDC header | 8p w2b header
+% 5	-	8p IDC socket | 8p w2b plug w/pins
+% 5	-	10p euro terminal block
+% 10-20	-	36p stacking headers | half sockets only w/o pins
+
+
+
+
 % TODO: ^Jp in strings
 % TODO: ^Up in strings
 % TODO: H takes 0-63 value
@@ -206,18 +266,19 @@ heat or static electricity discharge.
 		C0--9,11,12&12&\mouser{810-FA18X7R1H10400}&\SI{0.1}{\micro\farad} capacitor\\
 		C10&1&\mouser{667-ECA-1HM100I}&\SI{10}{\micro\farad} electrolytic capacitor\\
 		C13&1&&\SI{100}{\micro\farad} electrolytic capacitor\\
-		D0--511&512&&\led, 5mm, \acronym{RGB}, common cathode\\
+		D0--511&512&[1]&\led, 5mm, \acronym{RGB}, common cathode\\
 		D512&1&&\led, 5mm, green\\
 		D513--14&2&&\led, 5mm, amber (yellow)\\
 		D515--16&2&&\led, 5mm, red\\
 		D517--18&2&&\led, 5mm, blue\\
 		D519&1&&\led, 5mm, white\\
+		D520&1&&power diode, 4\,A\\
 		J0&1&&Arduino stacking pin set\\
-		J1&2&&8-position terminal block\\
-		J2,3&2&&2-position jumper header\\
+		J1a,b&2&\mouser{179-TBLH10-381-08BK}&8-position terminal block\\
+		J2,3&2&\mouser{649-69190-102HLF}&2-position jumper header\\
 		J4&1&&3-position jumper header\\
-		J5&1&&2-position Euro-style terminal block\\
-		P0--3&3&&2-position jumper shunt\\
+		J5,6&2&&2-position Euro-style terminal block\\
+		P0--2&3&&2-position jumper shunt\\
 		Q0--23&24&\mouser{942-IRF9530NPBF}&\mc{IRF9530} p-channel \acronym{MOSFET}\\
 		Q24&1&&\mc{2N2222} or \mc{BC547} \mc{NPN} transistor\\
 		R0--7,35--51&24&\mouser{604-MFR-24FRF521K}&1K resistor\\
@@ -229,12 +290,13 @@ heat or static electricity discharge.
 		U0,12,13&3&\mouser{595-CD74HCT238PWR}&\mc{CD74HCT238PWR} non-inverting 3-to-8 decoder\\
 		U1,2,14,15&4&&\mc{ULN2803CDWR} octal NPN Darlington array\\
 		U3--10&8&&\mc{STPIC6D595MTR} power 8-bit shift register\\
-		U11&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
-		U16&1&&\mc{AT24C256} \acronym{EEPROM}\\
+		U11&1&\mouser{595-THVD1439VDR}&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		U16&1&\mouser{579-24LC256T-E/SN}&\mc{AT24C256} \acronym{EEPROM}\\
 		%X0&1&&\mc{AT24C256} \acronym{EEPROM} module\\
 		&24&&\mc{TO}-220 heat sinks for Q0--23 (optional)\\
 		&1&&9V 2A DC power supply\\
 		\bottomrule
+		\multicolumn{4}{p{\textwidth}}{\tiny[1] I found these at Amazon.com: \href{https://www.amazon.com/EDGELEC-Tri-Color-Multicolor-Diffused-Resistors/dp/B077XGF3YR}{EDGELEC 5mm RGB Tri-Color 4Pin LED Diodes Common Cathode}.}
 	\end{tabular}
 	\caption{Bill of Materials\label{fig:bom}}
 \end{table}
@@ -337,18 +399,22 @@ the electronic components themselves from harm due to heat or static electricity
 \begin{table}
     \begin{center}
 	\begin{tabular}{lrll}\toprule
-		{\bfseries Part No.}&{\bfseries Qty}&&{\bfseries Description}\\\midrule
+		{\bfseries Part}&{\bfseries Qty}&&{\bfseries Description}\\\midrule
 		&1&&Printed circuit board rev 2.1\\
 		&7&&\led\ tier printed circuit board rev 1.1\\
-		&7&&\led\ ring printed circuit board (if desired)\\
+		%&7&&\led\ ring printed circuit board (if desired)\\
 		&1&&SparkFun Pro Micro Arduino-compatible $\mu$C, \strong{5\,V version}\\
-		&1&&Arduino stacking pin set\\
 		C0&1&&\SI{0.1}{\micro\farad} capacitor\\
+		C1&1&&\SI{100}{\micro\farad} capacitor\\
+		D0&1&&power diode, 1\,A\\
 		J0&1&&8-pin DIN connector, \acronym{PCB} mount\\
 		J1&1&&16-pin Euro-style terminal block\\
+		J2&1&&Arduino stacking pin set\\
+		J3&1&&2-pin Euro-style terminal block\\
 		P0&1&&8-pin DIN plug\\
-		R0--2&3&&10K resistor\\
-		U0&1&&\mc{ULN2003A} NPN Darlington array\\
+		Q0&1&&BC547 or 2N2222 NPN transistor\\
+		R0--3&4&&10K resistor\\
+		U0&1&\mouser{595-ULN2003AIDR}&\mc{ULN2003A} NPN Darlington array\\
 		U1&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
 		  &14&&5-pin bussed resistor network (2/\led\ tier)*\\
 		  &56&&\led, 5\,mm or 3\,mm, through-hole (8/\led\ tier)$\dagger$\\
@@ -360,7 +426,8 @@ the electronic components themselves from harm due to heat or static electricity
 		\multicolumn{4}{p{\textwidth}}{\tiny *Choose each tier's pair of resistor arrays appropriately for the voltage drop
 		for the LEDs to be used on that tier. Assuming a 5\,V supply and
 		typical LED characteristics for a desired 20\,mA current draw, that would be 150$\Omega$ or larger for red and amber LEDs and 100$\Omega$ or larger
-		for blue, green, and white LEDs. Check your LED datasheet to confirm.
+		for blue, green, and white LEDs. Check your LED datasheet to confirm. Examples: Mouser \mouser{652-4605X-1LF-100} (100$\Omega$)
+		or \mouser{652-4605X-1LF-150} (150$\Omega$).
 
 		\noindent$\dagger$Choose LED colors as desired for each tier (standard is green, 2$\times$amber, 2$\times$red,
 		blue, and white).
@@ -428,6 +495,85 @@ solder points without some parts getting in the way of connecting subsequent one
 		\end{itemize}
 \end{enumerate}
 
+\section{Controller for Adafruit Matrices}
+We obtained a number of pre-made \acronym{RGB} \led\ matrix displays from Adafruit which have a similar
+(but not quite the same) control logic to our own design, which allows us to also control those boards using
+only a slight variation in our hardware and firmware design.
+
+The hardware to drive them is a small shield board that plugs onto an Arduino Due or Mega 2560. It incorporates the
+same control circuitry as our original readerboard circuit described above, without the actual \led s themselves or
+the discrete chips that drive the rows and columns of the display, since those are already on the pre-made displays.
+
+This shield provides two ribbon cable connectors: J7, a 16-pin cable which sends the control signals to the matrix display,
+and J8, a 10-pin cable that can drive an 8-\led\ discrete status display such as is on the busylight and our original readerboard.
+
+The following describes the assembly of one of these shield boards.
+\begin{table}
+	\begin{tabular}{lrll}\toprule
+		{\bfseries Part}&{\bfseries Qty}&{\bfseries Mouser}&{\bfseries Description}\\\midrule
+		&1&&AdaShield Printed circuit board rev 0.0.0\\
+		&1&&Arduino Due or Mega 2560\\
+		C0&1&&\SI{100}{\micro\farad} electrolytic capacitor\\
+		C1&1&\mouser{810-FA18X7R1H10400}&\SI{0.1}{\micro\farad} capacitor\\
+		C2&1&\mouser{667-ECA-1HM100I}&\SI{10}{\micro\farad} electrolytic capacitor\\
+		D0&1&&power diode, 1\,A\\
+		J0&1&&Arduino stacking pin set\\
+		J1a,b&2&&8-position terminal block\\
+		J2,3&2&&2-position jumper header\\
+		J4&1&&3-position jumper header\\
+		J5,6&2&&2-position Euro-style terminal block\\
+		J7&1&&16-position \acronym{IDC} header\\
+		J8&1&\mouser{517-89110-0101}&10-position \acronym{IDC} header\\
+		P0--2&3&&2-position jumper shunt\\
+		Q0&1&&\mc{2N2222} or \mc{BC547} \mc{NPN} transistor\\
+		R0--5&6&\mouser{603-MFR-25FRF5210K}&10K resistor\\
+		R6&1&\mouser{604-MFR-24FRF521K}&1K resistor\\
+		R$_{\text{TERM}}$&1&&120$\Omega$ resistor\\
+		U0&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		U1&1&&\mc{AT24C256} \acronym{EEPROM}\\
+		U2&1&&\mc{ULN2803CDWR} octal NPN Darlington array\\
+		&1&&9V 2A DC power supply\\
+		\bottomrule
+	\end{tabular}
+	\caption{Bill of Materials for AdaSheild Board\label{fig:bom-ada}}
+\end{table}
+
+\subsubsection{AdaShield/QS Variation}
+The author produced a variation on the AdaSheild boards for another project, but they may still be useful for
+general use as an alternative to the above-described board in that it lacks a speaker output, but adds an I$^2$C alphanumeric
+\led\ display output and expands the discrete \led\ output from 8 \led s to 14.
+
+\begin{table}
+	\begin{tabular}{lrll}\toprule
+		{\bfseries Part}&{\bfseries Qty}&{\bfseries Mouser}&{\bfseries Description}\\\midrule
+		&1&&AdaShield/QS Printed circuit board rev 0.0.0\\
+		&1&&Arduino Due or Mega 2560\\
+		C0&1&\mouser{667-ECA-1HM100I}&\SI{10}{\micro\farad} electrolytic capacitor\\
+		C1&1&\mouser{810-FA18X7R1H10400}&\SI{0.1}{\micro\farad} capacitor\\
+		D0&1&&power diode, 2\,A\\
+		J0&1&&Arduino stacking pin set\\
+		J1a,b&2&&8-position terminal block\\
+		J2,3&2&&2-position jumper header\\
+		J4&1&&3-position jumper header\\
+		J5&1&&2-position Euro-style terminal block\\
+		J6&1&&10-position \acronym{IDC} header\\
+		J7,8&2&&16-position \acronym{IDC} header\\
+		P0--2&3&&2-position jumper shunt\\
+		R0--4&5&\mouser{603-MFR-25FRF5210K}&10K resistor\\
+		R5&1&\mouser{604-MFR-24FRF521K}&1K resistor\\
+		R6-8&3&&Resistor array, isolated, 4-resistors*\\
+		R9,10&2&&Resistor*\\
+		R$_{\text{TERM}}$&1&&120$\Omega$ resistor\\
+		U0&1&&\mc{THVD1439} half-duplex RS-485 driver/receiver\\
+		U1&1&&\mc{AT24C256} \acronym{EEPROM}\\
+		U2,3&2&\mouser{595-ULN2003AIDR}&\mc{ULN2003A} NPN Darlington array\\
+		&1&&9V 2A DC power supply\\
+		\bottomrule
+		\multicolumn{4}{p{\textwidth}}{\tiny*R6--10 each limit current to the discrete \led s. Choose their values appropriately
+		for the supply voltage and current needs of the \led s to be driven.}
+	\end{tabular}
+	\caption{Bill of Materials for AdaSheild Board\label{fig:bom-ada}}
+\end{table}
 
                                                       
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -947,7 +1093,8 @@ The remaining commands are used for management of the matrix display. All comman
 			\z{color}&\z{K} & Set current color & \\
 			\z{morse}&\z{M}&Send message via Morse code&\\
 			\z{query}&\z{Q} & Query full device status & [2] [5]\\
-			\z{text}&\z{T} & Display text on display & \\
+			\z{text}&\z{T} & Display text on matrix & \\
+			\z{alpha}&\z{V} & Manipulate segmented LED display & [6]\\
 			\midrule
 			\z{current}&& Report current status display& \\
 			\z{post}&& Add queued display message& \\
@@ -963,7 +1110,9 @@ The remaining commands are used for management of the matrix display. All comman
 
 			\noindent[4] \acronym{USB} only
 
-			\noindent[5] Must be targeted to a specific device at a time; does not respond on the global address}
+			\noindent[5] Must be targeted to a specific device at a time; does not respond on the global address
+
+			\noindent[6] On supported hardware only}
 		\end{tabular}
 		\caption{Summary of All Commands\label{tbl:commands}}
 	\end{center}
@@ -2445,6 +2594,183 @@ escape character (hex byte \z{1B}), indicated in the protocol description as \z{
 character for this command.)
 
 The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
+
+
+\section{\z{V}---Manipulate Segmented LED Display}
+For units which include 14-segment alphanumeric character displays, this set of commands manipulates
+what is displayed there. There are five distinct subcommands which are grouped together here:
+
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{2}{\dots}&
+	\bitbox[]{1}{\scriptsize$n$+3}\\
+	\bitbox{1}{\z{V}} &
+	\bitbox{1}{\z{A}} &
+	\bitbox{1}{\Var*{pos}}&
+	\bitbox{3}{\Var*{text}}&
+	\bitbox{1}{\z{ESC}}
+\end{bytefield}
+
+\smallskip
+
+\begin{Coding}
+	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&t=|\Var*{text}
+\end{Coding}
+\end{center}
+
+Starting with character position \Var*{pos} (with 0 being the leftmost character), write the
+characters of the \Var*{text} string into successive positions. Any character positions to the
+left of \Var*{pos} or to the right of the \Var*{text} are left unchanged. A period (``\z.'') character
+in \Var*{text} does not consume an additional character if it follows another character in the string;
+in this case the decimal point on the previous character's segmented display will be lit.
+
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{2}{\dots}&
+	\bitbox[]{1}{\scriptsize$n$+3}\\
+	\bitbox{1}{\z{V}} &
+	\bitbox{1}{\z{<}} &
+	\bitbox{1}{\Var*{loop}}&
+	\bitbox{3}{\Var*{text}}&
+	\bitbox{1}{\z{ESC}}
+\end{bytefield}
+
+\smallskip
+
+\begin{Coding}
+	|/readerboard/v1/alpha?a=|\Var*{ad}|&loop=|\Var*{bool}|&scroll&t=|\Var*{text}
+\end{Coding}
+\end{center}
+
+As above, but replaces all previous character values with the \Var*{text} string, which scrolls
+continuously across the display. If \Var*{loop} is ``\z{L}'', the message will continue scrolling;
+if it is ``\z.'' then it will scroll into view and stop.
+
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{2}{\dots}&
+	\bitbox[]{1}{\scriptsize$n$+3}\\
+	\bitbox{1}{\z{V}} &
+	\bitbox{1}{\z{I}} &
+	\bitbox{1}{\Var*{pos}}&
+	\bitbox{3}{\Var*{bitmap}}&
+	\bitbox{1}{\z{ESC}}
+\end{bytefield}
+
+\smallskip
+
+\begin{Coding}
+	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&bitmap=|\Var*{bitmap}
+\end{Coding}
+\end{center}
+
+As with ``\z{VA}'', but rather than use a text string, each character value is given by a two-byte big-endian binary value that provides
+a bitmap of all fifteen \acronym{LED} segments that should be illuminated for that character.
+
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}\\
+	\bitbox{1}{\z{V}} &
+	\bitbox{1}{\z{X}} &
+	\bitbox{1}{\Var*{pos}}&
+	\bitbox{1}{\Var*{end}}
+\end{bytefield}
+
+\smallskip
+
+\begin{Coding}
+	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&clearto=|\Var*{end}
+\end{Coding}
+\end{center}
+
+Turns off character positions starting with \Var*{pos}, through \Var*{end}, inclusive.
+
+
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
+%%	\bitheader{0-8} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}\\
+	\bitbox{1}{\z{V}} &
+	\bitbox{1}{\z{C}} 
+\end{bytefield}
+
+\smallskip
+
+\begin{Coding}
+	|/readerboard/v1/alpha?a=|\Var*{ad}|&clear|
+\end{Coding}
+\end{center}
+
+Turns off all character positions.
+
+
+%Displays the text \Var*{string} at the current cursor position. The cursor position is
+%then moved past the text to be ready for the next string to be printed.
+%
+%In the second form, the \Var*{row} and \Var*{height} parameters define a region of the display that extends to the full width of the
+%display but includes \Var*{height} pixel rows starting at pixel \#\Var*{row} (with row \#0 being the topmost row of the device). In this
+%case, the command behaves as though this region is the only part of the sign that exists as far as where characters will be drawn,
+%transition effects performed, previous data cleared, etc. {\color{red} Not yet implemented. May be limitations on how many simultaneous
+%transition effects may be playing at once, including scrolling text.}
+%
+%The \Var*{align} code indicates how the text is aligned on the display using one of the codes
+%shown in Table~\ref{tbl:alignments}. 
+%\begin{table}
+%	\begin{center}
+%		\begin{tabular}{cl}\toprule
+%			\bfseries Code & \bfseries Alignment Behavior\\\midrule
+%			\z{.} & No alignment (print at cursor)\\
+%			\z{<} & Left (print at left edge of matrix)\\
+%			\z{>} & Right (end of text at right edge of matrix)\\
+%			\z{\textasciicircum} & Center (between left and right edges)\\
+%			\z{R} & Local right (end of text at cursor)\\
+%			\z{C} & Local center right (between cursor and right edge)\\
+%			\z{L} & Local center left (between left edge and cursor)\\\bottomrule
+%		\end{tabular}
+%		\caption{Alignment Codes\label{tbl:alignments}}
+%	\end{center}
+%\end{table}
+%
+%If \Var*{merge} is ``\z{M}'' then the text is drawn without disturbing any existing pixels around it, adding
+%to what is already there. If it is ``\z{.}'' then everything to the right of the cursor is cleared before
+%drawing the text. (Alternatively, this may clear everything to the left of the cursor or the entire screen, depending
+%on the alignment mode in use.)
+%
+%The \Var*{trans} code specifies the transition effect to be used to add this string to the
+%display as shown in Table~\ref{tbl:transitions}.
+%
+%The text is rendered in the current font and may contain any 8-bit bytes except as otherwise
+%noted (but avoiding \ascii\ control codes is wise to be safe from conflict with
+%future control codes which may be added to the protocol). The string is terminated by an
+%escape character (hex byte \z{1B}), indicated in the protocol description as \z{ESC}.
+%(Since a dollar sign may appear in \Var*{string}, the terminator must be an escape
+%character for this command.)
+%
+%The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
+%
+%
+
+
 
 \section{\z{X}---Turn off Discrete \led s}
 \begin{center}
