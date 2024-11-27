@@ -73,6 +73,8 @@
 \newcommand\cli{\acronym{CLI}}
 \newcommand\ascii{\acronym{ASCII}}
 \newcommand\led{\acronym{LED}}
+\newcommand\ltp{\acronym{LTP}}
+\newcommand\msb{\acronym{MSB}}
 \newcommand\codetype[1]{\z{#1}}
 \newcommand\ixz[1]{\index{#1@\z{#1}}\z{#1}}
 \newcommand\tUnused{\cellcolor{gray!50}}
@@ -676,79 +678,100 @@ protocol used for this communication. If you consider the standard \acronym{ISO}
 protocol stack, there are three layers of concern for us here.
 
 \begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{4}
-	\wordbox{1}{7 Application}\\
-	\wordbox{1}{\color{grey}6 Presentation}\\
-	\wordbox{1}{\color{grey}5 Session}\\
-	\wordbox{1}{4 Transport}\\
-	\begin{rightwordgroup}{USB or RS-485 + USART}
-	\wordbox{1}{3 Network}\\
-	\wordbox{1}{2 Data Link}\\
-	\wordbox{1}{1 Physical}
-	\end{rightwordgroup}
+\begin{bytefield}[endianness=little,bitwidth=0.05\textwidth]{9}
+	\begin{rightwordgroup}{Readerboard/Busylight}
+	\bitbox[]{1}{7}&\bitbox{4}{Application}&\bitbox{4}{Application}
+	\end{rightwordgroup}\\
+	\bitbox[]{1}{6}&\bitbox{4}{\color{reservedslot}Presentation}\\
+	\bitbox[]{1}{5}&\bitbox{4}{\color{reservedslot}Session}\\
+	\begin{rightwordgroup}{USB or Lumos-compatible\\RS-485 network}
+	\bitbox[]{1}{4}&\bitbox{4}{Transport}&\bitbox[lrt]{4}{Transport}\\
+	\bitbox[]{1}{3}&\bitbox{4}{Network}&\bitbox[lrb]{4}{(LTP)}
+	\end{rightwordgroup}\\
+	\bitbox[]{1}{2}&\bitbox{4}{\color{reservedslot}Data Link}\\
+	\bitbox[]{1}{1}&\bitbox{4}{Physical}&\bitbox{4}{Physical}
 \end{bytefield}
 \end{center}
 
+\section{Physical Layer}
+At the lowest level, the serial bits are encoded and are carried over wires using either a direct \acronym{USB} connection
+to the host or a wider-area \acronym{RS-485} serial network. We don't need to worry about that level of the communication
+here.
 
+It is worth noting, however, that the readerboard and busylight devices use half-duplex \acronym{RS-485} interfaces, so when
+they are communicating over that network and are asked to send data back to the host, they will reverse the data direction
+of these layers until that data are transmitted, then reverts back to receiving on the data channel.
 
+\section{Transport Layer}
+This layer is responsible for getting the signals to the correct devices. This layer adds some data packaging around the
+message being sent to the device depending on the underlying physical connection type as described below.
 
+\subsection{USB Transport Protocol}
+Since each \acronym{USB} cable between the host and a device provides a single point-to-point connection, no addressing is
+needed (since there can only be one device on the other end of the wire, the host already knows which device it's talking to
+when sending messages on that \acronym{USB} port).
 
+In this case, a single byte with value \z{04}$_{16}$ (character \z{\textasciicircum D}) is appended to the end of the
+data packet.
 
-
-
-
-
-
-
-
-
-
-
-
-
-\section{USB vs. RS-485}
-The protocol used to send commands to the readerboard is different depending on
-whether the host is sending directly to a single readerboard over a \acronym{USB}
-cable, or to (possibly) multiple readerboards over an RS-485 bus network.
-
-\subsection{USB}
-A readerboard connected via \acronym{USB} accepts the commands just as documented
-below, with the addition that each such command is terminated by a 
-\z{\textasciicircum D} byte (hex value \z{04}$_{16}$).
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{9}
 	\bitbox[]{1}{\scriptsize0}&
 	\bitbox[]{1}{\scriptsize\dots}&
 	\bitbox[]{1}{\scriptsize$n-1$}&
 	\bitbox[]{1}{\scriptsize$n$}\\
-	\bitbox{3}{\Var*{command}}&
+	\bitbox{3}{\Var*{packet}}&
 	\bitbox{1}{\z{\textasciicircum D}}
 \end{bytefield}
 \end{center}
 
-If there is an error parsing or executing a command, the readerboard will ignore
-all subsequent input until a \z{\textasciicircum D} is received, whereupon it will
+If there is an error parsing or executing a command, the device will ignore
+all subsequent input until a \z{\textasciicircum D} byte is received, whereupon it will
 expect to see the start of another command. Thus, \z{\textasciicircum D} may not
 appear in any transmitted data except to terminate commands.
 
-Commands which contain arbitrary-size data fields, such as text strings or lists of
-\led s to light in sequence, end such fields with a terminator byte. In most cases
-this may be
-either a dollar-sign (``\z{\$}'') character or the
-escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagrams below
-simply as ``\z{\$}''. In cases where a dollar-sign could be part of the data, then
-only an escape character may be used to terminate the field, in which case the protocol
-description will show the terminator as ``\z{ESC}''.
-\subsection{RS-485}
-Commands sent over RS-485 are intended to target one or more of a set of
-connected readerboards over a network which may also contain other Lumos-protocol-compatible
-devices, so they adhere to a protocol that is also compatible with those devices.
+\subsection{RS-485 Transport Protocol}
+The \acronym{RS-485} standard is a differential serial signal which can be run up to
+1,000 meters over unshielded twisted-pair cables such as \acronym{CAT5} or \acronym{CAT6}.
+Up to 32 devices (including the host itself) can ``tap into'' this serial bus at various
+points (although physically this generally takes the form of ``daisy chaining'' connections
+where a cable plugs each device into the next one in the chain, with terminators plugged into
+the first and last devices).
 
-Each command begins with one of the following binary headers, depending on the
-set of target readerboard signs which should obey the command.
+Since multiple devices may exist on the same bus, they will all see the signals sent on that
+bus and thus must at least understand those messages enough to differentiate their messages
+from those destined for other devices even if they don't know how to fully interpret other
+devices' command sets.
+
+To accomplish this, the \acronym{RS-485} transport layer employed here uses a transport protocol
+the author designed for his Lumos light control devices. By being compatible with this standard,
+any set of readerboards, busylights, Lumos controllers, and any other devices following the same
+standard may be mixed on the same \acronym{RS-485} network without conflict as long as they have
+distinct addresses assigned to them.
+
+All data sent over \acronym{RS-485} must conform to the following simple rules to be compatible
+with the Lumos Transport Protocol (hereafter \ltp):
+\begin{itemize}
+	\item The first byte in a command packet has its \msb\ set (\z1).
+		\begin{itemize}
+			\item The lowest four bits of this byte specify the target device's address (0--15).
+			\item The device may ignore this and all subsequent bytes if the address isn't the global address or its own.
+			\item The remaining three bits specify the command to be executed on the target device.
+			\item Devices MAY implement extended commands in subsequent bytes to allow more than 8 commands, and/or
+				respond to global target addresses by decoding additional target IDs in subsequent bytes to allow
+				for multiple targets per device and/or device IDs greater than 15, but this is optional.
+		\end{itemize}
+	\item All subsequent bytes in a command packet must have their \msb\ cleared (\z0).
+	\item Devices MAY implement an escape code mechanism which does not otherwise violate the above rules to represent arbitrary
+		8-bit values in the data packet, which will be translated as the packet passes through the transport layer.
+	\item Following this header, the remaining bytes of the packet are the application-layer command as documented later
+		in this document. No trailing bytes are added to the end of the packet (unlike \acronym{USB}).
+\end{itemize}
+
+The specifics of how these rules translate to various packet headers are described in detail below.
 
 \subsubsection{Single Target or All Readerboards}
-To send a command to a single sign, begin with a single byte encoded as:
+To send a command to a single sign, the \ltp\ packet header is a single byte encoded as:
 \begin{center}
 	\begin{bytefield}[endianness=big]{8}
 		\bitheader{0-7} \\
@@ -765,8 +788,8 @@ If the global address \Var{ad$_G$} is given as the \Var*{ad} value, then all rea
 which have that set as their global address will obey the command.
 
 \subsubsection{Multiple Targets}
-Alternatively, a command may be targeted to multiple signs by starting the command
-with a multi-byte code:
+Alternatively, a command may be targeted to multiple signs; in this case the \ltp\ packet header
+is a multi-byte code:
 \begin{center}
 	\begin{bytefield}[endianness=big]{8}
 		\bitheader{0-7} \\
@@ -792,7 +815,7 @@ generally (see the \z= command below).
 This will send to the \Var*{n} devices addressed as \Var*{ad$_0$} through \Var*{ad$_{n-1}$}.
 
 Note that device addresses are constrained to the range 0--15 if they are to be addressed in
-the command start byte. However, using the multiple target header, device addresses in the
+the initial \ltp\ header start byte. However, using the multiple target header, device addresses in the
 range 0--63 may be used.
 
 %\subsubsection{All Targets}
@@ -812,7 +835,7 @@ range 0--63 may be used.
 %generally (see the \z= command below).
 
 \subsubsection{Response Headers}
-For commands which send a response back to the computer, the RS-485 data stream begins with the header
+For commands which send a response back to the computer, the RS-485 response data stream begins with the \ltp\ header
 \begin{center}
 	\begin{bytefield}[endianness=big]{8}
 		\bitheader{0-7} \\
@@ -857,7 +880,7 @@ If \Var*{ad} is the \Var{ad$_G$} address, then all readerboards will turn off
 all \led s.
 
 No other command bytes need to follow; this byte is sufficient to turn off
-the sign(s).
+the sign(s). In other words, the \ltp\ packet header itself is all that is sent---the command payload is empty.
 
 %The corresponding \acronym{JSON} message is
 %\begin{Coding}
@@ -869,7 +892,7 @@ The corresponding \acronym{HTTP} message is
 \end{Coding}
 
 \subsubsection{Subsequent Command Bytes}
-All subsequent bytes which follow the above binary headers \emph{must} have their
+All subsequent \ltp\ bytes which follow the above binary headers \emph{must} have their
 \acronym{MSB} cleared to \z0. 
 
 To cover cases where a value sent as part of a command must have the \acronym{MSB}
@@ -906,6 +929,22 @@ A few illustrative examples are shown in Table~\ref{tbl:escapes}.
 		\caption{Examples of RS-485 Escape Bytes.\label{tbl:escapes}}
 	\end{center}
 \end{table}
+
+\section{Application Layer}
+Once a command packet has been received and has been processed up through the transport layer, the remaining
+contents of the packet are interpreted by the target device as the command to be carried out. In the descriptions
+that follow, we will consider the matter of how the packet got to the device to have been fully resolved already
+so no mention will be made of the transport protocol. Assume the \acronym{RS-485} header or \acronym{USB} trailer
+have been removed at this point.
+
+Commands which contain arbitrary-size data fields, such as text strings or lists of
+\led s to light in sequence, end such fields with a terminator byte. In most cases
+this may be
+either a dollar-sign (``\z{\$}'') character or the
+escape control character (hex byte \z{1B}$_{16}$), indicated in the protocol diagrams below
+simply as ``\z{\$}''. In cases where a dollar-sign could be part of the data, then
+only an escape character may be used to terminate the field, in which case the protocol
+description will show the terminator as ``\z{ESC}''.
 
 %\section{Command Addressing}
 %Commands may be received over the \acronym{USB} port (a point-to-point connection with a host computer)
@@ -2365,6 +2404,9 @@ The response has the form:
 	\bitbox[tbl]{2}{\Var*{flashdata}} &
 	\bitbox[tbr]{1}{$\cdots$} &
 	\bitbox{1}{\z{\$}} &
+	\bitbox{1}{\Var*{alen}}&
+	\bitbox{2}{\Var*{adata}$\cdots$}&
+	\bitbox{1}{\z{\$}}&
 	\bitbox{1}{\z{\textbackslash n}}
 \end{bytefield}
 \end{center}
@@ -2376,8 +2418,10 @@ as documented in Table~\ref{tbl:int063} for 6-bit integer encoding.
 The \Var*{model} field may be %``\z{L}'' for the legacy hardware the author still has
 %lying around (but this shouldn't be something anyone else would need to see),
 ``\z{B}'' for the stand-alone busylight modules which only include discrete busy status lights,
-``\z{M}'' for \Var*{width}$\times$\Var*{height} matrix display hardware with monochrome \led s, or
-``\z{C}'' for \Var*{width}$\times$\Var*{height} \acronym{RGB} color display boards.
+``\z{M}'' for \Var*{width}$\times$\Var*{height} matrix display hardware with monochrome \led s, 
+``\z{C}'' for \Var*{width}$\times$\Var*{height} \acronym{RGB} color display boards, or
+``\z{Q}'' for the ``QS'' variant of color display boards with expanded discrete \led\ support and
+alphanumeric segmented displays.
 Note that \Var*{width} and \Var*{height} are encoded 12-bit integers, where the most significant 6 bits
 are sent first in each pair and the full encoded value is one less than the actual width or height.
 Thus, dimensions of 1--4,096 pixels in each direction may be reported.
@@ -2416,6 +2460,12 @@ The \Var*{coldata} bytes are sent just as with the \z{I} command, as hexadecimal
 the \led s lit on the matrix display, with \Var*{coldata$_0$} being the leftmost column of the display
 and \Var*{coldata$_{63}$} being the rightmost. In each column, the least significant bit indicates
 the \led\ on the top row.
+
+For devices which have 14-segment alphanumeric \led\ displays, the number of supported digits is sent as
+a 6-bit integer value \Var*{alen} (or 0 if there are no such displays on this device). This is followed by
+a number of four-digit big-endian hex words, one per \led\ digit, which indicate the currently-lit segments on the display.
+In each word, the bits correspond to segments a, b, c, \dots, l, m, n, and the decimal point, from bit 0 to bit 14.
+Bit 15, the \msb, is always clear.
 
 Note that monochrome boards only send a single color plane of data plus the flash plane.
 
@@ -2644,80 +2694,52 @@ what is displayed there. There are five distinct subcommands which are grouped t
 	\bitbox[]{1}{\scriptsize1}&
 	\bitbox[]{1}{\scriptsize2}&
 	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize4}&
 	\bitbox[]{2}{\dots}&
-	\bitbox[]{1}{\scriptsize$n$+3}\\
+	\bitbox[]{1}{\scriptsize$n$+4}\\
 	\bitbox{1}{\z{V}} &
 	\bitbox{1}{\z{A}} &
 	\bitbox{1}{\Var*{pos}}&
-	\bitbox{3}{\Var*{text}}&
+	\bitbox{1}{\Var*{img}}&
+	\bitbox{2}{\Var*{text}}&
 	\bitbox{1}{\z{ESC}}
 \end{bytefield}
 
 \smallskip
 
 \begin{Coding}
-	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&t=|\Var*{text}
+	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&img=|\Var*{bool}|&t=|\Var*{text}
 \end{Coding}
 \end{center}
 
 Starting with character position \Var*{pos} (with 0 being the leftmost character), write the
 characters of the \Var*{text} string into successive positions. Any character positions to the
-left of \Var*{pos} or to the right of the \Var*{text} are left unchanged. A period (``\z.'') character
+left of \Var*{pos} or to the right of the \Var*{text} are left unchanged. 
+
+If \Var*{pos} is the special code ``\z{\#}'', the entire display is replaced with \Var*{text}, which is scrolled
+across the display once until it is fully visible, then the scrolling stops. If \Var*{pos} is ``\z{\%}'', the behavior
+is the same but the scrolling loops forever instead of stopping.
+
+If \Var*{img} is ``\z{.}'', then \Var*{text} is an \acronym{ASCII} string of characters which will be rendered
+using the device's built-in character set.  A period (``\z.'') character
 in \Var*{text} does not consume an additional character if it follows another character in the string;
 in this case the decimal point on the previous character's segmented display will be lit.
 
-\begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
-%%	\bitheader{0-8} \\
-	\bitbox[]{1}{\scriptsize0}&
-	\bitbox[]{1}{\scriptsize1}&
-	\bitbox[]{1}{\scriptsize2}&
-	\bitbox[]{1}{\scriptsize3}&
-	\bitbox[]{2}{\dots}&
-	\bitbox[]{1}{\scriptsize$n$+3}\\
-	\bitbox{1}{\z{V}} &
-	\bitbox{1}{\z{<}} &
-	\bitbox{1}{\Var*{loop}}&
-	\bitbox{3}{\Var*{text}}&
-	\bitbox{1}{\z{ESC}}
-\end{bytefield}
-
-\smallskip
-
-\begin{Coding}
-	|/readerboard/v1/alpha?a=|\Var*{ad}|&loop=|\Var*{bool}|&scroll&t=|\Var*{text}
-\end{Coding}
-\end{center}
-
-As above, but replaces all previous character values with the \Var*{text} string, which scrolls
-continuously across the display. If \Var*{loop} is ``\z{L}'', the message will continue scrolling;
-if it is ``\z.'' then it will scroll into view and stop.
-
-\begin{center}
-\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
-%%	\bitheader{0-8} \\
-	\bitbox[]{1}{\scriptsize0}&
-	\bitbox[]{1}{\scriptsize1}&
-	\bitbox[]{1}{\scriptsize2}&
-	\bitbox[]{1}{\scriptsize3}&
-	\bitbox[]{2}{\dots}&
-	\bitbox[]{1}{\scriptsize$n$+3}\\
-	\bitbox{1}{\z{V}} &
-	\bitbox{1}{\z{I}} &
-	\bitbox{1}{\Var*{pos}}&
-	\bitbox{3}{\Var*{bitmap}}&
-	\bitbox{1}{\z{ESC}}
-\end{bytefield}
-
-\smallskip
-
-\begin{Coding}
-	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&bitmap=|\Var*{bitmap}
-\end{Coding}
-\end{center}
-
-As with ``\z{VA}'', but rather than use a text string, each character value is given by a two-byte big-endian binary value that provides
+However, if \Var*{img} is ``\z{I}'', then \Var*{text} specifies the individual set of \led\ segments to light up
+for each affected character position. Each character to display is sent as a 
+two-byte big-endian value expressed as a four-digit hex value that provides
 a bitmap of all fifteen \acronym{LED} segments that should be illuminated for that character.
+
+\begin{figure}
+	\begin{center}
+		\includegraphics[width=1in]{images/14-segment} \\
+		{\footnotesize Image: Wikimedia Commons (public domain)}
+		\caption{14-Segment LED Alphanumeric Display\label{fig:14seg}}
+	\end{center}
+\end{figure}
+
+Referring to the diagram in Figure~\ref{fig:14seg}, the \acronym{LSB} (bit 0) of each word is set (\z1) if segment ``a'' is lit,
+bit 1 for segment ``b'', and so on, up to bit 14 for the decimal point. The \msb, bit 15, is always clear (\z0).
 
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
@@ -2735,7 +2757,7 @@ a bitmap of all fifteen \acronym{LED} segments that should be illuminated for th
 \smallskip
 
 \begin{Coding}
-	|/readerboard/v1/alpha?a=|\Var*{ad}|&pos=|\Var*{pos}|&clearto=|\Var*{end}
+	|/readerboard/v1/alpha-clear?a=|\Var*{ad}|&pos=|\Var*{pos}|&clearto=|\Var*{end}
 \end{Coding}
 \end{center}
 
@@ -2754,7 +2776,7 @@ Turns off character positions starting with \Var*{pos}, through \Var*{end}, incl
 \smallskip
 
 \begin{Coding}
-	|/readerboard/v1/alpha?a=|\Var*{ad}|&clear|
+	|/readerboard/v1/alpha-clear?a=|\Var*{ad}
 \end{Coding}
 \end{center}
 
