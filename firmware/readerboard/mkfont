@@ -406,7 +406,8 @@ def write_LaTeX_glyph(tex, codepoint, name, f, n=0, start=True):
             for pos in range(f.space):
                 if pos >= f.width:
                     tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit-8*byte_number}) {{}};\n')
-                elif ((bitmap_data[f.offset+pos] >> (8*byte_number)) & 0xff) & (1<<bit):
+                #elif ((bitmap_data[f.offset+pos] >> (8*byte_number)) & 0xff) & (1<<bit):
+                elif (bitmap_data[f.offset+(f.width*byte_number)+pos] & 0xff) & (1<<bit):
                     tex.write(f'\\node [circle, fill=red, draw=black, minimum size=3mm] at ({pos+1},{8-bit-8*byte_number}) {{}};\n')
                 else:
                     tex.write(f'\\node [circle, fill=none, draw=black, minimum size=3mm] at ({pos+1},{8-bit-8*byte_number}) {{}};\n')
