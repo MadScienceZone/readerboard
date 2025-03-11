@@ -675,10 +675,14 @@ it will transmit to the \acronym{RS-485} network a command starting with the hex
 The host \acronym{PC} (which may or may not be running the server program) connects to one or more
 readerboard and/or busylight devices by direct wire. The remainder of this chapter describes the
 protocol used for this communication. If you consider the standard \acronym{ISO} \acronym{OSI} network
-protocol stack, there are three layers of concern for us here.
+protocol stack, there are three layers of concern for us here, as illustrated in Figure~\ref{figure-layers}.
 
+\begin{figure}
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.05\textwidth]{9}
+	\bitbox[]{1}{}&
+	\bitbox[]{4}{\tiny ISO/OSI}&
+	\bitbox[]{4}{\tiny Lumos}\\
 	\begin{rightwordgroup}{Readerboard/Busylight}
 	\bitbox[]{1}{7}&\bitbox{4}{Application}&\bitbox{4}{Application}
 	\end{rightwordgroup}\\
@@ -692,6 +696,8 @@ protocol stack, there are three layers of concern for us here.
 	\bitbox[]{1}{1}&\bitbox{4}{Physical}&\bitbox{4}{Physical}
 \end{bytefield}
 \end{center}
+	\caption{Protocol Stacks (ISO vs. Lumos Models)\label{figure-layers}}
+\end{figure}
 
 \section{Physical Layer}
 At the lowest level, the serial bits are encoded and are carried over wires using either a direct \acronym{USB} connection
@@ -1827,11 +1833,11 @@ Font~3 is a double-height font which is really only useful on boards with 16 or 
 			\emph{01x}&\tControl\tiny back&\tUnused&\tControl\tiny down&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tControl\tiny up&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
 			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{04x}&&\tUnused&$\tUnused$&$\tUnused$&\$&\%&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{04x}&&!&\z"&\#&\$&\%&\&&\z'&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
 			\emph{05x}&(&)&*&+&,&-&.&/&\\\hline
 			\emph{06x}&0&1&2&3&4&5&6&7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
-			\emph{07x}&8&9&:&;&\z<&=&\z>&\tUnused&\\\hline
-			\emph{10x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
+			\emph{07x}&8&9&:&;&\z<&=&\z>&?&\\\hline
+			\emph{10x}&@&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{4}\emph{x}}\\\cline{1-9}
 			\emph{11x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{12x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{5}\emph{x}}\\\cline{1-9}
 			\emph{13x}&\tUnused&\tUnused&\tUnused&[&\tUnused&]&\textasciicircum&\_&\\\hline
@@ -1839,7 +1845,7 @@ Font~3 is a double-height font which is really only useful on boards with 16 or 
 			\emph{15x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{16x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{7}\emph{x}}\\\cline{1-9}
 			\emph{17x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
-			\emph{20x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
+			\emph{20x}&``&''&`&'&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{8}\emph{x}}\\\cline{1-9}
 			\emph{21x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
 			\emph{22x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{9}\emph{x}}\\\cline{1-9}
 			\emph{23x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
@@ -1862,6 +1868,25 @@ Font~3 is a double-height font which is really only useful on boards with 16 or 
 		\end{tabular}
 	\end{center}
 	\caption{Font Table for Font \#3\label{tbl:font3}}
+\end{table}
+\begin{table}
+	\begin{center}
+		\begin{tabular}{r|c|c|c|c|c|c|c|c|l}
+			&\emph{0} &\emph{1} &\emph{2} &\emph{3}
+			&\emph{4} &\emph{5} &\emph{6} &\emph{7}&\\\hline
+			\emph{00x}&\tForbidden\tiny null&\tUnused&\tUnused&\tControl\tiny move&\tForbidden\tiny end&\tUnused&\tControl\tiny font&\tUnused&\multirow{2}{*}{\z{0}\emph{x}}\\\cline{1-9}
+			\emph{01x}&\tControl\tiny back&\tUnused&\tControl\tiny down&\tControl\tiny color&\tControl\tiny forw&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{02x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tControl\tiny up&\tUnused&\tUnused&\multirow{2}{*}{\z{1}\emph{x}}\\\cline{1-9}
+			\emph{03x}&\tControl\tiny hex&\tUnused&\tUnused&\tForbidden\tiny esc&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{04x}&&\tUnused&$\tUnused$&$\tUnused$&\tUnused&\tUnused&\tUnused&\tUnused&\multirow{2}{*}{\z{2}\emph{x}}\\\cline{1-9}
+			\emph{05x}&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\\\hline
+			\emph{06x}&0&1&2&3&4&5&6&7&\multirow{2}{*}{\z{3}\emph{x}}\\\cline{1-9}
+			\emph{07x}&8&9&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused&\tUnused\\\hline
+			&\z{8} &\z{9} &\z{A} &\z{B}
+			&\z{C} &\z{D} &\z{E} &\z{F}
+		\end{tabular}
+	\end{center}
+	\caption{Font Table for Fonts \#4--\#5\label{tbl:font4}\label{tbl:font5}}
 \end{table}
 			
 \section{\z{B}---Beep/Play Sound Sequence}
@@ -2685,7 +2710,7 @@ The string may include control codes as listed in Table~\ref{tbl:controlcodes}.
 
 \section{\z{V}---Manipulate Segmented LED Display}
 For units which include 14-segment alphanumeric character displays, this set of commands manipulates
-what is displayed there. There are five distinct subcommands which are grouped together here:
+what is displayed there. There are three distinct subcommands which are grouped together here:
 
 \begin{center}
 \begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{8}
