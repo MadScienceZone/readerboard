@@ -17,7 +17,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -43,7 +42,7 @@ type configData struct {
 }
 
 func getConfigFromFile(filename string, data *configData) error {
-	cdata, err := ioutil.ReadFile(filename)
+	cdata, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("Unable to read from %s: %v", filename, err)
 	}
@@ -115,12 +114,12 @@ func main() {
 		log.Fatalf("Unable to initialize: %v", err)
 	}
 
-	b, err := ioutil.ReadFile(config.CredentialFile)
+	b, err := os.ReadFile(config.CredentialFile)
 	if err != nil {
 		log.Fatalf("Unable to read client secret file %v: %v", config.CredentialFile, err)
 	}
 
-	googleConfig, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
+	googleConfig, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
