@@ -1151,6 +1151,7 @@ The remaining commands are used for management of the matrix display. All comman
 			\multicolumn{1}{c}{\bfseries Cmd}&
 			\multicolumn{1}{c}{\bfseries Description}&
 			\multicolumn{1}{c}{\bfseries Notes}\\\midrule
+			\z{alert}&\z{!} & Briefly flash set of \led s & [3] \\
 			\z{strobe}&\z{*} & Strobe \led s in Sequence & [1]\\
 			\z{busy}&\z{?} & Query discrete \led\ status & [1] [2] [5]\\
 			\z{flash}&\z{F} & Flash \led s in Sequence & [1]\\
@@ -1219,6 +1220,38 @@ Displays various test patterns on the display to show that each element of each 
 individually and in concert with others.
 
 While running the test pattern set, the device is not responsive to other inputs or background operations.
+
+\section{\z{!}---Alert Signal on Discrete Lights}
+\begin{center}
+\begin{bytefield}[endianness=little,bitwidth=0.11111\textwidth]{7}
+%	\bitheader{0-3} \\
+	\bitbox[]{1}{\scriptsize0}&
+	\bitbox[]{1}{\scriptsize1}&
+	\bitbox[]{1}{\scriptsize2}&
+	\bitbox[]{1}{\scriptsize3}&
+	\bitbox[]{1}{\scriptsize\dots}&
+	\bitbox[]{1}{\scriptsize$n$}&
+	\bitbox[]{1}{\scriptsize$n+1$}\\
+	\bitbox{1}{\z{!}} &
+	\bitbox[tlb]{1}{\Var*{led$_0$}} &
+	\bitbox[tb]{1}{\Var*{led$_1$}} &
+	\bitbox[tb]{1}{\Var*{led$_2$}} &
+	\bitbox[tb]{1}{$\cdots$} &
+	\bitbox[tbr]{1}{\Var*{led$_{n-1}$}} &
+	\bitbox{1}{\z\$}
+\end{bytefield}
+\begin{Coding}
+|/readerboard/v1/alert?a=|\Var*{ad}|&l=|\Var*{led$_0$}\Var*{led$_1$}\dots\Var*{led$_{n-1}$}
+\end{Coding}
+\end{center}
+
+Each \Var*{led} value is an \ascii\ character corresponding to a discrete
+\led\ as shown in Table~\ref{tbl:lightcodes}. 
+
+All of the \led s in the list are flashed briefly together to indicate an urgent status, after which
+the previous state of the discrete \led\ display is restored.
+
+{\color{red} Not yet implemented.}
 
 \section{\z{*}---Strobe Lights in Sequence}
 \begin{center}
