@@ -1,11 +1,9 @@
-//
 // Server for busylight and readerboard devices
 //
 // This opens a simple web service API endpoint which clients can use to send updates
 // to controlled busylight indicator and readerboard devices.  The busylight hardware
 // and firmware are described in the same repository as this source code. The readerboard
 // hardware and firmware appear in github.com/MadScienceZone/readerboard.
-//
 package main
 
 import (
@@ -58,7 +56,7 @@ func configureServer() (*readerboard.ConfigData, error) {
 			log.Printf("Error creating PID file (is another instance already running?): %v", err)
 			return nil, err
 		}
-		pidf.WriteString(fmt.Sprintf("%d\n", myPID))
+		fmt.Fprintf(pidf, "%d\n", myPID)
 		pidf.Close()
 		log.Printf("PID=%v (written to %s)", myPID, configData.PidFile)
 	}
@@ -139,19 +137,16 @@ func main() {
 	signal.Notify(req, syscall.SIGHUP, syscall.SIGINT)
 
 eventloop:
-	for {
-		select {
-		case externalSignal := <-req:
-			switch externalSignal {
-			case syscall.SIGHUP, syscall.SIGINT:
-				log.Printf("%v received", externalSignal)
-				if err := server.Shutdown(context.TODO()); err != nil {
-					log.Printf("Error trying to shut down HTTP server: %v", err)
-				}
-				serverDone.Wait()
-				log.Printf("HTTP Server shut down; exiting")
-				break eventloop
+	for externalSignal := range req {
+		switch externalSignal {
+		case syscall.SIGHUP, syscall.SIGINT:
+			log.Printf("%v received", externalSignal)
+			if err := server.Shutdown(context.TODO()); err != nil {
+				log.Printf("Error trying to shut down HTTP server: %v", err)
 			}
+			serverDone.Wait()
+			log.Printf("HTTP Server shut down; exiting")
+			break eventloop
 		}
 	}
 }
