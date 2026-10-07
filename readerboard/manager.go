@@ -16,9 +16,7 @@ import (
 	moon "github.com/pdevine/goMoonPhase"
 )
 
-//
 // ManagedMessage describes a posted message in our managed message queue.
-//
 type ManagedMessage struct {
 	ID         string        // unique identifier for the message
 	Text       string        // message content, may include {tokens}
@@ -46,10 +44,8 @@ const (
 	Saturday
 )
 
-//
 // TimeSpec represents a time of day or day of week as used for scheduling
 // posted messages.
-//
 type TimeSpec struct {
 	// If IsRelative is true, Duration gives a relative time from Baseline for the event.
 	// Otherwise, the other fields specify an absolute point in time.
@@ -64,10 +60,8 @@ type TimeSpec struct {
 	Seconds int
 }
 
-//
 // ParseWeekday interprets a number of usual ways of entering names of days of the week.
 // If the string is empty, AnyDay is returned.
-//
 func ParseWeekday(wd string) (DayOfWeek, error) {
 	switch wd {
 	case "":
@@ -90,12 +84,11 @@ func ParseWeekday(wd string) (DayOfWeek, error) {
 	return AnyDay, fmt.Errorf("invalid day of the week")
 }
 
-//
 // ParseTimeSpec returns a TimeSpec from string which has one of the forms
-//   [<day>@][<hour>]:<min>[:<sec>]   absolute time, maybe on a day of the week
-//   <day>                            start of the named day of the week
-//   <duration>                       relative time duration
 //
+//	[<day>@][<hour>]:<min>[:<sec>]   absolute time, maybe on a day of the week
+//	<day>                            start of the named day of the week
+//	<duration>                       relative time duration
 func ParseTimeSpec(s string) (ts TimeSpec, err error) {
 	//                                            1       2      3        4
 	timeSpecPattern := regexp.MustCompile(`^\s*(?:(\w+)@)?(\d+)?:(\d+)(?::(\d+))?\s*$`)
@@ -133,7 +126,6 @@ func ParseTimeSpec(s string) (ts TimeSpec, err error) {
 	return
 }
 
-//
 // TimeUntil returns the length of time between now and the time indicated by the TimeSpec.
 // TODO
 func (t TimeSpec) TimeUntil() time.Duration {
@@ -173,8 +165,7 @@ func WrapInternalHandler(f func(deviceTargetSet, url.Values, http.ResponseWriter
 
 // Current returns what we last told a device to display on its discrete LEDs
 //
-//  /readerboard/v1/current?a=<targets>
-//
+//	/readerboard/v1/current?a=<targets>
 func Current(targets deviceTargetSet, _ url.Values, w http.ResponseWriter, config *ConfigData) error {
 	currentState := make(map[string]DiscreteLEDStatus)
 
@@ -195,7 +186,6 @@ func Current(targets deviceTargetSet, _ url.Values, w http.ResponseWriter, confi
 	return nil
 }
 
-//
 // ReplaceTokens replaces {...} tokens in a string with values taken from
 // our set of posted message tokens which are computable or constant, along
 // with a set of user-defined variables.
@@ -205,7 +195,6 @@ func Current(targets deviceTargetSet, _ url.Values, w http.ResponseWriter, confi
 // as if all possible variable names are defined by default to the empty string.
 //
 // Literal { and } characters may be entered as {{ and }}.
-//
 func ReplaceTokens(t []byte, font int, config *ConfigData) []byte {
 	s := make([]byte, 0, len(t))
 	i := 0
@@ -476,6 +465,10 @@ func ManageMessageQueue(config *ConfigData) {
 		config.messageManager.update = make(chan string)
 	}()
 
+	// Set timer for time-based value updates
+	updateTimes := time.NewTimer(time.Until(time.Now().Truncate(time.Minute).Add(time.Minute)))
+	defer updateTimes.Stop()
+
 	for {
 		select {
 		case msg := <-config.messageManager.post:
@@ -484,36 +477,36 @@ func ManageMessageQueue(config *ConfigData) {
 			log.Printf("XXX unpost %v", id)
 		case name := <-config.messageManager.update:
 			log.Printf("XXX update %v", name)
+		case <-updateTimes.C:
+			now := time.Now().Truncate(time.Minute)
+			log.Printf("XXX update minute timer: {time12}=%s, {time24}=%s, {ymd}=%s",
+				now.Format("3:04"), now.Format("15:04"), now.Format("2006-01-02"))
+			updateTimes.Reset(time.Until(now.Add(time.Minute)))
 		}
 	}
 }
 
 // Post displays a message
 //
-//  /readerboard/v1/post?a=<targets>&t=<text>&id=<id>[&trans=<transition>][&until=<dt>][&hold=<dur>][&color=<rgb>][&visible=<dur>][&show=<dur>][&repeat=<dur>]
+//	/readerboard/v1/post?a=<targets>&t=<text>&id=<id>[&trans=<transition>][&until=<dt>][&hold=<dur>][&color=<rgb>][&visible=<dur>][&show=<dur>][&repeat=<dur>]
 //
-//  <dt> ::= [<day>@][<hour>]:<min>[:<sec>]
-//        |  <day>
-//        |  <duration>
-//
+//	<dt> ::= [<day>@][<hour>]:<min>[:<sec>]
+//	      |  <day>
+//	      |  <duration>
 func Post(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
 	return fmt.Errorf("not yet implemented")
 }
 
-//
 // Postlist returns the message queue
 //
-//  /readerboard/v1/postlist?a=<targets>[&id={/<regex> | <id>}]
-//
+//	/readerboard/v1/postlist?a=<targets>[&id={/<regex> | <id>}]
 func PostList(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
 	return fmt.Errorf("not yet implemented")
 }
 
-//
 // Unpost removes a message
 //
-//  /readerboard/v1/unpost?a=<targets>&id={/ <regex> | <id>}
-//
+//	/readerboard/v1/unpost?a=<targets>&id={/ <regex> | <id>}
 func Unpost(targets deviceTargetSet, r url.Values, _ http.ResponseWriter, config *ConfigData) error {
 	msgID := r.Get("id")
 	if msgID == "" {
@@ -527,11 +520,9 @@ func Unpost(targets deviceTargetSet, r url.Values, _ http.ResponseWriter, config
 	return nil
 }
 
-//
 // Update sets user variables inside messages
 //
-//  /readerboard/v1/update?name0=value0&name1=value1&...&nameN=valueN
-//
+//	/readerboard/v1/update?name0=value0&name1=value1&...&nameN=valueN
 func Update(_ deviceTargetSet, r url.Values, _ http.ResponseWriter, config *ConfigData) error {
 	lockVariables()
 	defer unlockVariables()

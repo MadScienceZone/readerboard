@@ -3,7 +3,7 @@ package readerboard
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,9 +47,7 @@ type ConfigData struct {
 	}
 }
 
-//
 // Init sets up the internal state of a DeviceDescription.
-//
 func (d *DeviceDescription) Init() {
 	if d.LightsInstalled == "" {
 		if d.DeviceType == Busylight1 || d.DeviceType == Busylight2 {
@@ -287,7 +285,7 @@ func HardwareModelName(m HardwareModel) string {
 }
 
 func GetConfigFromFile(filename string, data *ConfigData) error {
-	cdata, err := ioutil.ReadFile(filename)
+	cdata, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("Unable to read from %s: %v", filename, err)
 	}
