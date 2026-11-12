@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func ParseInt12(s string) (int, error) {
@@ -479,6 +480,42 @@ func sendCommandToHardware(f func(url.Values, HardwareModel, deviceTargetSet, *C
 	return errors
 }
 
+// dtParam parses out a TimeSpec from a parameter in the format
+// [<day of week>@][<hour>]:<min>[:<sec>]
+// <day of week>
+// <duration>
+func dtParam(r url.Values, key string) (TimeSpec, error) {
+	return ParseTimeSpec(r.Get(key))
+}
+
+// dtListParam parses a comma-separated list of TimeSpec ranges, each of which is delimited by
+// a hyphen (-).
+func dtListParam(r url.Values, key string) ([][2]TimeSpec, error) {
+	var specList [][2]TimeSpec
+	for i, dtList := range strings.Split(r.Get(key), ",") {
+		var spec [2]TimeSpec
+		var err error
+		pair := strings.Split(dtList, "-")
+		if len(pair) != 2 {
+			return nil, fmt.Errorf("%s schedule element #%d: date-time range requires two date-time values, %d provided",
+				key, i+1, len(pair))
+		}
+		for j := range 2 {
+			spec[j], err = ParseTimeSpec(pair[j])
+			if err != nil {
+				return nil, fmt.Errorf("%s schedule element #%d, date-time range value %s: %v",
+					key, i+1, pair[j], err)
+			}
+		}
+		specList = append(specList, spec)
+	}
+	return specList, nil
+}
+
+func durationParam(r url.Values, key string) (time.Duration, error) {
+	return time.ParseDuration(r.Get(key))
+}
+
 func boolParam(r url.Values, key string, ifFalse, ifTrue byte) byte {
 	if !r.Has(key) {
 		return ifFalse
@@ -598,9 +635,8 @@ func Clear(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]
 
 // Dim sets one or all dimmer values.
 //
-//  /readerboard/v1/dim?a=<targets>&l=<led>|*|_&d=<level>
-//  -> D led h h
-//
+//	/readerboard/v1/dim?a=<targets>&l=<led>|*|_&d=<level>
+//	-> D led h h
 func Dim(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
@@ -637,10 +673,9 @@ func Test(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 
 // Flash sets a flash pattern on the busylight status LEDs.
 //
-//	/readerboard/v1/flash?a=<targets>&l=<leds>[&up=<sec>&on=<sec>&down=<sec>&off=<sec>]
-//	-> F l0 l1 ... lN $
-//  -> F / up on down off l0 l1 ... lN $
-//
+//		/readerboard/v1/flash?a=<targets>&l=<leds>[&up=<sec>&on=<sec>&down=<sec>&off=<sec>]
+//		-> F l0 l1 ... lN $
+//	 -> F / up on down off l0 l1 ... lN $
 func Flash(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
@@ -690,8 +725,8 @@ func Flash(r url.Values, _ HardwareModel, targets deviceTargetSet, config *Confi
 
 // Sound plays a sound on the speaker.
 //
-//  /readerboard/v1/sound?a=<targets>[&loop]&notes=...
-//  -> B L|. notes... $
+//	/readerboard/v1/sound?a=<targets>[&loop]&notes=...
+//	-> B L|. notes... $
 func Sound(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	loop := boolParam(r, "loop", '.', 'L')
 	notes, err := stringParam(r, "notes")
@@ -973,18 +1008,16 @@ func Scroll(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([
 
 // Display POST banners again
 //
-//  /readerboard/v1/diag-banners
-//  -> = * =
-//
+//	/readerboard/v1/diag-banners
+//	-> = * =
 func DiagBanners(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	return []byte{'=', '*', '='}, nil
 }
 
 // Save current settings to EEPROM
 //
-//  /readerboard/v1/save?a=<targets>&type="D"
-//  --> = & D =
-//
+//	/readerboard/v1/save?a=<targets>&type="D"
+//	--> = & D =
 func Save(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	settingType := r.Get("type")
 	if settingType == "" {
@@ -1081,9 +1114,8 @@ func Light(r url.Values, hw HardwareModel, targets deviceTargetSet, config *Conf
 
 // Morse sends a message in Morse code.
 //
-//  /readerboard/v1/morse?a=<targets>&t=<message>&l=<led>
-//  -> M led message... $
-//
+//	/readerboard/v1/morse?a=<targets>&t=<message>&l=<led>
+//	-> M led message... $
 func Morse(r url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {

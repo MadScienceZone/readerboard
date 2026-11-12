@@ -18,17 +18,17 @@ import (
 
 // ManagedMessage describes a posted message in our managed message queue.
 type ManagedMessage struct {
-	ID         string        // unique identifier for the message
-	Text       string        // message content, may include {tokens}
-	Targets    []int         // list of device IDs to display the message
-	Transition byte          // transition to use to introduce the message
-	Color      byte          // color to set for the message TODO
-	Until      TimeSpec      // expiration time for the message
-	Hold       time.Duration // length of time to display this before moving on to next message
-	Visible    [][2]TimeSpec // set of time ranges during which message can be shown
-	Show       time.Duration // show the message for this long after posting, then hide (but leave in queue)
-	Repeat     time.Duration // unhide after being hidden for this long
-	NextEvent  time.Time     // time when we need to do the next thing with this message; TODO do we need this?
+	ID         string          // unique identifier for the message
+	Text       []byte          // message content, may include {tokens}
+	Targets    deviceTargetSet // list of device IDs to display the message
+	Transition byte            // transition to use to introduce the message
+	Color      byte            // color to set for the message TODO
+	Until      TimeSpec        // expiration time for the message
+	Hold       time.Duration   // length of time to display this before moving on to next message
+	Visible    [][2]TimeSpec   // set of time ranges during which message can be shown
+	Show       time.Duration   // show the message for this long after posting, then hide (but leave in queue)
+	Repeat     time.Duration   // unhide after being hidden for this long
+	NextEvent  time.Time       // time when we need to do the next thing with this message; TODO do we need this?
 }
 
 type DayOfWeek byte
@@ -60,11 +60,34 @@ type TimeSpec struct {
 	Seconds int
 }
 
+func (wd DayOfWeek) String() string {
+	switch wd {
+	case AnyDay:
+		return "Any"
+	case Sunday:
+		return "Sunday"
+	case Monday:
+		return "Monday"
+	case Tuesday:
+		return "Tuesday"
+	case Wednesday:
+		return "Wednesday"
+	case Thursday:
+		return "Thursday"
+	case Friday:
+		return "Friday"
+	case Saturday:
+		return "Saturday"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 // ParseWeekday interprets a number of usual ways of entering names of days of the week.
 // If the string is empty, AnyDay is returned.
 func ParseWeekday(wd string) (DayOfWeek, error) {
 	switch wd {
-	case "":
+	case "", "Any", "AnyDay", "ANYDAY", "any", "anyday", "a", "A":
 		return AnyDay, nil
 	case "U", "u", "Sunday", "SUNDAY", "sunday", "sun", "Sun", "SUN":
 		return Sunday, nil
@@ -127,12 +150,22 @@ func ParseTimeSpec(s string) (ts TimeSpec, err error) {
 }
 
 // TimeUntil returns the length of time between now and the time indicated by the TimeSpec.
-// TODO
 func (t TimeSpec) TimeUntil() time.Duration {
 	if t.IsRelative {
-		return t.Baseline.Add(t.Duration).Sub(time.Now())
+		return time.Until(t.Baseline.Add(t.Duration))
 	}
-	return 0
+
+	now := time.Now()
+	y, m, d := now.Date()
+	sod := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+	if t.Weekday != AnyDay {
+		for t.Weekday.String() != sod.Weekday().String() {
+			sod = sod.AddDate(0, 0, 1)
+		}
+	}
+	return time.Until(sod.Add(time.Duration(t.Hours)*time.Hour +
+		time.Duration(t.Minutes)*time.Minute +
+		time.Duration(t.Seconds)*time.Second))
 }
 
 func WrapInternalHandler(f func(deviceTargetSet, url.Values, http.ResponseWriter, *ConfigData) error, config *ConfigData, targetsRequired bool) func(http.ResponseWriter, *http.Request) {
@@ -351,12 +384,6 @@ func ReplaceTokens(t []byte, font int, config *ConfigData) []byte {
 			}
 
 		case "time12":
-			ampm := func(h int) byte {
-				if h >= 12 {
-					return 145
-				}
-				return 144
-			}
 			hr12 := func(h int) int {
 				if h = h % 12; h == 0 {
 					return 12
@@ -366,6 +393,16 @@ func ReplaceTokens(t []byte, font int, config *ConfigData) []byte {
 
 			now := time.Now()
 			s = renderBigFonts(s, []byte(fmt.Sprintf("%2d:%02d", hr12(now.Hour()), now.Minute())), font, bigMode)
+
+		case "ampm":
+			now := time.Now()
+			ampm := func(h int) byte {
+				if h >= 12 {
+					return 145
+				}
+				return 144
+			}
+
 			if font != 2 {
 				s = append(s, 6)
 				s = append(s, '2')
@@ -444,6 +481,7 @@ func renderBigFonts(s, text []byte, font int, bigMode bool) []byte {
 // |                |<---- post message {id, text, attrs}
 // |                |<---- unpost message {id}
 // |                |<---- update var {var}
+// |                |<---- minute timer (triggers redraw if time-based tokens in use)
 // |                |----> call Text(), Clear()
 // |                |
 // |                |
@@ -479,32 +517,109 @@ func ManageMessageQueue(config *ConfigData) {
 			log.Printf("XXX update %v", name)
 		case <-updateTimes.C:
 			now := time.Now().Truncate(time.Minute)
-			log.Printf("XXX update minute timer: {time12}=%s, {time24}=%s, {ymd}=%s",
-				now.Format("3:04"), now.Format("15:04"), now.Format("2006-01-02"))
+			log.Printf("XXX update minute timer: {ampm}=%s, {mdy}=%s, {pom}=(%s), {time12}=%s, {time24}=%s, {ymd}=%s",
+				func() string {
+					if now.Hour() >= 12 {
+						return "PM"
+					}
+					return "AM"
+				}(), now.Format("01/02/2006"), moon.New(now).PhaseName(), now.Format("3:04"),
+				now.Format("15:04"), now.Format("2006-01-02"))
 			updateTimes.Reset(time.Until(now.Add(time.Minute)))
 		}
 	}
 }
 
-// Post displays a message
+// Post displays a message. This adds the message to our display queue. Lower-level display controls
+// suspend the display queue until the next Clear.
 //
-//	/readerboard/v1/post?a=<targets>&t=<text>&id=<id>[&trans=<transition>][&until=<dt>][&hold=<dur>][&color=<rgb>][&visible=<dur>][&show=<dur>][&repeat=<dur>]
+//			/readerboard/v1/post?a=<targets>&t=<text>&id=<id>[&trans=<transition>][&until=<dt>][&hold=<dur>][&color=<rgb>][&visible=<dt>-<dt>[,...]][&show=<dur>][&repeat=<dur>]
 //
-//	<dt> ::= [<day>@][<hour>]:<min>[:<sec>]
-//	      |  <day>
-//	      |  <duration>
-func Post(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
-	return fmt.Errorf("not yet implemented")
+//		 <id> ::= unique string
+//		 <transition> ::= <transition-code>
+//	     <transition-code> ::= '.'=none
+//	              | '>'=scroll right
+//	              | '<'=scroll left
+//	              | '^'=scroll up
+//	              | 'v'=scroll down
+//	              | 'L'=wipe left
+//	              | 'R'=wipe right
+//	              | 'U'=wipe up
+//	              | 'D'=wipe down
+//	              | '|'=wipe horiz
+//	              | '-'=wipe vert
+//	              | '?'=random
+//			<dt> ::= [<day>@][<hour>]:<min>[:<sec>]
+//			      |  <day>
+//			      |  <duration> (as defined for Go time.Duration type)
+//		 <rgb> ::= <color-id> | <color-code>
+//		 <color-id> ::= 0=off | 1=red | 2=green | 3=amber | 4=blue | 5=magenta | 6=cyan | 7=white
+//		             |  8-15=as 0-7 but flashing
+//		 <color-code> ::= 0-9 as <color-id> | ':'=10 | ';'=11 | '<'=12 | '='=13 | '>'=14 | '?'=15
+//
+// hold: The message will remain on-screen for the specified length of time before moving on to the next message.
+// show: The message will remain in the queue for this amount of time and will then be hidden (but not necessarily
+// Unposted).
+// repeat: If the message was hidden (as with the show parameter), it will re-appear again after the specified
+// length of time has elapsed since it was hidden.
+// until: The message will automatically Unpost at this time.
+// visible: A range of dates (or set of them) between which the message will be visible.
+func Post(targets deviceTargetSet, r url.Values, _ http.ResponseWriter, config *ConfigData) error {
+	color := colorParam(r, "color")
+	trans := transitionParam(r)
+	//merge := boolParam(r, "merge", '.', 'M')
+	text, err := textParam(r)
+	if err != nil {
+		return err
+	}
+	id := r.Get("id")
+	if id == "" {
+		return fmt.Errorf("missing ID for posted message")
+	}
+	until, err := dtParam(r, "until")
+	if err != nil {
+		return err
+	}
+	hold, err := durationParam(r, "hold")
+	if err != nil {
+		return err
+	}
+	visible, err := dtListParam(r, "visible")
+	if err != nil {
+		return err
+	}
+	show, err := durationParam(r, "show")
+	if err != nil {
+		return err
+	}
+	repeat, err := durationParam(r, "repeat")
+	if err != nil {
+		return err
+	}
+
+	config.messageManager.post <- ManagedMessage{
+		ID:         id,
+		Text:       text,
+		Targets:    targets,
+		Transition: trans,
+		Color:      color,
+		Until:      until,
+		Hold:       hold,
+		Visible:    visible,
+		Show:       show,
+		Repeat:     repeat,
+	}
+	return nil
 }
 
-// Postlist returns the message queue
+// Postlist returns the message queue. Reports a JSON list of what's in the message queue.
 //
 //	/readerboard/v1/postlist?a=<targets>[&id={/<regex> | <id>}]
 func PostList(_ deviceTargetSet, _ url.Values, _ http.ResponseWriter, _ *ConfigData) error {
 	return fmt.Errorf("not yet implemented")
 }
 
-// Unpost removes a message
+// Unpost removes a message or all messages matching a pattern from the queue.
 //
 //	/readerboard/v1/unpost?a=<targets>&id={/ <regex> | <id>}
 func Unpost(targets deviceTargetSet, r url.Values, _ http.ResponseWriter, config *ConfigData) error {

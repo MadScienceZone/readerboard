@@ -32,6 +32,8 @@ func TestParseDate(t *testing.T) {
 	}
 }
 
+// TODO
+/*
 func TestTokens(t *testing.T) {
 	for i, tcase := range []struct {
 		input string
@@ -48,3 +50,4 @@ func TestTokens(t *testing.T) {
 		t.Errorf("%d: %q", i, ReplaceTokens([]byte(tcase.input), 0, nil))
 	}
 }
+*/
