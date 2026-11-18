@@ -4,7 +4,7 @@
 	"Endpoint": ":43210",
 	"Devices": {
 		"1": {
-			"DeviceType": "Busylight2", 
+			"DeviceType": "Busylight2",
 			"NetworkID": "directlight",
 			"Description": "Work busy indicator (kitchen)",
 			"Serial": "B1234"
@@ -20,6 +20,11 @@
 			"NetworkID": "sparkbus",
 			"Description": "Downstairs remote busy indicator",
 			"Serial": "B1235"
+		},
+		"4": {
+			"DeviceType": "WLED",
+			"NetworkID": "busystrip",
+			"Description": "LED strip busylight indicator"
 		}
 	},
 	"Networks": {
@@ -32,6 +37,10 @@
 			"ConnectionType": "RS-485",
 			"Device": "/dev/usbtty1",
 			"BaudRate": 9600
+		},
+		"busystrip": {
+			"ConnectionType": "HTTPJSON",
+			"Device": "http://192.168.1.111/json/"
 		}
 	}
 }

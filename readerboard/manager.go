@@ -392,7 +392,7 @@ func ReplaceTokens(t []byte, font int, config *ConfigData) []byte {
 			}
 
 			now := time.Now()
-			s = renderBigFonts(s, []byte(fmt.Sprintf("%2d:%02d", hr12(now.Hour()), now.Minute())), font, bigMode)
+			s = renderBigFonts(s, fmt.Appendf([]byte{}, "%2d:%02d", hr12(now.Hour()), now.Minute()), font, bigMode)
 
 		case "ampm":
 			now := time.Now()
@@ -487,6 +487,10 @@ func renderBigFonts(s, text []byte, font int, bigMode bool) []byte {
 // |                |
 // |________________|
 //
+// The messages are maintained in a display queue which holds all of the messages we know about
+// in the order they'll be displayed, alongside a timer to the next time we need to change to
+// the next one in the list.
+//
 
 type PostIDs struct {
 	MessageID string
@@ -507,15 +511,27 @@ func ManageMessageQueue(config *ConfigData) {
 	updateTimes := time.NewTimer(time.Until(time.Now().Truncate(time.Minute).Add(time.Minute)))
 	defer updateTimes.Stop()
 
+	var displayQueue []ManagedMessage
+	//var currentMessage int
+
 	for {
 		select {
 		case msg := <-config.messageManager.post:
-			log.Printf("XXX post %v", msg)
+			displayQueue = append(displayQueue, msg)
+			if len(displayQueue) == 1 {
+				// this starts the display up
+				//currentMessage = 0
+				updateTimes.Reset(time.Until(time.Now().Truncate(time.Minute).Add(time.Minute)))
+				// TODO set timer for next display event
+				// TODO display this message now
+			}
+			log.Printf("post %v", msg)
 		case id := <-config.messageManager.unpost:
 			log.Printf("XXX unpost %v", id)
 		case name := <-config.messageManager.update:
 			log.Printf("XXX update %v", name)
 		case <-updateTimes.C:
+			//TODO if queue empty, stop the timer
 			now := time.Now().Truncate(time.Minute)
 			log.Printf("XXX update minute timer: {ampm}=%s, {mdy}=%s, {pom}=(%s), {time12}=%s, {time24}=%s, {ymd}=%s",
 				func() string {
@@ -526,6 +542,7 @@ func ManageMessageQueue(config *ConfigData) {
 				}(), now.Format("01/02/2006"), moon.New(now).PhaseName(), now.Format("3:04"),
 				now.Format("15:04"), now.Format("2006-01-02"))
 			updateTimes.Reset(time.Until(now.Add(time.Minute)))
+			// TODO on display timer: take action on current message
 		}
 	}
 }
