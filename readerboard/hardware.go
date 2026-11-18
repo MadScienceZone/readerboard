@@ -1,3 +1,10 @@
+//
+// This needs to be refactored. It made more sense when all devices were variations on the
+// same hardware but now there should be more object orientation in the drivers with
+// abstraction being used to organize this better so there aren't all these little
+// device-specific special cases sprinkled around all over.
+//
+
 package readerboard
 
 import (
@@ -5,7 +12,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -314,6 +323,12 @@ type RS485Driver struct {
 	BaseNetworkDriver
 }
 
+type HTTPDriver struct {
+	BaseNetworkDriver
+	APIEndpoint string
+	APIDefault  string
+}
+
 func (d *DirectDriver) IsPortOpen() bool {
 	return d.isPortOpen
 }
@@ -439,6 +454,10 @@ func (net *NetworkDescription) Attach(netID string, globalAddress int) error {
 		case USBDirect:
 			net.driver = &DirectDriver{}
 			log.Printf("network %s: USB direct connection", netID)
+		case HTTPJSON:
+			net.driver = &HTTPDriver{}
+			log.Printf("network %s: HTTP connection", netID)
+			return nil
 		default:
 			return fmt.Errorf("network %s: invalid network type %v", netID, net.ConnectionType)
 		}
@@ -548,8 +567,34 @@ func ProbeDevices(configData *ConfigData) error {
 		var received []byte
 		var err error
 		log.Printf("Device address %d: type=%v; net=%s (%s; s/n=%s)", id, dev.DeviceType, dev.NetworkID, dev.Description, dev.Serial)
-		sender, parser := Query()
 		if net, ok := configData.Networks[dev.NetworkID]; ok {
+			if IsWLEDModel(dev.DeviceType) {
+				var info WLEDInfo
+				data, err := net.driver.(*HTTPDriver).CommandAndResponse("info", nil)
+				if err != nil {
+					return fmt.Errorf("error getting response for unit %d: %v", id, err)
+				}
+				if err := json.Unmarshal(data, &info); err != nil {
+					return fmt.Errorf("error unmarshaling info packet from unit %d: %v", id, err)
+				}
+				log.Printf("probed device ID %d on network %s:", id, dev.NetworkID)
+				log.Printf("| WLED module %s version %s build %v, %d LEDs, %d FPS", info.Name,
+					info.Version, info.BuildID, info.LEDS.Count, info.LEDS.FramesPerSecond)
+				log.Printf("| Max power budget %d mA, max segments %d", info.LEDS.MaxPowerBudget, info.LEDS.MaxSegments)
+				log.Printf("| UDP port %d, live? %v; BSSID %s, signal %d, chan %d",
+					info.UDPPort, info.IsLive, info.WiFi.BSSID, info.WiFi.Signal, info.WiFi.Channel)
+				log.Printf("| Palettes %d, custom %d, user %d, max custom %d, names %v",
+					info.Palettes, info.CustomPalettes, info.UserPalettes, info.MaxCustomPalettes, info.UserPaletteNames)
+				log.Printf("| Arch %s, core %s; free heap %d, uptime %d", info.Arch, info.Core, info.FreeHeap, info.Uptime)
+				log.Printf("| Brand %s, product %s; MAC %s, IP %s; device ID %s",
+					info.Brand, info.Product, info.MACAddr, info.IPAddr, info.DeviceID)
+				if dev.Serial != info.MACAddr {
+					log.Printf("| WARNING! device serial number is %s but configured as %s!", info.MACAddr, dev.Serial)
+				}
+				continue
+			}
+
+			sender, parser := Query()
 			if commands, err = sender(nil, dev.DeviceType, nil, configData); err != nil {
 				return fmt.Errorf("error getting bytestream for unit %d: %v", id, err)
 			}
@@ -819,6 +864,130 @@ func (d *RS485Driver) Receive() ([]byte, error) {
 	return nil, fmt.Errorf("receive not implemented")
 }
 
+//  _   _ _____ _____ ____
+// | | | |_   _|_   _|  _ \
+// | |_| | | |   | | | |_) |
+// |  _  | | |   | | |  __/
+// |_| |_| |_|   |_| |_|
+//
+// HTTP network devices talk to units that are on the network with their own IP addresses
+// which we access via an HTTP endpoint. Currently we assume this means a JSON API we
+// can post to there.
+//
+// The configuration fields are used in this way instead of the usual way they're
+// used for serial devices (USB or RS-485):
+//
+//   Port               Unused
+//	 isPortOpen			true if driver can be used (doens't mean we have an active connection)
+//   GlobalAddress      (usual meaning)
+//   NetworkID          (usual meaning)
+//   APIEndpoint		url up to API command part
+//   APIDefault         default API to use for methods which don't specify a command
+//
+// We don't necessarily keep a connection alive to the device, so we fake the whole
+// "attach" and "isPortOpen" semantic here, and just initiate POST operations each time
+// we want to send a command. The underlying library calls MAY keep the TCP connectdion alive
+// between these.
+//
+
+// Attach for HTTP devices uses the device parameter to specify the API Endpoint value.
+// This is stored for later transactions. We don't actually try to initiate any contact with
+// the device at this point. We'll talk to it when we have traffic to send to it.
+func (d *HTTPDriver) Attach(netID, device string, _, globalAddress int) error {
+	if d == nil {
+		return fmt.Errorf("attach attempted to nil device %s", netID)
+	}
+
+	d.isPortOpen = true
+	d.GlobalAddress = globalAddress
+	d.NetworkID = netID
+	d.APIEndpoint = device
+	d.APIDefault = "" //TODO
+	return nil
+}
+
+// Detach for HTTP devices just clears the structure and flags that we shouldn't use this device anymore.
+func (d *HTTPDriver) Detach() {
+	d.isPortOpen = false
+	d.APIEndpoint = ""
+}
+
+// AllLightsOffBytes should not be used for HTTP devices since, unlike the serial devices
+// there's no difference in how the command streams are put together depending on
+// whether they are sent via RS-485 or USB serial. This is just network traffic, so the
+// data encoding is at the device driver level, not here.
+func (d *HTTPDriver) AllLightsOffBytes([]int, []byte) ([]byte, error) {
+	return nil, fmt.Errorf("inappropriate call to AllLightsOffBytes for HTTPDriver device on network %v", d.NetworkID)
+}
+
+// Bytes should not be used for HTTP devices since, unlike the serial devices
+// there's no difference in how the command streams are put together depending on
+// whether they are sent via RS-485 or USB serial. This is just network traffic, so the
+// data encoding is at the device driver level, not here.
+func (d *HTTPDriver) Bytes([]int, []byte) ([]byte, error) {
+	return nil, fmt.Errorf("inappropriate call to Bytes for HTTPDriver device on network %v", d.NetworkID)
+}
+
+// Send transmits a JSON command to the device on HTTP network endpoint with this driver.
+// This assumes that the device's default API command is to be used and the string is the payload to be sent,
+// already marshalled in JSON form for the service. We don't enforce the formatting at all here.
+func (d *HTTPDriver) Send(cmd string) error {
+	return d.SendCommand(d.APIDefault, cmd)
+}
+
+// SendCommand transmits an arbitrary JSON command to the device
+func (d *HTTPDriver) SendCommand(apiCmd, cmd string) error {
+	return d.sendCommand(apiCmd, cmd, bytes.NewBufferString(cmd))
+}
+
+func (d *HTTPDriver) sendCommand(apiCmd, cmd string, buf *bytes.Buffer) error {
+	response, err := http.Post(d.APIEndpoint+apiCmd, "application/json", buf)
+	if err != nil {
+		log.Printf("HTTP post %s error %v", cmd, err)
+		return err
+	}
+	log.Printf("HTTP post %s %s", cmd, response.Status)
+	if err := response.Body.Close(); err != nil {
+		log.Printf("Error closing HTTP response: %v", err)
+	}
+	return nil
+}
+
+// CommandAndResponse is the basic communication method for HTTP devices. It takes a byte slice
+// JSON message body, POSTS it to an API endpoint constructed with apiCmd as the final piece from
+// the configured device endpoint URL string, and returns the JSON response from the device
+// as a byte slice value.
+func (d *HTTPDriver) CommandAndResponse(apiCmd string, cmd []byte) ([]byte, error) {
+	response, err := http.Post(d.APIEndpoint+apiCmd, "application/json", bytes.NewBuffer(cmd))
+	if err != nil {
+		log.Printf("HTTP post %s error %v", string(cmd), err)
+		return nil, err
+	}
+	log.Printf("HTTP post %s %s", string(cmd), response.Status)
+
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("HTTP post %s error reading response: %v", string(cmd), err)
+		return nil, err
+	}
+	if err := response.Body.Close(); err != nil {
+		log.Printf("Error closing HTTP response: %v", err)
+	}
+	return data, nil
+}
+
+func (d *HTTPDriver) SendBytes(cmd []byte) error {
+	return d.sendCommand(d.APIDefault, string(cmd), bytes.NewBuffer(cmd))
+}
+
+func (d *HTTPDriver) Receive() ([]byte, error) {
+	return nil, fmt.Errorf("Receive for HTTP devices not yet implemented.")
+}
+
+func (d *HTTPDriver) IsPortOpen() bool {
+	return d.isPortOpen
+}
+
 func parseLightList(lights []byte) ([]byte, error) {
 	return lights, nil
 }
@@ -860,4 +1029,146 @@ func parsePos(code byte) (int, error) {
 		return 0, fmt.Errorf("code %d out of range ['0','o']", code)
 	}
 	return int(code) - 48, nil
+}
+
+// WLED State Object
+type WLEDState struct {
+	IsOn           any  `json:"on,omitempty"`         // bool or string with bool-ish value: on/off state of the light
+	Brightness     int  `json:"bri,omitempty"`        // [0..255] use IsOn=false to turn light off in preference to Brightness=0
+	Transition     int  `json:"transition,omitempty"` // [0..65535] crossfade duration (x100mS)
+	APITransition  int  `json:"tt,omitempty"`         // [0..65535] crossfade duration (x100mS) (Current API call only)
+	PresetID       any  `json:"ps,omitempty"`         // [-1..250] ID of currently set preset "1~17~" iterates 1-17, "4~10r" selects random between 4-10 inclusive
+	SavePreset     int  `json:"psave,omitempty"`      // [1..250] save current config to preset slot
+	SaveBounds     bool `json:"sb,omitempty"`         // Save start and stop with SavePreset
+	SaveBrightness bool `json:"ib,omitempty"`         // Save brightness with SavePreset
+	SaveSegments   bool `json:"sc,omitempty"`         // Save selected segments with SavePreset
+	PlaylistID     int  `json:"pl,omitempty"`         // [-1..250] ID of currently set playlist (r/o)
+	DeletePlaylist int  `json:"pdel,omitempty"`       // [1..250] ID playlist to delete
+	NightLight     struct {
+		IsActive          bool `json:"on,omitempty"`   // nightlight currently active
+		Duration          int  `json:"dur,omitempty"`  // [1..255] duration in minutes
+		Mode              int  `json:"mode,omitempty"` // [0..3] nightlight mode 0=instant 1=fade 2=color fade 3=sunrise
+		TargetBrightness  int  `json:"tbri,omitempty"` // [0..255] target brightness
+		RemainingDuration int  `json:"rem,omitempty"`  // [-1..15300] remaining time in seconds or -1 if not active (r/o)
+	} `json:"nl,omitempty"`
+	UDP struct {
+		Send      bool `json:"send"`         // send broadcast UDP sync on state change
+		Recv      bool `json:"recv"`         // reception enabled
+		SendGroup int  `json:"sgrp"`         // [0..255]
+		RecvGroup int  `json:"rgrp"`         // [0..255]
+		DontSend  bool `json:"nn,omitempty"` // don't send broadcast packet for this API call only
+	} `json:"udpn,omitempty"`
+	Verbose          bool          `json:"v,omitempty"`       // respond with verbose state object
+	RebootNow        bool          `json:"rb,omitempty"`      // reboot device immediately
+	LiveMode         bool          `json:"live,omitempty"`    // go into (or exit) live streaming mode and blank LEDs	TODO omitempty may be an issue with this
+	LiveDataOverride int           `json:"lor,omitempty"`     // live data override 0=off, 1=override until live data ends 2=until reboot
+	SetTime          uint32        `json:"time,omitempty"`    // set module time to unix timestamp.
+	MainSegmentID    int           `json:"mainseg,omitempty"` // [0..info.leds.maxseg-1] set ID of the main segment
+	Segments         []WLEDSegment `json:"seg,omitempty"`
+	PlayList         struct {
+		PresetIDs  []int `json:"ps"`                   // preset IDs to cycle through (up to 100 entries)
+		Duration   []int `json:"dur"`                  // duration each preset stays active (x.10S)
+		Transition any   `json:"transition,omitempty"` // array of crossfade times (x.10S) or single value or omitted (for default)
+		Repeat     int   `json:"repeat"`               // times to repeat the cycle or 0 for infinite looping
+		End        int   `json:"end"`                  // final preset ID to load after the preset is done 0=stay on last, 255 restore one before playlist started
+		Shuffle    bool  `json:"r,omitempty"`          // randomize preset order?
+	} `json:"playlist,omitempty"`
+	TimeBase          uint32 `json:"tb,omitempty"`
+	LoadMap           int    `json:"ledmap,omitempty"` // [0..9]
+	RemoveLastPalette bool   `json:"mcpal,omitempty"`
+	AdvanceNextPreset bool   `json:"np,omitempty"`
+}
+
+// WLED info
+type WLEDInfo struct {
+	Version string `json:"ver"`
+	BuildID uint32 `json:"vid"`
+	LEDS    struct {
+		Count                     int  `json:"count"` // total LEDs
+		FramesPerSecond           int  `json:"fps"`   // 0-255
+		IsRGBW                    bool `json:"rgbw"`
+		DisplayWhiteChannelSlider bool `json:"wv"`
+		PowerUsage                int  `json:"pwr"`    // milliamps 0-65000
+		MaxPowerBudget            int  `json:"maxpwr"` // milliamps 0-65000
+		MaxSegments               byte `json:"maxseg"`
+		Capabilities              byte `json:"lc"` // logical AND of capabilities of segments
+	} `json:"leds"`
+	ToggleReceiveSend  bool     `json:"str"` // use single button for receive+send
+	Name               string   `json:"name"`
+	UDPPort            uint16   `json:"udpport"`
+	IsLive             bool     `json:"live"` // receiving live in realtime via UDP?
+	RealtimeDataSource string   `json:"lm"`
+	WebSockets         int      `json:"ws"` // -1-8 -1 means unsupported
+	FXCount            byte     `json:"fxcount"`
+	Palettes           uint16   `json:"palcount"`
+	CustomPalettes     byte     `json:"cpalcount"` // counts down from highest custom ID
+	UserPalettes       byte     `json:"umpalcount"`
+	MaxCustomPalettes  byte     `json:"cpalmax"`
+	UserPaletteNames   []string `json:"umpalnames"`
+	WiFi               struct {
+		BSSID   string `json:"bssid"`
+		Signal  int    `json:"signal"`  // 0-100
+		Channel int    `json:"channel"` // 1-14
+	} `json:"wifi"`
+	LittleFileSystem struct {
+		UsedSpace     uint32 `json:"u"`   // kbytes
+		TotalSize     uint32 `json:"t"`   // kbytes
+		PresetModTime uint32 `json:"pmt"` // unix timestamp for presets.json
+	} `json:"fs"`
+	OtherDevices int    `json:"ndc"` // number of others discovered; -1 if disabled
+	Arch         string `json:"arch"`
+	Core         string `json:"core"`
+	LwIPVersion  int    `json:"lwip"` // 1 or 2 on ESP8266, 0 N/A on ESP32, DEPRECATED
+	FreeHeap     uint32 `json:"freeheap"`
+	Uptime       uint32 `json:"uptime"` //time since last boot in seconds
+	Opt          uint16 `json:"opt"`
+	Brand        string `json:"brand"`
+	Product      string `json:"product"`
+	MACAddr      string `json:"mac"`
+	IPAddr       string `json:"ip"`
+	DeviceID     string `json:"deviceid"`
+	PSRamSize    uint32 `json:"psrSz"`
+	PSRamFree    uint32 `json:"psram"`
+	Repository   string `json:"repo"`
+}
+
+// WLED Segment
+type WLEDSegment struct {
+	ID                   int    `json:"id,omitempty"`     // [0..info.maxseg-1] 0-indexed ID of the segment (inferred if omitted)
+	Start                int    `json:"start,omitempty"`  // [0..info.leds.count-1] starting LED for this segment
+	Stop                 int    `json:"stop,omitempty"`   // [0..info.leds.count] ending LED for this segment (exclusive)
+	StartY               int    `json:"startY,omitempty"` // [0..matrix width] start row from top-left corner
+	StopY                int    `json:"stopY,omitempty"`  // [1..matrix height] start row from top-left corner
+	Len                  int    `json:"len,omitempty"`    // [0..info.leds.count] stop-start. If Stop is given, Len is ignored.
+	Group                int    `json:"grp,omitempty"`    // [0..255] grouping (number of consecutive LEDs of same segment to be same color)
+	Spacing              int    `json:"spc,omitempty"`    // [0..255] spacing (how many "off" LEDs between each group)
+	Offset               int    `json:"of,omitempty"`     // [-len+1..len] offset (how many LEDs to rotate virtual start)
+	Colors               []any  `json:"col,omitempty"`    // list of individual LED colors to set; each is [r,g,b] or [r,g,b,w] where the values are integers 0..255; or single hex strings as "rrggbb" or literal string "r" for a random color
+	FXID                 any    `json:"fx,omitempty"`     // [0..info.fxcount-1] ID of effect or "r" for random, "~" to increment or "~-" to decrement
+	FXSpeed              any    `json:"sx,omitempty"`     // [0..255] relative FX speed or "~" to increment "~-" decrement "~10" inc by 10, "~-10" dec by 10
+	FXIntensity          any    `json:"ix,omitempty"`     // [0..255] FX intensity or "~" to increment "~-" decrement "~10" inc by 10, "~-10" dec by 10
+	FXSlider1            int    `json:"c1,omitempty"`     // [0..255] FX custom slider 1
+	FXSlider2            int    `json:"c2,omitempty"`     // [0..255] FX custom slider 2
+	FXSlider3            int    `json:"c3,omitempty"`     // [0..255] FX custom slider 3
+	FXOption1            bool   `json:"o1,omitempty"`     // FX option 1
+	FXOption2            bool   `json:"o2,omitempty"`     // FX option 2
+	FXOption3            bool   `json:"o3,omitempty"`     // FX option 3
+	PaletteID            any    `json:"pal,omitempty"`    // [0..255] color palette ID or "~" to increment "~-" decrement "r" random
+	IsSelected           bool   `json:"sel,omitempty"`    // is segment selected?
+	IsReversedHorizontal bool   `json:"rev,omitempty"`    // is segment flipped (reverse direction for animations)?
+	IsReversedVertical   bool   `json:"rY,omitempty"`     // is segment flipped vertically (reverse direction for animations)?
+	IsOn                 bool   `json:"on,omitempty"`     // is segment turned on?
+	Brightness           int    `json:"bri,omitempty"`    // [0..255] segment brightness
+	IsMirroredHorizontal bool   `json:"mi,omitempty"`     // is segment mirrored horizontally
+	IsMirroredVertical   bool   `json:"mY,omitempty"`     // is segment mirrored vertically
+	IsTransposed         bool   `json:"tp,omitempty"`     // is segment transposed (swap X and Y dimensions)
+	ColorTemperature     int    `json:"cct,omitempty"`    // [0..255 or 1900..10091] white spectrum color temperature
+	LoxonePrimary        uint64 `json:"lx,omitempty"`     // [0..100100100] encoded Loxone RGB primary color percentage values in decimal as BBBGGGRRR
+	LoxoneSecondary      uint64 `json:"ly,omitempty"`     // [0..100100100 or 200002700..201006500] encoded Loxone RGB secondary color percentage values in decimal as BBBGGGRRR or brightness and temp as 20bbbtttt
+	LEDs                 []any  `json:"i,omitempty"`      // individual LEDs to set values (encoded as for Colors field)
+	FreezeEffect         bool   `json:"frz,omitempty"`    // freeze/unfreeze current effect
+	Expand1DFX           int    `json:"m12,omitempty"`    // setting of segment field Expand 1D FX 0=pixels 1=bar 2=arc 3=corner
+	SoundSimulation      int    `json:"si,omitempty"`     // setting of sound simulation type 0=BeatSin 1=WeWillRockYou 2=10_3 3=14_3
+	ForceLoadDefaults    bool   `json:"fxdef,omitempty"`  // force loading of effect defaults
+	RepeatSettings       bool   `json:"rpt,omitempty"`    // repeat current segment settings
 }

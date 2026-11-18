@@ -3,7 +3,7 @@ package readerboard
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,9 +47,7 @@ type ConfigData struct {
 	}
 }
 
-//
 // Init sets up the internal state of a DeviceDescription.
-//
 func (d *DeviceDescription) Init() {
 	if d.LightsInstalled == "" {
 		if d.DeviceType == Busylight1 || d.DeviceType == Busylight2 {
@@ -94,7 +92,8 @@ type NetworkDescription struct {
 	// Is this an RS-485 or USB connection?
 	ConnectionType NetworkType
 
-	// The path to the serial device we use to communicate with the light hardware.
+	// The hardware location. For serial devices, this is the filesystem path to open.
+	// For HTTP endpoints, this is the URL to access online.
 	Device string
 
 	// If `Device` is empty, then `DeviceDir` specifies a directory to search for
@@ -157,6 +156,7 @@ type NetworkType byte
 const (
 	RS485Network NetworkType = iota
 	USBDirect
+	HTTPJSON
 )
 
 func (n NetworkType) MarshalJSON() ([]byte, error) {
@@ -165,6 +165,8 @@ func (n NetworkType) MarshalJSON() ([]byte, error) {
 		return json.Marshal("RS-485")
 	case USBDirect:
 		return json.Marshal("USB")
+	case HTTPJSON:
+		return json.Marshal("HTTPJSON")
 	}
 	return nil, fmt.Errorf("Unsupported NetworkType value %v", n)
 }
@@ -179,8 +181,10 @@ func (n *NetworkType) UnmarshalJSON(b []byte) error {
 		*n = RS485Network
 	case "USB", "usb":
 		*n = USBDirect
+	case "HTTPJSON", "httpjson":
+		*n = HTTPJSON
 	default:
-		return fmt.Errorf("Unsupported NetworkTypoe value %v", s)
+		return fmt.Errorf("Unsupported NetworkType value %v", s)
 	}
 	return nil
 }
@@ -201,6 +205,7 @@ type DeviceDescription struct {
 	// Device serial number. If this is non-empty, a warning will be logged if the
 	// device at this address doesn't report this serial number back, since this
 	// may indicate that the wrong device is configured at this target address.
+	// For WLED devices, use the MAC address for this.
 	Serial string
 
 	// The physical status LEDs installed on this unit. By default, this would
@@ -221,6 +226,7 @@ const (
 	Busylight2                     // Busylight model 2.x, USB or RS-485
 	Readerboard3RGB                // Readerboard model 3.x, USB or RS-485, RGB 64x8 matrix plus 8-light busylight status LEDs
 	Readerboard3Mono               // Readerboard model 3.x, USB or RS-485, monochrome 64x8 matrix plus 8-light busylight status LEDs
+	WLED                           // WLED controlled LED display used as a Busylight-like display
 )
 
 func BusylightModelVersion(hw HardwareModel) int {
@@ -234,7 +240,11 @@ func BusylightModelVersion(hw HardwareModel) int {
 }
 
 func IsBusylightModel(hw HardwareModel) bool {
-	return hw == Busylight1 || hw == Busylight2
+	return hw == Busylight1 || hw == Busylight2 || hw == WLED
+}
+
+func IsWLEDModel(hw HardwareModel) bool {
+	return hw == WLED
 }
 
 func IsReaderboardModel(hw HardwareModel) bool {
@@ -255,6 +265,8 @@ func (m HardwareModel) MarshalJSON() ([]byte, error) {
 		return json.Marshal("Readerboard3_RGB")
 	case Readerboard3Mono:
 		return json.Marshal("Readerboard3_Monochrome")
+	case WLED:
+		return json.Marshal("WLED")
 	}
 	return nil, fmt.Errorf("Unsupported HardwareModel value %v", m)
 }
@@ -273,6 +285,8 @@ func (m *HardwareModel) UnmarshalJSON(b []byte) error {
 		*m = Readerboard3RGB
 	case "Readerboard3Mono", "ReaderboardMono", "Readerboard3_Mono", "Readerboard3Monochrome", "ReaderboardMonochrome", "Readerboard3_Monochrome", "mono":
 		*m = Readerboard3Mono
+	case "WLED", "wled":
+		*m = WLED
 	default:
 		return fmt.Errorf("Unsupported HardwareModel value %v", s)
 	}
@@ -287,7 +301,7 @@ func HardwareModelName(m HardwareModel) string {
 }
 
 func GetConfigFromFile(filename string, data *ConfigData) error {
-	cdata, err := ioutil.ReadFile(filename)
+	cdata, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("Unable to read from %s: %v", filename, err)
 	}

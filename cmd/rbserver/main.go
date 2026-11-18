@@ -1,11 +1,9 @@
-//
 // Server for busylight and readerboard devices
 //
 // This opens a simple web service API endpoint which clients can use to send updates
 // to controlled busylight indicator and readerboard devices.  The busylight hardware
 // and firmware are described in the same repository as this source code. The readerboard
 // hardware and firmware appear in github.com/MadScienceZone/readerboard.
-//
 package main
 
 import (
@@ -58,8 +56,14 @@ func configureServer() (*readerboard.ConfigData, error) {
 			log.Printf("Error creating PID file (is another instance already running?): %v", err)
 			return nil, err
 		}
-		pidf.WriteString(fmt.Sprintf("%d\n", myPID))
-		pidf.Close()
+		if _, err := fmt.Fprintf(pidf, "%d\n", myPID); err != nil {
+			log.Printf("error writing PID file: %v", err)
+			return nil, err
+		}
+		if err := pidf.Close(); err != nil {
+			log.Printf("error closing PID file: %v", err)
+			return nil, err
+		}
 		log.Printf("PID=%v (written to %s)", myPID, configData.PidFile)
 	}
 
