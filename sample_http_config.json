@@ -1,0 +1,32 @@
+{
+	"PidFile": "/tmp/rbserver.pid",
+	"GlobalAddress": 15,
+	"Endpoint": ":43210",
+	"Devices": {
+		"4": {
+			"DeviceType": "WLED",
+			"NetworkID": "busystrip",
+			"Description": "LED strip busylight indicator",
+			"Serial": "24f0b536a93d8394a74b755b12ca207dda15d42b2f",
+			"WLEDPlaylists": {
+				"G": 1,
+				"Y": 2,
+				"R": 3,
+				"Rr": 4,
+				"RB": 5,
+				"G*Y": 6,
+				"G*R": 7,
+				"G*Rr": 8,
+				"B": 9,
+				"GyYrRbBWBbRrYy": 10
+			},
+			"LightsInstalled": "GyYrRbBW"
+		}
+	},
+	"Networks": {
+		"busystrip": {
+			"ConnectionType": "HTTPJSON",
+			"Device": "http://192.168.1.144/json/"
+		}
+	}
+}
