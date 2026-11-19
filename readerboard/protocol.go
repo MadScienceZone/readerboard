@@ -699,6 +699,9 @@ func Dim(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]by
 	if err != nil {
 		return nil, err
 	}
+	if IsWLEDModel(hw) {
+		return nil, nil
+	}
 
 	return []byte{'D', l[0], encode_hex_nybble(byte(value >> 4)), encode_hex_nybble(byte(value))}, nil
 }
@@ -718,6 +721,9 @@ func Test(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 	if IsReaderboardModel(hw) || BusylightModelVersion(hw) > 1 {
 		return []byte("%T@"), nil
 	}
+	if IsWLEDModel(hw) {
+		return nil, nil
+	}
 	return nil, fmt.Errorf("test command not supported for hardware type %v", hw)
 }
 
@@ -726,7 +732,7 @@ func Test(_ url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 //		/readerboard/v1/flash?a=<targets>&l=<leds>[&up=<sec>&on=<sec>&down=<sec>&off=<sec>]
 //		-> F l0 l1 ... lN $
 //	 -> F / up on down off l0 l1 ... lN $
-func Flash(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
+func Flash(r url.Values, hw HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
@@ -750,6 +756,7 @@ func Flash(r url.Values, _ HardwareModel, targets deviceTargetSet, config *Confi
 
 	// note that we are turning these on
 	if config != nil && targets != nil {
+		alreadySent := false
 		for _, devIDs := range targets {
 			for _, devID := range devIDs {
 				func() {
@@ -757,13 +764,42 @@ func Flash(r url.Values, _ HardwareModel, targets deviceTargetSet, config *Confi
 					defer unlockDevice(devID)
 					if len(l) == 0 || l[0] == '$' {
 						config.Devices[devID].LastKnownState.FlasherStatus.clear()
+						if IsWLEDModel(hw) && !alreadySent {
+							if _, err := AllLightsOff(r, hw, targets, config); err != nil {
+								log.Printf("Error turning off WLED unit %d: %v", devID, err)
+							}
+							alreadySent = true
+						}
 					} else {
 						config.Devices[devID].LastKnownState.setLights(l[0:1], config.Devices[devID].LightsInstalled)
 						config.Devices[devID].LastKnownState.FlasherStatus.set(l[:len(l)-1], up, on, down, off)
+						alreadySent = false
+						lightPattern := string(l[:len(l)-1])
+						if config.Devices[devID].LastKnownState.StroberStatus.IsRunning {
+							lightPattern = string(config.Devices[devID].LastKnownState.StroberStatus.Sequence) + "*" + lightPattern
+						}
+						if IsWLEDModel(hw) {
+							for sequence, slot := range config.Devices[devID].WLEDPlaylists {
+								log.Printf("checking sequence %s->%d vs %s", sequence, slot, l)
+								if sequence == lightPattern {
+									if err := config.WLEDCmd(WLEDState{PresetID: slot}, collapseTargetList(targets)); err != nil {
+										log.Printf("Error setting WLED unit %d to preset %d: %v", devID, slot, err)
+									}
+									alreadySent = true
+									break
+								}
+							}
+							if !alreadySent {
+								log.Printf("WARNING: No known preset for flash sequence %s", lightPattern)
+							}
+						}
 					}
 				}()
 			}
 		}
+	}
+	if IsWLEDModel(hw) {
+		return nil, nil
 	}
 
 	if up == 0.0 && on == 0.0 && down == 0.0 && off == 0.0 {
@@ -782,6 +818,9 @@ func Sound(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]
 	notes, err := stringParam(r, "notes")
 	if err != nil {
 		return nil, err
+	}
+	if IsWLEDModel(hw) {
+		return nil, nil
 	}
 	return append([]byte{'B', loop}, notes...), nil
 }
@@ -1024,7 +1063,7 @@ func Move(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 //
 //	/readerboard/v1/off?a=<targets>
 //	-> X
-func Off(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
+func Off(r url.Values, hw HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	// note that we are turning these off
 	if config != nil && targets != nil {
 		for _, devIDs := range targets {
@@ -1037,6 +1076,13 @@ func Off(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigD
 			}
 		}
 	}
+	if IsWLEDModel(hw) {
+		if _, err := AllLightsOff(r, hw, targets, config); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
 	return []byte{'X'}, nil
 }
 
@@ -1076,6 +1122,9 @@ func Save(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 	if settingType != "D" {
 		return nil, fmt.Errorf("save data type %v not supported", settingType)
 	}
+	if IsWLEDModel(hw) {
+		return nil, nil
+	}
 	return []byte{'=', '&', 'D', '='}, nil
 }
 
@@ -1098,6 +1147,9 @@ func Text(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 }
 
 func ConfigureDevice(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
+	if IsWLEDModel(hw) {
+		return nil, nil
+	}
 	Rspeed, err := intParam(r, "rspeed")
 	if err != nil {
 		return nil, fmt.Errorf("rspeed paramater invalid (%v)", err)
@@ -1141,16 +1193,40 @@ func Light(r url.Values, hw HardwareModel, targets deviceTargetSet, config *Conf
 
 	// note that we are turning these on
 	if config != nil && targets != nil {
+		alreadySent := false
 		for _, devIDs := range targets {
 			for _, devID := range devIDs {
 				func() {
 					lockDevice(devID)
 					defer unlockDevice(devID)
+					if IsWLEDModel(hw) {
+						lightPattern := string(l[:len(l)-1])
+						if config.Devices[devID].LastKnownState.StroberStatus.IsRunning {
+							lightPattern = string(config.Devices[devID].LastKnownState.StroberStatus.Sequence) + "*" + lightPattern
+						}
+
+						for sequence, slot := range config.Devices[devID].WLEDPlaylists {
+							//							log.Printf("checking color %s->%d vs %s", sequence, slot, l)
+							if sequence == lightPattern {
+								if err := config.WLEDCmd(WLEDState{PresetID: slot}, collapseTargetList(targets)); err != nil {
+									log.Printf("Error setting WLED unit %d to preset %d: %v", devID, slot, err)
+								}
+								alreadySent = true
+								break
+							}
+						}
+						if !alreadySent {
+							log.Printf("WARNING: No known preset for color %s", lightPattern)
+						}
+					}
 					config.Devices[devID].LastKnownState.setLights(l, config.Devices[devID].LightsInstalled)
 					config.Devices[devID].LastKnownState.FlasherStatus.clear()
 				}()
 			}
 		}
+	}
+	if IsWLEDModel(hw) {
+		return nil, nil
 	}
 
 	if len(l) == 2 {
@@ -1166,7 +1242,7 @@ func Light(r url.Values, hw HardwareModel, targets deviceTargetSet, config *Conf
 //
 //	/readerboard/v1/morse?a=<targets>&t=<message>&l=<led>
 //	-> M led message... $
-func Morse(r url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
+func Morse(r url.Values, hw HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
@@ -1174,6 +1250,9 @@ func Morse(r url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 	t, err := textParam(r)
 	if err != nil {
 		return nil, err
+	}
+	if IsWLEDModel(hw) {
+		return nil, nil
 	}
 	if len(l) != 2 {
 		return nil, fmt.Errorf("l parameter must be ONE led name or _")
@@ -1185,7 +1264,7 @@ func Morse(r url.Values, _ HardwareModel, _ deviceTargetSet, _ *ConfigData) ([]b
 //
 //	/readerboard/v1/strobe?a=<targets>&l=<leds>
 //	-> * l0 l1 ... ln $
-func Strobe(r url.Values, _ HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
+func Strobe(r url.Values, hw HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	l, err := ledList(r)
 	if err != nil {
 		return nil, err
@@ -1193,15 +1272,35 @@ func Strobe(r url.Values, _ HardwareModel, targets deviceTargetSet, config *Conf
 
 	// note that we are turning these on
 	if config != nil && targets != nil {
+		alreadySent := false
 		for _, devIDs := range targets {
 			for _, devID := range devIDs {
 				func() {
 					lockDevice(devID)
 					defer unlockDevice(devID)
+					if IsWLEDModel(hw) {
+						for sequence, slot := range config.Devices[devID].WLEDPlaylists {
+							if sequence == string(l[:len(l)-1])+"*" {
+								if err := config.WLEDCmd(WLEDState{PresetID: slot}, collapseTargetList(targets)); err != nil {
+									log.Printf("Error setting WLED unit %d to preset %d: %v", devID, slot, err)
+								}
+								alreadySent = true
+								break
+							}
+						}
+						if !alreadySent {
+							log.Printf("WARNING: No known preset for strobe color %s alone", l)
+						}
+					}
 					config.Devices[devID].LastKnownState.StroberStatus.set(l[:len(l)-1], 0, 0, 0, 0)
 				}()
 			}
 		}
+	}
+	// TODO here and in similar places this assumes ALL the WLED devices have the same preset lists.
+	// TODO you need to make these device-specific and not run time all together with the whole target set
+	if IsWLEDModel(hw) {
+		return nil, nil
 	}
 	return append([]byte{'*'}, l...), nil
 }
