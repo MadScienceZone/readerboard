@@ -279,10 +279,15 @@ func WrapReplyHandler(f func() (func(url.Values, HardwareModel, deviceTargetSet,
 						errors += newErrors
 						return nil, fmt.Errorf("failed to send command to target hardware device %d.", dev)
 					}
-					received, err = config.Networks[netID.NetworkID].driver.Receive()
-					if err != nil {
-						errors++
-						return nil, err
+					if IsWLEDModel(dt) {
+						// TODO
+						return nil, fmt.Errorf("ReplyHandler not implemented for WLED")
+					} else {
+						received, err = config.Networks[netID.NetworkID].driver.Receive()
+						if err != nil {
+							errors++
+							return nil, err
+						}
 					}
 					return received, nil
 				}()
@@ -424,6 +429,14 @@ func sendCommandToHardware(f func(url.Values, HardwareModel, deviceTargetSet, *C
 			log.Printf("error preparing request for %s: %v", targetNetwork.NetworkID, err)
 			continue
 		}
+
+		// TODO there's some refactoring needed here, but for now HTTPDrivers are special
+		// and don't need to have serial bytes gathered for them. They will have communicated
+		// with the networked devices on their own.
+		if IsWLEDModel(targetNetwork.DeviceType) {
+			continue
+		}
+
 		if len(commands) < 1 {
 			log.Printf("internal error preparing bytestream for %s: nil output", targetNetwork.NetworkID)
 			errors++
@@ -604,9 +617,13 @@ func posParam(r url.Values) (byte, error) {
 // output and USB ones ignore the first byte and allow embedded ^D terminators.
 func AllLightsOff(_ url.Values, hw HardwareModel, targets deviceTargetSet, config *ConfigData) ([]byte, error) {
 	// note that we are turning these off
+	var WLEDtargets []int
 	if config != nil && targets != nil {
 		for _, devIDs := range targets {
 			for _, devID := range devIDs {
+				if IsWLEDModel(hw) {
+					WLEDtargets = append(WLEDtargets, devID)
+				}
 				func() {
 					lockDevice(devID)
 					defer unlockDevice(devID)
@@ -616,10 +633,43 @@ func AllLightsOff(_ url.Values, hw HardwareModel, targets deviceTargetSet, confi
 		}
 	}
 
+	if IsWLEDModel(hw) {
+		// Using custom JSON here so we force the fields to be sent even with zero values
+		return nil, config.WLEDCustomCmd(struct {
+			IsOn          bool `json:"on"`
+			APITransition int  `json:"tt"`
+		}{false, 0}, WLEDtargets)
+	}
 	if IsBusylightModel(hw) {
 		return []byte{0xff, 'X'}, nil
 	}
 	return []byte{0xff, 'C', 0x04, 'X'}, nil
+}
+
+func (c *ConfigData) WLEDCmd(s WLEDState, targets []int) error {
+	for _, devID := range targets {
+		if httpDriver, isValid := c.Networks[c.Devices[devID].NetworkID].driver.(*HTTPDriver); isValid {
+			if err := httpDriver.WLEDState(s); err != nil {
+				return fmt.Errorf("error commanding WLED device %d with %v: %v", devID, s, err)
+			}
+		} else {
+			return fmt.Errorf("invalid driver for WLED device %d configured", devID)
+		}
+	}
+	return nil
+}
+
+func (c *ConfigData) WLEDCustomCmd(s any, targets []int) error {
+	for _, devID := range targets {
+		if httpDriver, isValid := c.Networks[c.Devices[devID].NetworkID].driver.(*HTTPDriver); isValid {
+			if err := httpDriver.WLEDCustomState(s); err != nil {
+				return fmt.Errorf("error commanding WLED device %d with %v: %v", devID, s, err)
+			}
+		} else {
+			return fmt.Errorf("invalid driver for WLED device %d configured", devID)
+		}
+	}
+	return nil
 }
 
 // Clear turns off all the LEDs in the display matrix.

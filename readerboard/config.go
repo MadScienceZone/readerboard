@@ -213,7 +213,14 @@ type DeviceDescription struct {
 	// anything if you build the units with different colors.
 	LightsInstalled string
 
-	// State tracking is recorded here so we can report back what we laste told
+	// For WLED units, this maps sequences to preset slot numbers. The key is
+	// the set of light names in the sequence (e.g., "BRr") and the value is the
+	// preset slot number to play. If the key is prefixed with a color and an asterisk
+	// (e.g., "G*Rr"), then this selects a playlist when the color ("G") is strobing
+	// while the sequence ("Rr") is playing.
+	WLEDPlaylists map[string]int
+
+	// State tracking is recorded here so we can report back what we last told
 	// the device to do without taking the time to ask the device itself.
 	LastKnownState DiscreteLEDStatus `json:"-"`
 }

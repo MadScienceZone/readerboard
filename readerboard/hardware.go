@@ -326,7 +326,6 @@ type RS485Driver struct {
 type HTTPDriver struct {
 	BaseNetworkDriver
 	APIEndpoint string
-	APIDefault  string
 }
 
 func (d *DirectDriver) IsPortOpen() bool {
@@ -457,7 +456,7 @@ func (net *NetworkDescription) Attach(netID string, globalAddress int) error {
 		case HTTPJSON:
 			net.driver = &HTTPDriver{}
 			log.Printf("network %s: HTTP connection", netID)
-			return nil
+			return net.driver.Attach(netID, net.Device, 0, globalAddress)
 		default:
 			return fmt.Errorf("network %s: invalid network type %v", netID, net.ConnectionType)
 		}
@@ -568,14 +567,10 @@ func ProbeDevices(configData *ConfigData) error {
 		var err error
 		log.Printf("Device address %d: type=%v; net=%s (%s; s/n=%s)", id, dev.DeviceType, dev.NetworkID, dev.Description, dev.Serial)
 		if net, ok := configData.Networks[dev.NetworkID]; ok {
-			if IsWLEDModel(dev.DeviceType) {
-				var info WLEDInfo
-				data, err := net.driver.(*HTTPDriver).CommandAndResponse("info", nil)
+			if httpDriver, isValid := net.driver.(*HTTPDriver); isValid && IsWLEDModel(dev.DeviceType) {
+				info, err := httpDriver.WLEDQuery()
 				if err != nil {
-					return fmt.Errorf("error getting response for unit %d: %v", id, err)
-				}
-				if err := json.Unmarshal(data, &info); err != nil {
-					return fmt.Errorf("error unmarshaling info packet from unit %d: %v", id, err)
+					return err
 				}
 				log.Printf("probed device ID %d on network %s:", id, dev.NetworkID)
 				log.Printf("| WLED module %s version %s build %v, %d LEDs, %d FPS", info.Name,
@@ -588,8 +583,8 @@ func ProbeDevices(configData *ConfigData) error {
 				log.Printf("| Arch %s, core %s; free heap %d, uptime %d", info.Arch, info.Core, info.FreeHeap, info.Uptime)
 				log.Printf("| Brand %s, product %s; MAC %s, IP %s; device ID %s",
 					info.Brand, info.Product, info.MACAddr, info.IPAddr, info.DeviceID)
-				if dev.Serial != info.MACAddr {
-					log.Printf("| WARNING! device serial number is %s but configured as %s!", info.MACAddr, dev.Serial)
+				if dev.Serial != info.DeviceID {
+					log.Printf("| WARNING! device serial number is %s but configured as %s!", info.DeviceID, dev.Serial)
 				}
 				continue
 			}
@@ -882,7 +877,6 @@ func (d *RS485Driver) Receive() ([]byte, error) {
 //   GlobalAddress      (usual meaning)
 //   NetworkID          (usual meaning)
 //   APIEndpoint		url up to API command part
-//   APIDefault         default API to use for methods which don't specify a command
 //
 // We don't necessarily keep a connection alive to the device, so we fake the whole
 // "attach" and "isPortOpen" semantic here, and just initiate POST operations each time
@@ -898,16 +892,17 @@ func (d *HTTPDriver) Attach(netID, device string, _, globalAddress int) error {
 		return fmt.Errorf("attach attempted to nil device %s", netID)
 	}
 
+	log.Printf("HTTP network %s attach for device endpoint %s; global address %d", netID, device, globalAddress)
 	d.isPortOpen = true
 	d.GlobalAddress = globalAddress
 	d.NetworkID = netID
 	d.APIEndpoint = device
-	d.APIDefault = "" //TODO
 	return nil
 }
 
 // Detach for HTTP devices just clears the structure and flags that we shouldn't use this device anymore.
 func (d *HTTPDriver) Detach() {
+	log.Printf("HTTP network %s detach", d.NetworkID)
 	d.isPortOpen = false
 	d.APIEndpoint = ""
 }
@@ -928,29 +923,12 @@ func (d *HTTPDriver) Bytes([]int, []byte) ([]byte, error) {
 	return nil, fmt.Errorf("inappropriate call to Bytes for HTTPDriver device on network %v", d.NetworkID)
 }
 
-// Send transmits a JSON command to the device on HTTP network endpoint with this driver.
-// This assumes that the device's default API command is to be used and the string is the payload to be sent,
-// already marshalled in JSON form for the service. We don't enforce the formatting at all here.
+// Send should not be used for HTTP devices since, unlike the serial devices
+// there's no difference in how the command streams are put together depending on
+// whether they are sent via RS-485 or USB serial. This is just network traffic, so the
+// data encoding is at the device driver level, not here.
 func (d *HTTPDriver) Send(cmd string) error {
-	return d.SendCommand(d.APIDefault, cmd)
-}
-
-// SendCommand transmits an arbitrary JSON command to the device
-func (d *HTTPDriver) SendCommand(apiCmd, cmd string) error {
-	return d.sendCommand(apiCmd, cmd, bytes.NewBufferString(cmd))
-}
-
-func (d *HTTPDriver) sendCommand(apiCmd, cmd string, buf *bytes.Buffer) error {
-	response, err := http.Post(d.APIEndpoint+apiCmd, "application/json", buf)
-	if err != nil {
-		log.Printf("HTTP post %s error %v", cmd, err)
-		return err
-	}
-	log.Printf("HTTP post %s %s", cmd, response.Status)
-	if err := response.Body.Close(); err != nil {
-		log.Printf("Error closing HTTP response: %v", err)
-	}
-	return nil
+	return fmt.Errorf("inappropriate call to Send for HTTPDriver device on network %v", d.NetworkID)
 }
 
 // CommandAndResponse is the basic communication method for HTTP devices. It takes a byte slice
@@ -958,30 +936,84 @@ func (d *HTTPDriver) sendCommand(apiCmd, cmd string, buf *bytes.Buffer) error {
 // the configured device endpoint URL string, and returns the JSON response from the device
 // as a byte slice value.
 func (d *HTTPDriver) CommandAndResponse(apiCmd string, cmd []byte) ([]byte, error) {
-	response, err := http.Post(d.APIEndpoint+apiCmd, "application/json", bytes.NewBuffer(cmd))
+	var response *http.Response
+	var err error
+
+	if cmd == nil {
+		response, err = http.Get(d.APIEndpoint + apiCmd)
+	} else {
+		response, err = http.Post(d.APIEndpoint+apiCmd, "application/json", bytes.NewBuffer(cmd))
+	}
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Printf("Error closing HTTP response: %v", err)
+		}
+	}()
 	if err != nil {
 		log.Printf("HTTP post %s error %v", string(cmd), err)
 		return nil, err
-	}
-	log.Printf("HTTP post %s %s", string(cmd), response.Status)
+	} else {
+		log.Printf("HTTP post %s %s", string(cmd), response.Status)
 
-	data, err := io.ReadAll(response.Body)
+		data, err := io.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("HTTP post %s error reading response: %v", string(cmd), err)
+			return nil, err
+		}
+		return data, nil
+	}
+}
+
+func (d *HTTPDriver) WLEDQuery() (WLEDInfo, error) {
+	var info WLEDInfo
+	data, err := d.CommandAndResponse("info", nil)
 	if err != nil {
-		log.Printf("HTTP post %s error reading response: %v", string(cmd), err)
-		return nil, err
+		return WLEDInfo{}, fmt.Errorf("error retrieving response from WLED unit %s: %v", d.NetworkID, err)
 	}
-	if err := response.Body.Close(); err != nil {
-		log.Printf("Error closing HTTP response: %v", err)
+	if err := json.Unmarshal(data, &info); err != nil {
+		return WLEDInfo{}, fmt.Errorf("error unmarshaling JSON response from WLED unit %s: %v", d.NetworkID, err)
 	}
-	return data, nil
+	return info, nil
 }
 
+func (d *HTTPDriver) WLEDState(s WLEDState) error {
+	requestData, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("error marshaling WLED unit %s request JSON %v: %v", d.NetworkID, s, err)
+	}
+	_, err = d.CommandAndResponse("state", requestData)
+	if err != nil {
+		return fmt.Errorf("error communicating with unit %s: %v", d.NetworkID, err)
+	}
+	return nil
+}
+
+func (d *HTTPDriver) WLEDCustomState(s any) error {
+	requestData, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("error marshaling WLED unit %s request JSON %v: %v", d.NetworkID, s, err)
+	}
+	_, err = d.CommandAndResponse("state", requestData)
+	if err != nil {
+		return fmt.Errorf("error communicating with unit %s: %v", d.NetworkID, err)
+	}
+	return nil
+}
+
+// SendBytes should not be used for HTTP devices since, unlike the serial devices
+// there's no difference in how the command streams are put together depending on
+// whether they are sent via RS-485 or USB serial. This is just network traffic, so the
+// data encoding is at the device driver level, not here.
 func (d *HTTPDriver) SendBytes(cmd []byte) error {
-	return d.sendCommand(d.APIDefault, string(cmd), bytes.NewBuffer(cmd))
+	return fmt.Errorf("inappropriate call to SendBytes for HTTPDriver device on network %v", d.NetworkID)
 }
 
+// Receive should not be used for HTTP devices since, unlike the serial devices
+// there's no difference in how the command streams are put together depending on
+// whether they are sent via RS-485 or USB serial. This is just network traffic, so the
+// data encoding is at the device driver level, not here.
 func (d *HTTPDriver) Receive() ([]byte, error) {
-	return nil, fmt.Errorf("Receive for HTTP devices not yet implemented.")
+	return nil, fmt.Errorf("inappropriate call to Receive for HTTPDriver device on network %v", d.NetworkID)
 }
 
 func (d *HTTPDriver) IsPortOpen() bool {
@@ -1084,14 +1116,14 @@ type WLEDInfo struct {
 	Version string `json:"ver"`
 	BuildID uint32 `json:"vid"`
 	LEDS    struct {
-		Count                     int  `json:"count"` // total LEDs
-		FramesPerSecond           int  `json:"fps"`   // 0-255
-		IsRGBW                    bool `json:"rgbw"`
-		DisplayWhiteChannelSlider bool `json:"wv"`
-		PowerUsage                int  `json:"pwr"`    // milliamps 0-65000
-		MaxPowerBudget            int  `json:"maxpwr"` // milliamps 0-65000
-		MaxSegments               byte `json:"maxseg"`
-		Capabilities              byte `json:"lc"` // logical AND of capabilities of segments
+		Count           int  `json:"count"` // total LEDs
+		FramesPerSecond int  `json:"fps"`   // 0-255
+		IsRGBW          bool `json:"rgbw"`
+		//		DisplayWhiteChannelSlider bool `json:"wv"`
+		PowerUsage     int  `json:"pwr"`    // milliamps 0-65000
+		MaxPowerBudget int  `json:"maxpwr"` // milliamps 0-65000
+		MaxSegments    byte `json:"maxseg"`
+		Capabilities   byte `json:"lc"` // logical AND of capabilities of segments
 	} `json:"leds"`
 	ToggleReceiveSend  bool     `json:"str"` // use single button for receive+send
 	Name               string   `json:"name"`
